@@ -42,9 +42,11 @@ When you have installed Docker, you need a single command to start the Document 
 
     sudo docker run -i -t -d -p 80:80 onlyoffice/documentserver
 
+The `documentserver` version `5.0.5.26` is confirmed to work.
+
 The Document Server needs only port 80 by default, but you also can run in on HTTPS. Follow its guides for more detailed setup.
 
-To check you have running Document Server successfuly, open a page on its address [http://DOCUMENT\_SERVER\_HOST/OnlineEditorsExample/](http://localhost/OnlineEditorsExample/), it will show you simple demo page where you can upload a document, or use their sample, and try to edit online in your browser. After you'll see it works well, you are ready to install the add-on in eXo Platform.
+To check you have running Document Server successfuly, open a page on its address [http://DOCUMENT\_SERVER\_HOST/](http://localhost//), it will show you a "Document Server is running" page. After you'll see it works well, you are ready to install the add-on in eXo Platform.
 
 ### eXo Platform Add-on
 After you successfuly installed ONLYOFFICE™ Document Server, you need install Onlyoffice add-on to eXo Platform server. It should be Platform version 4.3 or higher. 
@@ -57,7 +59,8 @@ When building from sources, then go to `/packaging/target` folder of the project
 
 ## Configuration
 
-Onlyoffice add-on need to know an adress of your Document Server and eXo Platform server, and it's also required to point a protocol scheme to use (`http` or `https`). Add following lines to your `exo.properties`.
+The document server has to be publicly available - your browser has to be able to connect to it directly (i.e. it is not like that Exoplatform somehow stands between you and the document server).
+Onlyoffice add-on need to know the adress of your Document Server and eXo Platform server, and it's also required to point a protocol scheme to use (`http` or `https`). Add following lines to your `exo.properties`.
 
 For Platform 4.4 and higher:
 
