@@ -74,6 +74,8 @@ For Platform 4.3 also need point your server public host and schema:
 
 Where `YOUR_DOCUMENT_SERVER_HOST` is an IP or host name of Document Server and `YOUR_EXO_SERVER_HOST` host ip or name (with port if not 80 or 443) of your eXo Platform server.
 
+If you run the service in containers behind a proxy server, you will also have to configure the OnlyOffice container (as suggested in an [onlyoffice issue](https://github.com/ONLYOFFICE/Docker-CommunityServer/issues/10)). Basically, you will have to download the [production-linux.json file](https://github.com/ONLYOFFICE/server/blob/master/Common/config/production-linux.json) and modify the `externalHost` to match the public URL of the OnlyOffice server. Then, you just mount the file, so it is available as `/etc/onlyoffice/documentserver/production-linux.json` in the OnlyOffice container.
+
 ## Security
 
 ONLYOFFICE™ Document Server standalone doesn't offer a user authorization or such integration with external identities. As a result it's required to place it in secure network and for production it will be mandatory to run via [HTTPS](http://helpcenter.onlyoffice.com/server/docker/document/docker-installation.aspx#RunningHTTPS) or even use [strong SSL security](https://raymii.org/s/tutorials/Strong_SSL_Security_On_nginx.html). 
