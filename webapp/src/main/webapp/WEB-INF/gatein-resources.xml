@@ -37,18 +37,6 @@
     </depends>
   </module>
   <module>
-    <name>onlyofficeJqueryEIP</name>
-    <load-group>onlyofficeGRP</load-group>
-    <script>
-      <minify>false</minify>
-      <path>/js/eip.js</path>
-    </script>
-    <depends>
-      <module>jquery</module>
-      <as>jQuery</as>
-    </depends>
-  </module>
-  <module>
     <name>onlyofficeJqueryUI</name>
     <as>jqueryUI</as>
     <load-group>onlyofficeGRP</load-group>
@@ -89,9 +77,6 @@
     </depends>
     <depends>
       <module>onlyofficeJqueryUI</module>
-    </depends>
-    <depends>
-      <module>onlyofficeJqueryEIP</module>
     </depends>
     <depends>
       <module>onlyofficeRedux</module>
