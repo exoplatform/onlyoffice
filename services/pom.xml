@@ -32,6 +32,10 @@
   <name>eXo OnlyOffice Editor :: Extension Services</name>
   <description>eXo OnlyOffice Editor services of portal extension</description>
 
+  <properties>
+    <exo.test.coverage.ratio>0.21</exo.test.coverage.ratio>
+  </properties>
+
   <dependencies>
     <!-- Dependencies (provided as part of Platform) -->
     <dependency>
@@ -205,22 +209,10 @@
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-surefire-plugin</artifactId>
         <configuration>
-          <useFile>false</useFile>
-          <argLine>${env.MAVEN_OPTS}
-            -Djava.security.manager=org.exoplatform.commons.test.TestSecurityManager
-            -Djava.security.policy=${project.build.directory}/test-classes/conf/test.policy</argLine>
-          <systemPropertyVariables>
-            <exo.product.developing>true</exo.product.developing>
-            <maven.exoplatform.dir>${project.build.directory}</maven.exoplatform.dir>
-            <exo.conf.dir.name>test-classes/conf</exo.conf.dir.name>
-            <exo.files.storage.dir>${project.build.directory}/files</exo.files.storage.dir>
-            <java.security.auth.login.config>${project.build.directory}/test-classes/conf/jaas.conf</java.security.auth.login.config>
-          </systemPropertyVariables>
           <includes>
             <include>**/**/EditorServiceTest.java</include>
             <include>**/**/OnlyofficeEditorServiceTest.java</include>
           </includes>
-          <forkCount>0</forkCount>
         </configuration>
       </plugin>
     </plugins>
