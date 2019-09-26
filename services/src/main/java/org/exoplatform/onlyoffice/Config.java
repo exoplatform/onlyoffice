@@ -26,8 +26,6 @@ import java.net.URI;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 
-import javax.jcr.Node;
-
 import org.exoplatform.services.log.ExoLogger;
 import org.exoplatform.services.log.Log;
 import org.exoplatform.ws.frameworks.json.impl.JsonException;
@@ -121,7 +119,7 @@ public class Config implements Externalizable {
 
     /** The folder. */
     // Document.Info
-    protected String       author, created, folder;
+    protected String       owner, uploaded, folder;
 
     /** The editor. */
     // Editor
@@ -129,7 +127,7 @@ public class Config implements Externalizable {
 
     /** The user. */
     // Editor.User
-    protected String       userId, firstname, lastname;
+    protected String       userId, name;
 
     /**
      * Instantiates a new builder.
@@ -239,24 +237,24 @@ public class Config implements Externalizable {
     }
 
     /**
-     * Author.
+     * Owner.
      *
-     * @param author the author
+     * @param owner the owner
      * @return the builder
      */
-    public Builder author(String author) {
-      this.author = author;
+    public Builder owner(String owner) {
+      this.owner = owner;
       return this;
     }
 
     /**
-     * Created.
+     * Uploaded.
      *
-     * @param createdTime the created time
+     * @param uploadedTime the created time
      * @return the builder
      */
-    public Builder created(Calendar createdTime) {
-      this.created = DATETIME_FORMAT.format(createdTime.getTime());
+    public Builder uploaded(Calendar uploadedTime) {
+      this.uploaded = DATETIME_FORMAT.format(uploadedTime.getTime());
       return this;
     }
 
@@ -360,24 +358,13 @@ public class Config implements Externalizable {
     }
 
     /**
-     * User first name.
+     * User name.
      *
-     * @param firstname the firstname
+     * @param name the name
      * @return the builder
      */
-    public Builder userFirstName(String firstname) {
-      this.firstname = firstname;
-      return this;
-    }
-
-    /**
-     * User last name.
-     *
-     * @param lastname the lastname
-     * @return the builder
-     */
-    public Builder userLastName(String lastname) {
-      this.lastname = lastname;
+    public Builder userName(String name) {
+      this.name = name;
       return this;
     }
 
@@ -433,10 +420,10 @@ public class Config implements Externalizable {
                                                              .toString();
       }
 
-      Document.Info info = new Document.Info(author, created, folder);
+      Document.Info info = new Document.Info(owner, uploaded, folder);
       Document.Permissions permissions = new Document.EditPermissions();
       Document document = new Document(key, fileType, title, url, info, permissions);
-      Editor.User user = new Editor.User(userId, firstname, lastname);
+      Editor.User user = new Editor.User(userId, name);
       Editor editor = new Editor(callbackUrl, lang, mode, user);
       EditorPage editorPage = new EditorPage(comment, renameAllowed, displayPath, lastModifier, lastModified);
       Config config = new Config(documentserverUrl,
@@ -477,11 +464,11 @@ public class Config implements Externalizable {
      */
     public static class Info {
 
-      /** The author. */
-      protected final String author;
+      /** The owner. */
+      protected final String owner;
 
-      /** The created. */
-      protected final String created; // '2010-07-07 3:46 PM'
+      /** The uploaded. */
+      protected final String uploaded; // '2010-07-07 3:46 PM'
 
       /** The folder. */
       protected final String folder;  // 'Example Files'
@@ -493,33 +480,33 @@ public class Config implements Externalizable {
       /**
        * Instantiates a new info.
        *
-       * @param author the author
-       * @param created the created
+       * @param owner the owner
+       * @param uploaded the uploaded
        * @param folder the folder
        */
-      protected Info(String author, String created, String folder) {
+      protected Info(String owner, String uploaded, String folder) {
         super();
-        this.author = author;
-        this.created = created;
+        this.owner = owner;
+        this.uploaded = uploaded;
         this.folder = folder;
       }
 
       /**
-       * Gets the author.
+       * Gets the owner.
        *
-       * @return the author
+       * @return the owner
        */
-      public String getAuthor() {
-        return author;
+      public String getOwner() {
+        return owner;
       }
 
       /**
-       * Gets the created.
+       * Gets the uploaded.
        *
-       * @return the created
+       * @return the uploaded
        */
-      public String getCreated() {
-        return created;
+      public String getUploaded() {
+        return uploaded;
       }
 
       /**
@@ -635,12 +622,11 @@ public class Config implements Externalizable {
      * For user.
      *
      * @param id the id
-     * @param firstName the first name
-     * @param lastName the last name
+     * @param name the name
      * @param url the url
      * @return the document
      */
-    protected Document forUser(String id, String firstName, String lastName, String url) {
+    protected Document forUser(String id, String name, String url) {
       return new Document(key, fileType, title, url, info, permissions);
     }
 
@@ -712,11 +698,8 @@ public class Config implements Externalizable {
       /** The id. */
       protected final String     id;
 
-      /** The firstname. */
-      protected final String     firstname;
-
-      /** The lastname. */
-      protected final String     lastname;
+      /** The name. */
+      protected final String     name;
 
       /** The lastModified timestamp. */
       protected Long             lastModified = Long.valueOf(0);
@@ -738,14 +721,12 @@ public class Config implements Externalizable {
        * Instantiates a new user.
        *
        * @param id the id
-       * @param firstname the firstname
-       * @param lastname the lastname
+       * @param name the name
        */
-      protected User(String id, String firstname, String lastname) {
+      protected User(String id, String name) {
         super();
         this.id = id;
-        this.firstname = firstname;
-        this.lastname = lastname;
+        this.name = name;
       }
 
       /**
@@ -758,21 +739,12 @@ public class Config implements Externalizable {
       }
 
       /**
-       * Gets the firstname.
+       * Gets the name.
        *
-       * @return the firstname
+       * @return the name
        */
-      public String getFirstname() {
-        return firstname;
-      }
-
-      /**
-       * Gets the lastname.
-       *
-       * @return the lastname
-       */
-      public String getLastname() {
-        return lastname;
+      public String getName() {
+        return name;
       }
 
       /**
@@ -947,14 +919,13 @@ public class Config implements Externalizable {
      * For user.
      *
      * @param id the id
-     * @param firstName the first name
-     * @param lastName the last name
+     * @param name the name
      * @param lang the lang
      * @param callbackUrl the callback url
      * @return the editor
      */
-    protected Editor forUser(String id, String firstName, String lastName, String lang, String callbackUrl) {
-      User otherUser = new User(id, firstName, lastName);
+    protected Editor forUser(String id, String name, String lang, String callbackUrl) {
+      User otherUser = new User(id, name);
       // FYI locks maintenance will introduce complex logic
       // simpler: each user may contain own lock token only, but don't rely on
       // others
@@ -1150,23 +1121,22 @@ public class Config implements Externalizable {
     out.writeUTF(editorPage.lastModifier);
     out.writeUTF(editorPage.lastModified);
     
-    // Document: key, fileType, title, url, info(author, created, folder)
+    // Document: key, fileType, title, url, info(owner, uploaded, folder)
     out.writeUTF(document.getKey());
     out.writeUTF(document.getFileType());
     out.writeUTF(document.getTitle());
     out.writeUTF(document.getUrl());
-    out.writeUTF(document.getInfo().getAuthor());
-    out.writeUTF(document.getInfo().getCreated());
+    out.writeUTF(document.getInfo().getOwner());
+    out.writeUTF(document.getInfo().getUploaded());
     out.writeUTF(document.getInfo().getFolder());
 
-    // Editor: callbackUrl, lang, mode, user(userId, firstname, lastname)
+    // Editor: callbackUrl, lang, mode, user(userId, name)
     out.writeUTF(editorConfig.getCallbackUrl());
     String elang = editorConfig.getLang();
     out.writeUTF(elang != null ? elang : NO_LANG);
     out.writeUTF(editorConfig.getMode());
     out.writeUTF(editorConfig.getUser().getId());
-    out.writeUTF(editorConfig.getUser().getFirstname());
-    out.writeUTF(editorConfig.getUser().getLastname());
+    out.writeUTF(editorConfig.getUser().getName());
     out.writeLong(editorConfig.getUser().getLastModified());
     out.writeLong(editorConfig.getUser().getLastSaved());
   }
@@ -1218,7 +1188,7 @@ public class Config implements Externalizable {
     String emodified = in.readUTF();
     this.editorPage = new EditorPage(ecomment, erenameAllowed, edisplayPath,emodifier, emodified);
     
-    // Document: key, fileType, title, url, info(author, created, folder)
+    // Document: key, fileType, title, url, info(owner, uploaded, folder)
     String dkey = in.readUTF();
     String dfileType = in.readUTF();
     String dtitle = in.readUTF();
@@ -1229,7 +1199,7 @@ public class Config implements Externalizable {
     Document.Info dinfo = new Document.Info(diauthor, dicreated, difolder);
     this.document = new Document(dkey, dfileType, dtitle, durl, dinfo, new Document.EditPermissions());
 
-    // Editor: callbackUrl, lang, mode, user(userId, firstname, lastname)
+    // Editor: callbackUrl, lang, mode, user(userId, name)
     String ecallbackUrl = in.readUTF();
     String elang = in.readUTF();
     if (NO_LANG.equals(elang)) {
@@ -1237,11 +1207,10 @@ public class Config implements Externalizable {
     }
     String emode = in.readUTF();
     String euid = in.readUTF();
-    String eufirstname = in.readUTF();
-    String eulastname = in.readUTF();
+    String euname = in.readUTF();
     long lastModified = in.readLong();
     long lastSaved = in.readLong();
-    Editor.User euser = new Editor.User(euid, eufirstname, eulastname);
+    Editor.User euser = new Editor.User(euid, euname);
     euser.setLastModified(lastModified);
     euser.setLastSaved(lastSaved);
     this.editorConfig = new Editor(ecallbackUrl, elang, emode, euser);
@@ -1448,16 +1417,15 @@ public class Config implements Externalizable {
    * Create a copy of this editor but for another given user.
    * 
    * @param id {@link String}
-   * @param firstName {@link String}
-   * @param lastName {@link String}
+   * @param name {@link String}
    * @param lang {@link String}
    * @param documentserverSecret the documentserverSecret
    * @return {@link Config} an instance of config similar to this but with
    *         another user in the editor
    */
-  public Config forUser(String id, String firstName, String lastName, String lang, String documentserverSecret) {
-    Document userDocument = document.forUser(id, firstName, lastName, fileUrl(platformRestUrl, id, document.getKey()));
-    Editor userEditor = editorConfig.forUser(id, firstName, lastName, lang, callbackUrl(platformRestUrl, id, document.getKey()));
+  public Config forUser(String id, String name, String lang, String documentserverSecret) {
+    Document userDocument = document.forUser(id, name, fileUrl(platformRestUrl, id, document.getKey()));
+    Editor userEditor = editorConfig.forUser(id, name, lang, callbackUrl(platformRestUrl, id, document.getKey()));
     Config config = new Config(documentserverUrl,
                                platformRestUrl,
                                editorUrl,

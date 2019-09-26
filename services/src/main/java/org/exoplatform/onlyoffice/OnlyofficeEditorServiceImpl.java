@@ -132,7 +132,6 @@ import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jws;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
-import javassist.bytecode.stackmap.BasicBlock.Catch;
 
 /**
  * Service implementing {@link OnlyofficeEditorService} and {@link Startable}.
@@ -540,8 +539,7 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
           User user = getUser(userId); // and use this user language
           if (user != null) {
             config = another.forUser(user.getUserName(),
-                                     user.getFirstName(),
-                                     user.getLastName(),
+                                     user.getDisplayName(),
                                      getUserLang(userId),
                                      documentserverSecret);
             Config existing = configs.putIfAbsent(userId, config);
@@ -635,9 +633,9 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
           String docType = documentType(fileType);
 
           Config.Builder builder = Config.editor(documentserverUrl, docType, workspace, path, docId);
-          builder.author(userId);
+          builder.owner(userId);
           builder.fileType(fileType);
-          builder.created(nodeCreated(node));
+          builder.uploaded(nodeCreated(node));
           builder.displayPath(getDisplayPath(node, userId));
           builder.comment(nodeComment(node));
           builder.renameAllowed(canRenameDocument(node));
@@ -666,8 +664,7 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
           builder.mode("edit");
           builder.title(nodeTitle(node));
           builder.userId(user.getUserName());
-          builder.userFirstName(user.getFirstName());
-          builder.userLastName(user.getLastName());
+          builder.userName(user.getDisplayName());
           builder.lastModifier(getLastModifier(node));
           builder.lastModified(getLastModified(node));
           String key = generateId(workspace, path).toString();

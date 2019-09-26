@@ -1,6 +1,5 @@
 package org.exoplatform.onlyoffice;
 
-import java.io.InputStream;
 import java.util.Calendar;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -84,12 +83,11 @@ public class OnlyofficeEditorServiceTest extends BaseCommonsTestCase {
     assertNotNull(config.getDocument());
     assertEquals("Test Document.docx", config.getDocument().getTitle());
     assertEquals("docx", config.getDocument().getFileType());
-    assertEquals("john", config.getDocument().getInfo().getAuthor());
+    assertEquals("john", config.getDocument().getInfo().getOwner());
 
     assertNotNull(config.getEditorConfig());
     assertNotNull(config.getEditorConfig().getUser());
-    assertEquals("John", config.getEditorConfig().getUser().getFirstname());
-    assertEquals("Smith", config.getEditorConfig().getUser().getLastname());
+    assertEquals("John Smith", config.getEditorConfig().getUser().getName());
     node.remove();
     session.save();
   }
