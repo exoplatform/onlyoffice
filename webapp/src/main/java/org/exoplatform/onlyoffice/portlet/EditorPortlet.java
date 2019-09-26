@@ -28,6 +28,7 @@ import java.util.ResourceBundle;
 
 import javax.jcr.RepositoryException;
 import javax.portlet.GenericPortlet;
+import javax.portlet.MimeResponse;
 import javax.portlet.PortletException;
 import javax.portlet.PortletRequestDispatcher;
 import javax.portlet.RenderMode;
@@ -44,6 +45,7 @@ import org.exoplatform.services.log.Log;
 import org.exoplatform.services.resources.ResourceBundleService;
 import org.exoplatform.webui.application.WebuiRequestContext;
 import org.exoplatform.ws.frameworks.json.impl.JsonException;
+import org.w3c.dom.Element;
 
 /**
  * The Class EditorPortlet.
@@ -70,6 +72,25 @@ public class EditorPortlet extends GenericPortlet {
     this.i18nService = container.getComponentInstanceOfType(ResourceBundleService.class);
   }
 
+  @Override
+  protected void doHeaders(RenderRequest request, RenderResponse response) {
+    super.doHeaders(request, response);
+
+    ResourceBundle i18n = i18nService.getResourceBundle(
+            new String[] { "locale.onlyoffice.Onlyoffice",
+                    "locale.onlyoffice.OnlyofficeClient" },
+            request.getLocale());
+
+    Config config = getConfig(request, response, i18n);
+
+    if(config != null) {
+      Element onlyOfficeJavascript = response.createElement("script");
+      onlyOfficeJavascript.setAttribute("type", "text/javascript");
+      onlyOfficeJavascript.setAttribute("src", config.getDocumentserverJsUrl());
+      response.addProperty(MimeResponse.MARKUP_HEAD_ELEMENT, onlyOfficeJavascript);
+    }
+  }
+
   /**
    * Renderer the portlet view.
    *
@@ -80,22 +101,55 @@ public class EditorPortlet extends GenericPortlet {
    */
   @RenderMode(name = "view")
   public void view(RenderRequest request, RenderResponse response) throws IOException, PortletException {
-    WebuiRequestContext webuiContext = WebuiRequestContext.getCurrentInstance();
-    // ResourceBundle i18n = webuiContext.getApplicationResourceBundle();
     ResourceBundle i18n = i18nService.getResourceBundle(
-                                                        new String[] { "locale.onlyoffice.Onlyoffice",
-                                                            "locale.onlyoffice.OnlyofficeClient" },
-                                                        request.getLocale());
+            new String[] { "locale.onlyoffice.Onlyoffice",
+                    "locale.onlyoffice.OnlyofficeClient" },
+            request.getLocale());
+
+    Config config = getConfig(request, response, i18n);
+
+    if(config != null) {
+      try {
+        requireJS().require("SHARED/bts_tooltip");
+        callModule("initEditor(" + config.toJSON() + ");");
+      } catch (JsonException e) {
+        LOG.error("Error converting editor configuration to JSON for node by ID: {}", config.getDocId(), e);
+        showError(i18n.getString("OnlyofficeEditorClient.ErrorTitle"),
+                i18n.getString("OnlyofficeEditor.error.CannotSendEditorConfiguration"));
+      } catch (Exception e) {
+        LOG.error("Error initializing editor configuration for node by ID: {}", config.getDocId(), e);
+        showError(i18n.getString("OnlyofficeEditorClient.ErrorTitle"),
+                i18n.getString("OnlyofficeEditor.error.CannotInitEditorConfiguration"));
+      }
+    }
+
+    PortletRequestDispatcher prDispatcher = getPortletContext().getRequestDispatcher("/WEB-INF/pages/editor.jsp");
+    prDispatcher.include(request, response);
+  }
+
+  /**
+   * Get editor config
+   * If the config already exists, the createEditor returns it instead of creating a new one.
+   *
+   * @param request the request
+   * @param response the response
+   * @param i18n the i18n resource bundle
+   * @return the editor config
+   */
+  private Config getConfig(RenderRequest request, RenderResponse response, ResourceBundle i18n) {
+    Config config = null;
+
+    WebuiRequestContext webuiContext = WebuiRequestContext.getCurrentInstance();
 
     String docId = webuiContext.getRequestParameter("docId");
     if (docId != null) {
       try {
-        Config config = onlyoffice.createEditor(request.getScheme(),
-                                                request.getServerName(),
-                                                request.getServerPort(),
-                                                request.getRemoteUser(),
-                                                null,
-                                                docId);
+        config = onlyoffice.createEditor(request.getScheme(),
+                request.getServerName(),
+                request.getServerPort(),
+                request.getRemoteUser(),
+                null,
+                docId);
         if (config != null) {
           if (config.getEditorConfig().getLang() == null) {
             if (request.getLocale() != null) {
@@ -106,34 +160,27 @@ public class EditorPortlet extends GenericPortlet {
               config.getEditorConfig().setLang(Locale.getDefault().getLanguage());
             }
           }
-          requireJS().require("SHARED/bts_tooltip");
-          callModule("initEditor(" + config.toJSON() + ");");
         } else {
           showError(i18n.getString("OnlyofficeEditorClient.ErrorTitle"),
-                    i18n.getString("OnlyofficeEditor.error.EditorCannotBeCreated"));
+                  i18n.getString("OnlyofficeEditor.error.EditorCannotBeCreated"));
         }
       } catch (RepositoryException e) {
         LOG.error("Error reading document node by ID: {}", docId, e);
         showError(i18n.getString("OnlyofficeEditorClient.ErrorTitle"),
-                  i18n.getString("OnlyofficeEditor.error.CannotReadDocument"));
+                i18n.getString("OnlyofficeEditor.error.CannotReadDocument"));
       } catch (OnlyofficeEditorException e) {
         LOG.error("Error creating document editor for node by ID: {}", docId, e);
         showError(i18n.getString("OnlyofficeEditorClient.ErrorTitle"),
-                  i18n.getString("OnlyofficeEditor.error.CannotCreateEditor"));
-      } catch (JsonException e) {
-        LOG.error("Error converting editor configuration to JSON for node by ID: {}", docId, e);
-        showError(i18n.getString("OnlyofficeEditorClient.ErrorTitle"),
-                  i18n.getString("OnlyofficeEditor.error.CannotSendEditorConfiguration"));
+                i18n.getString("OnlyofficeEditor.error.CannotCreateEditor"));
       } catch (Exception e) {
         LOG.error("Error initializing editor configuration for node by ID: {}", docId, e);
         showError(i18n.getString("OnlyofficeEditorClient.ErrorTitle"),
-                  i18n.getString("OnlyofficeEditor.error.CannotInitEditorConfiguration"));
+                i18n.getString("OnlyofficeEditor.error.CannotInitEditorConfiguration"));
       }
     } else {
       showError(i18n.getString("OnlyofficeEditorClient.ErrorTitle"), i18n.getString("OnlyofficeEditor.error.DocumentIdRequired"));
     }
 
-    PortletRequestDispatcher prDispatcher = getPortletContext().getRequestDispatcher("/WEB-INF/pages/editor.jsp");
-    prDispatcher.include(request, response);
+    return config;
   }
 }

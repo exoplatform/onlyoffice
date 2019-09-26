@@ -486,36 +486,11 @@
           "pluginsData" : []
         };
 
-        // load Onlyoffice API script:
-        // XXX need load API script to DOM head, Onlyoffice needs a real element in <script> to detect the DS server URL
-        $("<script>").attr("type", "text/javascript").attr("src", config.documentserverJsUrl).appendTo("head");
-
-        // and wait until it will be loaded
-        function jsReady() {
-          return (typeof DocsAPI !== "undefined") && (typeof DocsAPI.DocEditor !== "undefined");
-        }
-
-        var attempts = 40;
-        function waitReady() {
-          attempts--;
-          if (attempts >= 0) {
-            setTimeout(function() {
-              if (jsReady()) {
-                process.resolve(config);
-              } else {
-                waitReady();
-              }
-            }, 750);
-          } else {
-            log("ERROR: ONLYOFFICE script load timeout: " + config.documentserverJsUrl);
-            process.reject("ONLYOFFICE script load timeout. Ensure Document Server is running and accessible.");
-          }
-        }
-
-        if (jsReady()) {
-          process.resolve(config);
+        if((typeof DocsAPI === "undefined") || (typeof DocsAPI.DocEditor === "undefined")) {
+          log("ERROR: ONLYOFFICE script load timeout: " + config.documentserverJsUrl);
+          process.reject("ONLYOFFICE script load timeout. Ensure Document Server is running and accessible.");
         } else {
-          waitReady();
+          process.resolve(config);
         }
       } else {
         process.reject("Editor config not found");
