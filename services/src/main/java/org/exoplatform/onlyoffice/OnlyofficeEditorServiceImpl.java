@@ -1354,7 +1354,12 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
         systemNode.save();
       }
 
-      parentNode.getSession().move(node.getPath(), parentNode.getPath() + "/" + newTitle);
+      // Test if parent node is root node ("/")
+      if (parentNode.getPath().equals("/")) {
+        parentNode.getSession().move(node.getPath(), parentNode.getPath() + newTitle);
+      } else {
+        parentNode.getSession().move(node.getPath(), parentNode.getPath() + "/" + newTitle);
+      }
       node.setProperty("exo:lastModifier", userId);
       node.setProperty("exo:name", newTitle);
       node.setProperty("exo:title", newTitle);
