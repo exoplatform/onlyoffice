@@ -6,16 +6,13 @@
   <%-- div class="exitWindow onlyofficeEditorClose" style="display: none;">
     <a class="uiIconClose uiIconWhite" title="Close"></a>
   </div --%>
-  <div id="editor-top-bar-loader" style="display: none"></div>
   <div id="editor-top-bar" style="display: none">
     <div class="document-path"></div>
     <div class="document-title">
       <a data-placement="bottom" rel="tooltip" data-original-title="Click to edit"> </a>
     </div>
     <div class="last-edited"></div>
-    <div class="editors-comment">
-      <a data-placement="bottom" rel="tooltip" data-original-title=""></a>
-    </div>
+    <div class="editors-comment" data-placement="bottom" rel="tooltip" data-original-title=""></div>
     <div class="comment">
       <input type="text" id="comment-box" placeholder="Add your summary"></input>
       <div id="save-btn">

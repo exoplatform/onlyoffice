@@ -19,6 +19,7 @@
   z-index: 100;
 }
 .onlyofficeEditorBody #editor-top-bar {
+  display: flex;
   height: 25px;
   background-color: #FFF;
   padding: 5px 10px;
@@ -35,7 +36,7 @@
   margin: 0;
 }
 
-.onlyofficeEditorBody #editor-top-bar a[rel=tooltip] {
+.onlyofficeEditorBody #editor-top-bar[rel=tooltip] {
   height: 0 !important;
   color: inherit;
   text-decoration: inherit;
@@ -69,6 +70,23 @@
 
 .onlyofficeEditorBody #editor-top-bar .editors-comment {
   font-style: italic;
+  max-width: 150px;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  white-space: nowrap;
+  position: relative;
+  padding-right: 6px;
+}
+
+.onlyofficeEditorBody #editor-top-bar .editors-comment:not(:empty):before {
+    content: "\"";
+}
+
+.onlyofficeEditorBody #editor-top-bar .editors-comment:not(:empty):after {
+    content: "\"";
+    position: absolute;
+    top: 0;
+    right: 1px;
 }
 
 .onlyofficeEditorBody  #editor-top-bar #save-btn {
