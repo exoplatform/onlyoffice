@@ -1324,7 +1324,6 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
         systemNode.save();
       }
 
-      // Test if parent node is root node ("/")
       String destPath = parentNode.getPath().equals("/") ? parentNode.getPath() + newTitle : parentNode.getPath() + "/" + newTitle;
       parentNode.getSession().move(node.getPath(), destPath);
       node.setProperty("exo:lastModifier", userId);

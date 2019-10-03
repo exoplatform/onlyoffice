@@ -74,9 +74,10 @@ public class OnlyofficeEditorServiceTest extends BaseCommonsTestCase {
 
     String[] newMixinNodeTypes = ((NodeImpl) node).getMixinTypeNames();
     assertTrue(ArrayUtils.contains(newMixinNodeTypes, "eoo:onlyofficeFile"));
+    assertTrue(node.hasNode("eoo:preferences"));
     assertTrue(node.getNode("eoo:preferences").hasNode("john"));
     assertTrue(node.getNode("eoo:preferences").getNode("john").hasProperty("path"));
-    assertTrue(node.hasNode("eoo:preferences"));
+    assertSame(node.getNode("eoo:preferences").getNode("john").getProperty("path").getValue().getString(), "path");
     node.remove();
   }
 
