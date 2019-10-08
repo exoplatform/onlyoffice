@@ -568,15 +568,13 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
       throw new DocumentNotFoundException("The document is not found. docId: " + docId + ", workspace: " + workspace);
     }
     String path = node.getPath();
-    String nodePath = nodePath(workspace, path);
 
-    // The path in form of Drive:path/to/node/nodeTitle
-    // TODO other node types?
+    // only nt:file are supported for online edition
     if (!node.isNodeType("nt:file")) {
-      throw new OnlyofficeEditorException("Document should be a nt:file node: " + nodePath);
+      throw new OnlyofficeEditorException("Document should be a nt:file node: " + nodePath(workspace, path));
     }
     if (!canEditDocument(node)) {
-      throw new OnlyofficeEditorException("Cannot edit document: " + nodePath);
+      throw new OnlyofficeEditorException("Cannot edit document: " + nodePath(workspace, path));
     }
 
     Config config = getEditor(userId, docId, true);
@@ -1472,9 +1470,6 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
         return fileExt;
       }
     }
-    // TODO should we find a type from the file MIME-type?
-    // String mimeType =
-    // node.getProperty("jcr:content/jcr:mimeType").getString();
     return null;
   }
 
@@ -1554,7 +1549,7 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
   }
 
   /**
-   * Node path.
+   * Node path with the pattern workspace:path/to/node.
    *
    * @param workspace the workspace
    * @param path the path
@@ -1565,7 +1560,7 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
   }
 
   /**
-   * Node path.
+   * Node path with the pattern workspace:path/to/node.
    *
    * @param config the config
    * @return the string
@@ -1771,11 +1766,9 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
       }
       // work in user session
       Node node = null;
-      // TODO rework the code to throw DocumentNotFoundException once after all checks
       DocumentNotFoundException notFoundEx = null;
       try {
         node = getDocumentById(workspace, config.getDocId());
-        // TODO node can be null here, check it, create
         // DocumentNotFoundException if it is and go out the try-catch
         if (node == null) {
           notFoundEx = new DocumentNotFoundException("The document is not found. docId: " + config.getDocId() + ", workspace: "

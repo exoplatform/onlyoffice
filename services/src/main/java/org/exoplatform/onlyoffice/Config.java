@@ -473,10 +473,6 @@ public class Config implements Externalizable {
       /** The folder. */
       protected final String folder;  // 'Example Files'
 
-      // TODO there is also sharingSettings array where we can put users with
-      // different access/edit
-      // permissions: 'Full Access', 'Read Only'
-
       /**
        * Instantiates a new info.
        *

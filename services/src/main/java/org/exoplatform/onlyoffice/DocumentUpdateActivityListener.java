@@ -52,7 +52,6 @@ public class DocumentUpdateActivityListener extends FileUpdateActivityListener {
     Property currentProperty = (Property) context.get(InvocationContext.CURRENT_ITEM);
     Node currentNode = currentProperty.getParent().getParent();
     // If there is no manually added comment from the editor
-    // TODO: rethink this statement
     if (!isCommentedNode(currentNode)) {
       String lastModifier = currentNode.getProperty("exo:lastModifier").getString();
       String workspace = currentNode.getSession().getWorkspace().getName();

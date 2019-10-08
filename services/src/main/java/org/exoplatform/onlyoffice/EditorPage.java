@@ -1,6 +1,5 @@
 package org.exoplatform.onlyoffice;
 
-// TODO: Auto-generated Javadoc
 /**
  * The Class EditorPage.
  */
