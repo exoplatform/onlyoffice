@@ -32,7 +32,6 @@ import org.exoplatform.services.security.ConversationState;
 import org.exoplatform.services.security.Identity;
 import org.exoplatform.services.security.MembershipEntry;
 
-// TODO: Auto-generated Javadoc
 /**
  * The Class AbstractResourceTest.
  */

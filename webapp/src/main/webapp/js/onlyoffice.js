@@ -465,6 +465,8 @@
           "pluginsData" : []
         };
 
+        log("ONLYOFFICE editor config: " + JSON.stringify(config));
+
         if((typeof DocsAPI === "undefined") || (typeof DocsAPI.DocEditor === "undefined")) {
           log("ERROR: ONLYOFFICE script load timeout: " + config.documentserverJsUrl);
           process.reject("ONLYOFFICE script load timeout. Ensure Document Server is running and accessible.");
@@ -931,6 +933,7 @@
 
           // create and start editor (this also will re-use an existing editor config from the server)
           docEditor = new DocsAPI.DocEditor("onlyoffice", localConfig);
+          console.log('>>>> ' + JSON.stringify(localConfig))
           // show editor
           $container.find("#editor-top-bar").show();
           $container.find(".editor").show();

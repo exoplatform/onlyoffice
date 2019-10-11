@@ -22,28 +22,11 @@ import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.net.HttpURLConnection;
-import java.net.MalformedURLException;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.net.URL;
-import java.net.URLDecoder;
+import java.net.*;
 import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
-import java.util.Arrays;
-import java.util.Calendar;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
+import java.util.*;
 import java.util.Map.Entry;
-import java.util.NoSuchElementException;
-import java.util.Random;
-import java.util.Set;
-import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ConcurrentMap;
@@ -51,16 +34,7 @@ import java.util.concurrent.locks.ReentrantLock;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-import javax.jcr.AccessDeniedException;
-import javax.jcr.Item;
-import javax.jcr.ItemNotFoundException;
-import javax.jcr.Node;
-import javax.jcr.PathNotFoundException;
-import javax.jcr.Property;
-import javax.jcr.RepositoryException;
-import javax.jcr.Session;
-import javax.jcr.Value;
-import javax.jcr.ValueFormatException;
+import javax.jcr.*;
 import javax.jcr.lock.Lock;
 
 import org.apache.commons.io.IOUtils;
@@ -106,11 +80,7 @@ import org.exoplatform.services.jcr.impl.core.NodeImpl;
 import org.exoplatform.services.listener.ListenerService;
 import org.exoplatform.services.log.ExoLogger;
 import org.exoplatform.services.log.Log;
-import org.exoplatform.services.organization.Group;
-import org.exoplatform.services.organization.OrganizationService;
-import org.exoplatform.services.organization.User;
-import org.exoplatform.services.organization.UserProfile;
-import org.exoplatform.services.organization.UserProfileHandler;
+import org.exoplatform.services.organization.*;
 import org.exoplatform.services.security.Authenticator;
 import org.exoplatform.services.security.ConversationState;
 import org.exoplatform.services.security.Identity;
@@ -598,15 +568,13 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
       throw new DocumentNotFoundException("The document is not found. docId: " + docId + ", workspace: " + workspace);
     }
     String path = node.getPath();
-    String nodePath = nodePath(workspace, path);
 
-    // The path in form of Drive:path/to/node/nodeTitle
-    // TODO other node types?
+    // only nt:file are supported for online edition
     if (!node.isNodeType("nt:file")) {
-      throw new OnlyofficeEditorException("Document should be a nt:file node: " + nodePath);
+      throw new OnlyofficeEditorException("Document should be a nt:file node: " + nodePath(workspace, path));
     }
     if (!canEditDocument(node)) {
-      throw new OnlyofficeEditorException("Cannot edit document: " + nodePath);
+      throw new OnlyofficeEditorException("Cannot edit document: " + nodePath(workspace, path));
     }
 
     Config config = getEditor(userId, docId, true);
@@ -1354,7 +1322,8 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
         systemNode.save();
       }
 
-      parentNode.getSession().move(node.getPath(), parentNode.getPath() + "/" + newTitle);
+      String destPath = parentNode.getPath().equals("/") ? parentNode.getPath() + newTitle : parentNode.getPath() + "/" + newTitle;
+      parentNode.getSession().move(node.getPath(), destPath);
       node.setProperty("exo:lastModifier", userId);
       node.setProperty("exo:name", newTitle);
       node.setProperty("exo:title", newTitle);
@@ -1501,9 +1470,6 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
         return fileExt;
       }
     }
-    // TODO should we find a type from the file MIME-type?
-    // String mimeType =
-    // node.getProperty("jcr:content/jcr:mimeType").getString();
     return null;
   }
 
@@ -1583,7 +1549,7 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
   }
 
   /**
-   * Node path.
+   * Node path with the pattern workspace:path/to/node.
    *
    * @param workspace the workspace
    * @param path the path
@@ -1594,7 +1560,7 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
   }
 
   /**
-   * Node path.
+   * Node path with the pattern workspace:path/to/node.
    *
    * @param config the config
    * @return the string
@@ -1800,11 +1766,9 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
       }
       // work in user session
       Node node = null;
-      // TODO rework the code to throw DocumentNotFoundException once after all checks
       DocumentNotFoundException notFoundEx = null;
       try {
         node = getDocumentById(workspace, config.getDocId());
-        // TODO node can be null here, check it, create
         // DocumentNotFoundException if it is and go out the try-catch
         if (node == null) {
           notFoundEx = new DocumentNotFoundException("The document is not found. docId: " + config.getDocId() + ", workspace: "
