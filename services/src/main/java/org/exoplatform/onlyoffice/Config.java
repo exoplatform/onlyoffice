@@ -94,10 +94,6 @@ public class Config implements Externalizable {
     /** The lastModified. **/
     protected String         lastModified;
 
-    /** The ECMS explorer page URL. */
-    @Deprecated
-    protected String       explorerUrl;
-
     /** The display path. */
     protected String       displayPath;
 
@@ -166,18 +162,6 @@ public class Config implements Externalizable {
      */
     public Builder editorUrl(String editorUrl) {
       this.editorUrl = editorUrl;
-      return this;
-    }
-
-    /**
-     * Explorer url.
-     *
-     * @param explorerUrl the explorer url
-     * @return the builder
-     */
-    @Deprecated
-    public Builder explorerUrl(String explorerUrl) {
-      this.explorerUrl = explorerUrl;
       return this;
     }
 
@@ -709,10 +693,6 @@ public class Config implements Externalizable {
       /** The download link. */
       protected String           downloadLink;
 
-      /** The lock token. */
-      @Deprecated
-      protected transient String lockToken;
-
       /**
        * Instantiates a new user.
        *
@@ -814,27 +794,6 @@ public class Config implements Externalizable {
       public void setLastSaved(long lastSaved) {
         this.lastSaved = lastSaved;
       }
-
-      /**
-       * Gets the lock token.
-       *
-       * @return the lockToken
-       */
-      @Deprecated
-      protected String getLockToken() {
-        return lockToken;
-      }
-
-      /**
-       * Sets the lock token.
-       *
-       * @param lockToken the lockToken to set
-       */
-      @Deprecated
-      protected void setLockToken(String lockToken) {
-        this.lockToken = lockToken;
-      }
-
     }
 
     /** The callback url. */

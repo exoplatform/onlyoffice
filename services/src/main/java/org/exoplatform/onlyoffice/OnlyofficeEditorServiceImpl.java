@@ -1570,62 +1570,6 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
   }
 
   /**
-   * Webdav uri.
-   *
-   * @param schema the schema
-   * @param host the host
-   * @param port the port
-   * @return the uri
-   * @throws URISyntaxException the URI syntax exception
-   */
-  @Deprecated
-  protected URI webdavUri(String schema, String host, int port) throws URISyntaxException {
-    return new URI(platformRestUrl(schema, host, port).append("/jcr").toString());
-  }
-
-  /**
-   * Webdav url.
-   *
-   * @param schema the schema
-   * @param host the host
-   * @param port the port
-   * @param workspace the workspace
-   * @param path the path
-   * @return the string
-   * @throws OnlyofficeEditorException the onlyoffice editor exception
-   * @throws RepositoryException the repository exception
-   */
-  @Deprecated
-  protected String webdavUrl(String schema,
-                             String host,
-                             int port,
-                             String workspace,
-                             String path) throws OnlyofficeEditorException, RepositoryException {
-    StringBuilder filePath = new StringBuilder();
-    try {
-      URI baseWebdavUri = webdavUri(schema, host, port);
-
-      filePath.append(baseWebdavUri.getPath());
-      filePath.append('/');
-      filePath.append(jcrService.getCurrentRepository().getConfiguration().getName());
-      filePath.append('/');
-      filePath.append(workspace);
-      filePath.append(path);
-
-      URI uri = new URI(baseWebdavUri.getScheme(),
-                        null,
-                        baseWebdavUri.getHost(),
-                        baseWebdavUri.getPort(),
-                        filePath.toString(),
-                        null,
-                        null);
-      return uri.toASCIIString();
-    } catch (URISyntaxException e) {
-      throw new OnlyofficeEditorException("Error creating content link (WebDAV) for " + path + " in " + workspace, e);
-    }
-  }
-
-  /**
    * Sync users.
    *
    * @param configs the configs
@@ -2399,19 +2343,6 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
     restUrl.append(PortalContainer.getCurrentRestContextName());
 
     return restUrl;
-  }
-
-  /**
-   * Platform REST URL.
-   *
-   * @param schema the schema
-   * @param host the host
-   * @param port the port
-   * @return the string builder
-   */
-  @Deprecated
-  protected StringBuilder platformRestUrl(String schema, String host, int port) {
-    return platformRestUrl(platformUrl(schema, host, port));
   }
 
   /**
