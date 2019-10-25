@@ -72,7 +72,12 @@ public class DocumentServiceMock implements DocumentService {
    */
   @Override
   public DriveData getDriveOfNode(String nodePath) throws Exception {
-    return null;
+    DriveData driveData = new DriveData();
+    driveData.setLabel("label");
+    driveData.setName("nodeDrive");
+    driveData.setHomePath("/homePath");
+    driveData.setWorkspace("workspace");
+    return driveData;
   }
 
   /**

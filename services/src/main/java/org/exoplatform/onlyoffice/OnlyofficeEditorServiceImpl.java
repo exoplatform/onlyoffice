@@ -2261,29 +2261,6 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
   }
 
   /**
-   * ECMS explorer page URL.
-   *
-   * @param schema the schema
-   * @param host the host
-   * @param port the port
-   * @param ecmsURL the ECMS URL
-   * @return the string builder
-   */
-  @Deprecated
-  protected StringBuilder explorerUrl(String schema, String host, int port, String ecmsURL) {
-    StringBuilder explorerUrl = new StringBuilder();
-    explorerUrl.append(schema);
-    explorerUrl.append("://");
-    explorerUrl.append(host);
-    if (port >= 0 && port != 80 && port != 443) {
-      explorerUrl.append(':');
-      explorerUrl.append(port);
-    }
-    explorerUrl.append(ecmsURL);
-    return explorerUrl;
-  }
-
-  /**
    * Explorer uri.
    *
    * @param schema the schema
