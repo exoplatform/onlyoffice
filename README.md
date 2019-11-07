@@ -74,6 +74,8 @@ For Platform 4.4 and higher:
     onlyoffice.documentserver.schema=http
     onlyoffice.documentserver.secret=SECRET_KEY
 
+`SECRET_KEY` is used for JSON Web Tokens security configurations and must have a size >= 256 bits.
+
 For Platform 4.3 also need point your server public host and schema:
 
     onlyoffice.server.host=YOUR_EXO_SERVER_HOST
@@ -121,7 +123,7 @@ To enable tokens validation set true values to the params:
     services.CoAuthoring.token.enable.request.inbox
     services.CoAuthoring.token.enable.browser
     
-Specify the secret key in
+Specify the secret key (minimum 256 bits) in
 
     services.CoAuthoring.secret.outbox.string
     services.CoAuthoring.secret.inbox.string
