@@ -5,10 +5,6 @@ This add-on allow editing office documents directly in eXo Platform using ONLYOF
   - Word (.docx)
   - Excel (.xlsx) 
   - PowerPoint (.pptx) 
-- Open Document Format (OpenOffice and LibreOffice):
-  - Text (.odt)
-  - Spreadsheet (.ods)
-  - Presentation (.odp)
  
 The Document Server should be [installed](http://helpcenter.onlyoffice.com/server/document.aspx) on reachable network. ONLYOFFICE™ offers native installers for Windows and Linux, they also have [Docker installation](http://helpcenter.onlyoffice.com/server/docker/document/docker-installation.aspx) which will be described below in details. 
 
