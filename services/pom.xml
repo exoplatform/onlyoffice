@@ -33,7 +33,7 @@
   <description>eXo OnlyOffice Editor services of portal extension</description>
 
   <properties>
-    <exo.test.coverage.ratio>0.38</exo.test.coverage.ratio>
+    <exo.test.coverage.ratio>0.40</exo.test.coverage.ratio>
   </properties>
 
   <dependencies>

@@ -13,6 +13,7 @@ import org.apache.commons.lang.ArrayUtils;
 import org.junit.Test;
 
 import org.exoplatform.commons.testing.BaseCommonsTestCase;
+import org.exoplatform.commons.utils.ActivityTypeUtils;
 import org.exoplatform.component.test.ConfigurationUnit;
 import org.exoplatform.component.test.ConfiguredBy;
 import org.exoplatform.component.test.ContainerScope;
@@ -89,12 +90,15 @@ public class OnlyofficeEditorServiceTest extends BaseCommonsTestCase {
 
     NodeImpl node = createAtRoot ? (NodeImpl) rootNode.addNode(title, type)
                                  : (NodeImpl) rootNode.addNode("Users", "nt:folder").addNode(title, type);
-    node.addMixin("mix:lockable");
     node.addMixin("mix:referenceable");
+    node.addMixin("mix:versionable");
     node.addMixin("exo:privilegeable");
+    node.addMixin("exo:activityInfo");
     node.addMixin("exo:datetime");
     node.addMixin("exo:modify");
     node.addMixin("exo:sortable");
+    node.setProperty("exo:activityId", Calendar.getInstance());
+    node.setProperty("exo:dateModified", Calendar.getInstance());
     node.setProperty("exo:lastModifier", "john");
     node.setProperty("exo:lastModifiedDate", Calendar.getInstance());
     if (type.equals("nt:file")) {
@@ -226,6 +230,42 @@ public class OnlyofficeEditorServiceTest extends BaseCommonsTestCase {
   }
 
   /**
+   * Test create document when drive data not null User's documents
+   */
+  @Test
+  public void testCreateDocumentWhenUserDataNotNull() throws Exception {
+    // Given
+    startSessionAs("john");
+    Node node = createDocument("Test Document.docx", "nt:file", "testContent", false);
+
+    // When
+    editorService.addFilePreferences(node, "john", node.getPath());
+    Config config = editorService.createEditor("http", "127.0.0.1", 8080, "john", null, node.getUUID());
+
+    // Then
+    String docId = node.getUUID();
+    String editorURL = "http://127.0.0.1:8080/portal/intranet/oeditor?docId=" + docId;
+    assertNotNull(config);
+    assertTrue(node.getPath().startsWith("/Users"));
+    assertTrue(config.getPath().endsWith("/Test Document.docx"));
+    assertTrue(config.isCreated());
+    assertFalse(config.isClosing());
+    assertFalse(config.isOpen());
+    assertFalse(config.isClosed());
+    assertNull(config.getError());
+    assertEquals(docId, config.getDocId());
+    assertEquals(editorURL, config.getEditorUrl());
+
+    assertNotNull(config.getDocument());
+    assertEquals("Test Document.docx", config.getDocument().getTitle());
+    assertEquals("docx", config.getDocument().getFileType());
+
+    assertNotNull(config.getEditorConfig());
+    assertNotNull(config.getEditorConfig().getUser());
+    node.remove();
+  }
+
+  /**
    * Test create editor for incorrect file
    */
   @Test
@@ -320,47 +360,39 @@ public class OnlyofficeEditorServiceTest extends BaseCommonsTestCase {
   }
 
   /**
-   * Test create document when drive data not null
-   * User's documents
+   * Test download version
+   * Add comment to the FileActivity with current file
    */
   @Test
-  public void testCreateDocumentWhenUserDocuments() throws Exception {
+  public void testDownloadVersionToJcrNodeAndAddingCommentToCurrentFile() throws Exception {
     // Given
     startSessionAs("john");
-    Node node = createDocument("Test Document.docx", "nt:file", "testContent", false);
+    Node node = createDocument("Test Document.docx", "nt:file", "testContent", true);
+    ActivityTypeUtils.attachActivityId(node, "activityId");
 
     // When
-    editorService.addFilePreferences(node, "john", node.getPath());
     Config config = editorService.createEditor("http", "127.0.0.1", 8080, "john", null, node.getUUID());
+    editorService.downloadVersion("john", node.getUUID(), false, false, "comment", null);
 
     // Then
-    String docId = node.getUUID();
-    String editorURL = "http://127.0.0.1:8080/portal/intranet/oeditor?docId=" + docId;
-    assertNotNull(config);
-    assertTrue(node.getPath().startsWith("/Users"));
-    assertTrue(config.getPath().endsWith("/Test Document.docx"));
-    assertTrue(config.isCreated());
-    assertFalse(config.isClosing());
-    assertFalse(config.isOpen());
-    assertFalse(config.isClosed());
-    assertNull(config.getError());
-    assertEquals(docId, config.getDocId());
-    assertEquals(editorURL, config.getEditorUrl());
-
-    assertNotNull(config.getDocument());
-    assertEquals("Test Document.docx", config.getDocument().getTitle());
-    assertEquals("docx", config.getDocument().getFileType());
-
-    assertNotNull(config.getEditorConfig());
-    assertNotNull(config.getEditorConfig().getUser());
+    node = editorService.getDocumentById(config.getWorkspace(), config.getDocId());
+    String[] newMixinNodeTypes = ((NodeImpl) node).getMixinTypeNames();
+    assertTrue(ArrayUtils.contains(newMixinNodeTypes, "eoo:onlyofficeFile"));
+    assertTrue(node.hasProperty("eoo:commentId"));
+    assertEquals("", node.getProperty("eoo:commentId").getValue().getString());
+    assertTrue(node.hasProperty("exo:lastModifiedDate"));
+    assertNotNull(node.getProperty("exo:lastModifiedDate").getValue().getString());
+    assertTrue(node.hasProperty("exo:lastModifier"));
+    assertEquals("john", node.getProperty("exo:lastModifier").getValue().getString());
+    assertNotSame(config.getEditorConfig().getUser().lastSaved.toString(), "0");
     node.remove();
   }
 
   /**
-   * Test download version
+   * Test download version when contentUrl not null
    */
   @Test
-  public void testDownloadVersion() throws Exception {
+  public void testDownloadVersionWhenContentUrlNotNull() throws Exception {
     // Given
     startSessionAs("john");
     Node node = createDocument("Test Document.docx", "nt:file", "testContent", true);
@@ -578,6 +610,7 @@ public class OnlyofficeEditorServiceTest extends BaseCommonsTestCase {
     // When
     Config config = editorService.createEditor("http", "127.0.0.1", 8080, "john", null, node.getUUID());
     node.removeMixin("mix:referenceable");
+    node.removeMixin("mix:versionable");
 
     // Then
     Config configTest = editorService.getEditor("john", config.getWorkspace(), node.getPath());

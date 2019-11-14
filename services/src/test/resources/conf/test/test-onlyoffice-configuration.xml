@@ -10,6 +10,10 @@
     <type>org.exoplatform.onlyoffice.mock.DocumentServiceMock</type>
   </component>
 
+  <component>
+    <key>org.exoplatform.social.core.manager.IdentityManager</key>
+    <type>org.exoplatform.onlyoffice.mock.IdentityManagerMock</type>
+  </component>
 
   <component>
     <key>org.exoplatform.social.core.space.spi.SpaceService</key>

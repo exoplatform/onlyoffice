@@ -115,23 +115,11 @@ import io.jsonwebtoken.security.Keys;
  */
 public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Startable {
 
-  /** The Constant LOG. */
-  protected static final Log     LOG                      = ExoLogger.getLogger(OnlyofficeEditorServiceImpl.class);
-
-  /** The Constant RANDOM. */
-  protected static final Random  RANDOM                   = new Random();
-
-  /** The Constant CONFIG_DS_HOST. */
-  public static final String     CONFIG_DS_HOST           = "documentserver-host";
-
-  /** The Constant CONFIG_DS_SCHEMA. */
-  public static final String     CONFIG_DS_SCHEMA         = "documentserver-schema";
+  /** The Constant CACHE_NAME. */
+  public static final String     CACHE_NAME               = "onlyoffice.EditorCache".intern();
 
   /** The Constant CONFIG_DS_ACCESS_ONLY. */
   public static final String     CONFIG_DS_ACCESS_ONLY    = "documentserver-access-only";
-
-  /** The Constant CONFIG_DS_SECRET. */
-  public static final String     CONFIG_DS_SECRET         = "documentserver-secret";
 
   /**
    * Configuration key for Document Server's allowed hosts in requests from a DS
@@ -139,32 +127,32 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
    */
   public static final String     CONFIG_DS_ALLOWEDHOSTS   = "documentserver-allowedhosts";
 
-  /** The Constant HTTP_PORT_DELIMITER. */
-  protected static final char    HTTP_PORT_DELIMITER      = ':';
+  /** The Constant CONFIG_DS_HOST. */
+  public static final String     CONFIG_DS_HOST           = "documentserver-host";
 
-  /** The hidden folder */
-  protected static final String  HIDDEN_FOLDER            = "...";
+  /** The Constant CONFIG_DS_SCHEMA. */
+  public static final String     CONFIG_DS_SCHEMA         = "documentserver-schema";
 
-  /** The date format for Last Edited in editor bar */
-  protected static final String  LAST_EDITED_DATE_FORMAT  = "dd.MM.yyyy HH:mm";
-
-  /** The Constant TYPE_TEXT. */
-  protected static final String  TYPE_TEXT                = "text";
-
-  /** The Constant TYPE_SPREADSHEET. */
-  protected static final String  TYPE_SPREADSHEET         = "spreadsheet";
-
-  /** The Constant TYPE_PRESENTATION. */
-  protected static final String  TYPE_PRESENTATION        = "presentation";
+  /** The Constant CONFIG_DS_SECRET. */
+  public static final String     CONFIG_DS_SECRET         = "documentserver-secret";
 
   /** The Constant DEFAULT_NAME. **/
   protected static final String  DEFAULT_NAME             = "untitled";
 
-  /** The Constant RELATION_PROP. **/
-  protected static final String  RELATION_PROP            = "exo:relation";
+  /** The Constant EMPTY_TEXT. */
+  protected static final String  EMPTY_TEXT               = "".intern();
 
   /** The Consant FILE_EXPLORER_URL_SYNTAX. **/
   protected static final Pattern FILE_EXPLORER_URL_SYNTAX = Pattern.compile("([^:/]+):(/.*)");
+
+  /** The hidden folder */
+  protected static final String  HIDDEN_FOLDER            = "...";
+
+  /** The Constant HTTP_PORT_DELIMITER. */
+  protected static final char    HTTP_PORT_DELIMITER      = ':';
+
+  /** The date format for Last Edited in editor bar */
+  protected static final String  LAST_EDITED_DATE_FORMAT  = "dd.MM.yyyy HH:mm";
 
   /** The Constant LOCK_WAIT_ATTEMTS. */
   protected static final int     LOCK_WAIT_ATTEMTS        = 20;
@@ -172,141 +160,23 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
   /** The Constant LOCK_WAIT_TIMEOUT. */
   protected static final long    LOCK_WAIT_TIMEOUT        = 250;
 
-  /** The Constant EMPTY_TEXT. */
-  protected static final String  EMPTY_TEXT               = "".intern();
+  /** The Constant LOG. */
+  protected static final Log     LOG                      = ExoLogger.getLogger(OnlyofficeEditorServiceImpl.class);
 
-  /** The Constant CACHE_NAME. */
-  public static final String     CACHE_NAME               = "onlyoffice.EditorCache".intern();
+  /** The Constant RANDOM. */
+  protected static final Random  RANDOM                   = new Random();
 
-  /**
-   * NewDocumentTypesConfig.
-   */
-  public static class DocumentTypesConfig {
+  /** The Constant RELATION_PROP. **/
+  protected static final String  RELATION_PROP            = "exo:relation";
 
-    /** The mime types. */
-    protected List<String> mimeTypes;
+  /** The Constant TYPE_PRESENTATION. */
+  protected static final String  TYPE_PRESENTATION        = "presentation";
 
-    /**
-     * Gets the mime types.
-     *
-     * @return the mime types
-     */
-    public List<String> getMimeTypes() {
-      return mimeTypes;
-    }
+  /** The Constant TYPE_SPREADSHEET. */
+  protected static final String  TYPE_SPREADSHEET         = "spreadsheet";
 
-    /**
-     * Sets the mime types.
-     *
-     * @param mimeTypes the new mime types
-     */
-    public void setMimeTypes(List<String> mimeTypes) {
-      this.mimeTypes = mimeTypes;
-    }
-  }
-
-  /**
-   * The Class LockState.
-   */
-  class LockState {
-
-    /** The lock token. */
-    final String lockToken;
-
-    /** The lock. */
-    final Lock   lock;
-
-    /**
-     * Instantiates a new lock state.
-     *
-     * @param lockToken the lock token
-     */
-    LockState(String lockToken) {
-      super();
-      this.lockToken = lockToken;
-      this.lock = null;
-    }
-
-    /**
-     * Instantiates a new lock state.
-     *
-     * @param lock the lock
-     */
-    LockState(Lock lock) {
-      super();
-      this.lockToken = null;
-      this.lock = lock;
-    }
-
-    /**
-     * Instantiates a new lock state.
-     */
-    LockState() {
-      super();
-      this.lockToken = null;
-      this.lock = null;
-    }
-
-    /**
-     * Check if was locked by this editor service.
-     *
-     * @return true, if successful
-     */
-    boolean wasLocked() {
-      return lock != null;
-    }
-
-    /**
-     * Check can edit a document associated with this lock.
-     *
-     * @return true, if successful
-     */
-    boolean canEdit() {
-      return lock != null || lockToken != null;
-    }
-  }
-
-  /** The jcr service. */
-  protected final RepositoryService                               jcrService;
-
-  /** The session providers. */
-  protected final SessionProviderService                          sessionProviders;
-
-  /** The identity registry. */
-  protected final IdentityRegistry                                identityRegistry;
-
-  /** The finder. */
-  protected final NodeFinder                                      finder;
-
-  /** The organization. */
-  protected final OrganizationService                             organization;
-
-  /** The authenticator. */
-  protected final Authenticator                                   authenticator;
-
-  /** The document service. */
-  protected final DocumentService                                 documentService;
-
-  /** The lock service. */
-  protected final LockService                                     lockService;
-
-  /** The listener service. */
-  protected final ListenerService                                 listenerService;
-
-  /** The trash service. */
-  protected final TrashService                                    trashService;
-
-  /** The space service. */
-  protected final SpaceService                                    spaceService;
-
-  /** The activity manager. */
-  protected final ActivityManager                                 activityManager;
-
-  /** The node hierarchy creator. */
-  protected final NodeHierarchyCreator                            hierarchyCreator;
-
-  /** The manage drive service */
-  protected final ManageDriveService                              manageDriveService;
+  /** The Constant TYPE_TEXT. */
+  protected static final String  TYPE_TEXT                = "text";
 
   /** Cache of Editing documents. */
   protected final ExoCache<String, ConcurrentMap<String, Config>> activeCache;
@@ -314,42 +184,84 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
   /** Lock for updating Editing documents cache. */
   protected final ReentrantLock                                   activeLock = new ReentrantLock();
 
-  /** The config. */
-  protected final Map<String, String>                             config;
+  /** The activity manager. */
+  protected final ActivityManager                                 activityManager;
 
-  /** The upload url. */
-  protected final String                                          uploadUrl;
-
-  /** The documentserver host name. */
-  protected final String                                          documentserverHostName;
-
-  /** The documentserver url. */
-  protected final String                                          documentserverUrl;
+  /** The authenticator. */
+  protected final Authenticator                                   authenticator;
 
   /** The document command service url. */
   protected final String                                          commandServiceUrl;
 
-  /** The document server secret. */
-  protected final String                                          documentserverSecret;
+  /** The config. */
+  protected final Map<String, String>                             config;
+
+  /** The document service. */
+  protected final DocumentService                                 documentService;
 
   /** The documentserver access only. */
   protected final boolean                                         documentserverAccessOnly;
 
-  /** The group drives path in JCR. */
-  protected final String                                          groupsPath;
-
-  /** The user drives paths in JCR. */
-  protected final String                                          usersPath;
-
   /** The documentserver allowed hosts (can be empty if not configured). */
   protected final Set<String>                                     documentserverAllowedhosts;
+
+  /** The documentserver host name. */
+  protected final String                                          documentserverHostName;
+
+  /** The document server secret. */
+  protected final String                                          documentserverSecret;
+
+  /** The documentserver url. */
+  protected final String                                          documentserverUrl;
 
   /** The file types. */
   protected final Map<String, String>                             fileTypes  = new ConcurrentHashMap<String, String>();
 
+  /** The finder. */
+  protected final NodeFinder                                      finder;
+
+  /** The group drives path in JCR. */
+  protected final String                                          groupsPath;
+
+  /** The node hierarchy creator. */
+  protected final NodeHierarchyCreator                            hierarchyCreator;
+
+  /** The identity registry. */
+  protected final IdentityRegistry                                identityRegistry;
+
+  /** The jcr service. */
+  protected final RepositoryService                               jcrService;
+
+  /** The listener service. */
+  protected final ListenerService                                 listenerService;
+
   /** The listeners. */
   protected final ConcurrentLinkedQueue<OnlyofficeEditorListener> listeners  =
                                                                             new ConcurrentLinkedQueue<OnlyofficeEditorListener>();
+
+  /** The lock service. */
+  protected final LockService                                     lockService;
+
+  /** The manage drive service */
+  protected final ManageDriveService                              manageDriveService;
+
+  /** The organization. */
+  protected final OrganizationService                             organization;
+
+  /** The session providers. */
+  protected final SessionProviderService                          sessionProviders;
+
+  /** The space service. */
+  protected final SpaceService                                    spaceService;
+
+  /** The trash service. */
+  protected final TrashService                                    trashService;
+
+  /** The upload url. */
+  protected final String                                          uploadUrl;
+
+  /** The user drives paths in JCR. */
+  protected final String                                          usersPath;
 
   /** The document type plugin. */
   protected DocumentTypePlugin                                    documentTypePlugin;
@@ -441,19 +353,118 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
   }
 
   /**
-   * {@inheritDoc}
+   * Adds debug listener to active cache
    */
-  @Override
-  public void addListener(OnlyofficeEditorListener listener) {
-    this.listeners.add(listener);
+  protected void addDebugCacheListener() {
+    activeCache.addCacheListener(new CacheListener<String, ConcurrentMap<String, Config>>() {
+
+      @Override
+      public void onExpire(CacheListenerContext context, String key, ConcurrentMap<String, Config> obj) throws Exception {
+        LOG.debug(CACHE_NAME + " onExpire > " + key + ": " + obj);
+      }
+
+      @Override
+      public void onRemove(CacheListenerContext context, String key, ConcurrentMap<String, Config> obj) throws Exception {
+        LOG.debug(CACHE_NAME + " onRemove > " + key + ": " + obj);
+      }
+
+      @Override
+      public void onPut(CacheListenerContext context, String key, ConcurrentMap<String, Config> obj) throws Exception {
+        LOG.debug(CACHE_NAME + " onPut > " + key + ": " + obj);
+      }
+
+      @Override
+      public void onGet(CacheListenerContext context, String key, ConcurrentMap<String, Config> obj) throws Exception {
+        LOG.debug(CACHE_NAME + " onGet > " + key + ": " + obj);
+      }
+
+      @Override
+      public void onClearCache(CacheListenerContext context) throws Exception {
+        LOG.debug(CACHE_NAME + " onClearCache");
+      }
+    });
   }
 
   /**
-   * {@inheritDoc}
+   * Initializes fileTypes map
    */
-  @Override
-  public void removeListener(OnlyofficeEditorListener listener) {
-    this.listeners.remove(listener);
+  protected void initFileTypes() {
+    fileTypes.put("docx", TYPE_TEXT);
+    fileTypes.put("doc", TYPE_TEXT);
+    fileTypes.put("odt", TYPE_TEXT);
+    fileTypes.put("txt", TYPE_TEXT);
+    fileTypes.put("rtf", TYPE_TEXT);
+    fileTypes.put("mht", TYPE_TEXT);
+    fileTypes.put("html", TYPE_TEXT);
+    fileTypes.put("htm", TYPE_TEXT);
+    fileTypes.put("epub", TYPE_TEXT);
+    fileTypes.put("pdf", TYPE_TEXT);
+    fileTypes.put("djvu", TYPE_TEXT);
+    fileTypes.put("xps", TYPE_TEXT);
+    // Speadsheet formats
+    fileTypes.put("xlsx", TYPE_SPREADSHEET);
+    fileTypes.put("xls", TYPE_SPREADSHEET);
+    fileTypes.put("ods", TYPE_SPREADSHEET);
+    // Presentation formats
+    fileTypes.put("pptx", TYPE_PRESENTATION);
+    fileTypes.put("ppt", TYPE_PRESENTATION);
+    fileTypes.put("ppsx", TYPE_PRESENTATION);
+    fileTypes.put("pps", TYPE_PRESENTATION);
+    fileTypes.put("odp", TYPE_PRESENTATION);
+  }
+
+  /**
+   * Gets documentserver host name.
+   *
+   * @param dsSchema the dsSchema
+   * @param dsHost the dsHost
+   * @return hostname
+   * @throws ConfigurationException the configurationException
+   */
+  protected String getDocumentserverHost(String dsSchema, String dsHost) throws ConfigurationException {
+    if (dsSchema == null || (dsSchema = dsSchema.trim()).length() == 0) {
+      dsSchema = "http";
+    }
+    if (dsHost == null || (dsHost = dsHost.trim()).length() == 0) {
+      throw new ConfigurationException("Configuration of " + CONFIG_DS_HOST + " required");
+    }
+    int portIndex = dsHost.indexOf(HTTP_PORT_DELIMITER);
+    if (portIndex > 0) {
+      // cut port from DS host to use in canDownloadBy() method
+      return dsHost.substring(0, portIndex);
+    }
+    return dsHost;
+  }
+
+  /**
+   * Gets allowed hosts.
+   *
+   * @param dsAllowedHost the dsAllowedHost
+   * @return allowed hosts
+   */
+  protected Set<String> getDocumentserverAllowedHosts(String dsAllowedHost) {
+    if (dsAllowedHost != null && !dsAllowedHost.isEmpty()) {
+      Set<String> allowedhosts = new HashSet<>();
+      for (String ahost : dsAllowedHost.split(",")) {
+        ahost = ahost.trim();
+        if (!ahost.isEmpty()) {
+          allowedhosts.add(lowerCase(ahost));
+        }
+      }
+      return Collections.unmodifiableSet(allowedhosts);
+    } else {
+      return Collections.emptySet();
+    }
+  }
+
+  /**
+   * Get lower case copy of the given string.
+   *
+   * @param str the str
+   * @return the string
+   */
+  protected String lowerCase(String str) {
+    return str.toUpperCase().toLowerCase();
   }
 
   /**
@@ -479,68 +490,6 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
         validateUser(userId, config);
         return config;
       }
-    }
-    return null;
-  }
-
-  /**
-   * Gets the editor.
-   *
-   * @param userId the user id
-   * @param docId the node docId
-   * @param createCoEditing if <code>true</code> and has no editor for given
-   *          user, create a copy for co-editing if document already editing by
-   *          other users
-   * @return the editor
-   * @throws OnlyofficeEditorException the onlyoffice editor exception
-   * @throws RepositoryException the repository exception
-   */
-  protected Config getEditor(String userId, String docId, boolean createCoEditing) throws OnlyofficeEditorException,
-                                                                                   RepositoryException {
-    ConcurrentMap<String, Config> configs = activeCache.get(docId);
-    if (configs != null) {
-      Config config = configs.get(userId);
-      DocumentStatus.Builder statusBuilder = new DocumentStatus.Builder();
-      statusBuilder.users(new String[] { userId });
-      if (config == null && createCoEditing) {
-        // copy editor for this user from another entry in the configs map
-        try {
-          Config another = configs.values().iterator().next();
-          User user = getUser(userId); // and use this user language
-          if (user != null) {
-            config = another.forUser(user.getUserName(),
-                                     user.getDisplayName(),
-                                     getUserLang(userId),
-                                     documentserverSecret);
-            Config existing = configs.putIfAbsent(userId, config);
-            if (existing == null) {
-              // need update the configs in the cache (for replicated cache)
-              activeCache.put(config.getDocument().getKey(), configs);
-              activeCache.put(config.getDocId(), configs);
-            } else {
-              config = existing;
-            }
-            statusBuilder.config(config);
-            statusBuilder.url(config.getEditorUrl());
-            statusBuilder.key(config.getDocument().getKey());
-            fireGet(statusBuilder.build());
-          } else {
-            LOG.warn("Attempt to obtain document editor (" + nodePath(another) + ") under not existing user " + userId);
-            throw new BadParameterException("User not found for " + another.getDocument().getTitle());
-          }
-        } catch (NoSuchElementException e) { // if configs was cleaned by
-                                             // closing all active editors
-          config = null;
-        }
-      } else if (createCoEditing) {
-        // otherwise: config already obtained
-        statusBuilder.config(config);
-        statusBuilder.url(config.getEditorUrl());
-        statusBuilder.key(config.getDocument().getKey());
-        fireGet(statusBuilder.build());
-      }
-
-      return config; // can be null
     }
     return null;
   }
@@ -681,90 +630,6 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
       config.getEditorPage().setLastModified(getLastModified(node));
     }
     return config;
-  }
-
-  /**
-   * {@inheritDoc}
-   */
-  @Override
-  public DocumentContent getContent(String userId, String key) throws OnlyofficeEditorException, RepositoryException {
-    ConcurrentMap<String, Config> configs = activeCache.get(key);
-    if (configs != null) {
-      Config config = configs.get(userId);
-      if (config != null) {
-        validateUser(userId, config);
-
-        // Use user session here:
-        // remember real context state and session provider to restore them at
-        // the end
-        ConversationState contextState = ConversationState.getCurrent();
-        SessionProvider contextProvider = sessionProviders.getSessionProvider(null);
-        try {
-          // We all the job under actual (requester) user here
-          if (!setUserConvoState(userId)) {
-            logError(userId, config.getPath(), config.getDocId(), config.getDocument().getKey(), "Cannot set conversation state");
-            throw new OnlyofficeEditorException("Cannot set conversation state " + userId);
-          }
-          // work in user session
-          Node node = node(config.getWorkspace(), config.getPath());
-          Node content = nodeContent(node);
-
-          final String mimeType = content.getProperty("jcr:mimeType").getString();
-          // data stream will be closed when EoF will be reached
-          final InputStream data = new AutoCloseInputStream(content.getProperty("jcr:data").getStream());
-          return new DocumentContent() {
-            @Override
-            public String getType() {
-              return mimeType;
-            }
-
-            @Override
-            public InputStream getData() {
-              return data;
-            }
-          };
-        } finally {
-          restoreConvoState(contextState, contextProvider);
-        }
-      } else {
-        throw new BadParameterException("User editor not found or already closed " + userId);
-      }
-    } else {
-      throw new BadParameterException("File key not found " + key);
-    }
-  }
-
-  /**
-   * {@inheritDoc}
-   */
-  @Override
-  public boolean canDownloadBy(String hostName) {
-    if (documentserverAccessOnly) {
-      // #19 support advanced configuration of DS's allowed hosts
-      return documentserverHostName.equalsIgnoreCase(hostName) || documentserverAllowedhosts.contains(lowerCase(hostName));
-    }
-    return true;
-  }
-
-  /**
-   * {@inheritDoc}
-   */
-  @Override
-  public ChangeState getState(String userId, String key) throws OnlyofficeEditorException {
-    ConcurrentMap<String, Config> configs = activeCache.get(key);
-    if (configs != null) {
-      Config config = configs.get(userId);
-      if (config != null) {
-        validateUser(userId, config);
-        String[] users = getActiveUsers(configs);
-        return new ChangeState(false, config.getError(), users);
-      } else {
-        throw new BadParameterException("User editor not found " + userId);
-      }
-    } else {
-      // not found - thus already saved
-      return new ChangeState(true, null, new String[0]);
-    }
   }
 
   /**
@@ -956,17 +821,6 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
    * {@inheritDoc}
    */
   @Override
-  public String getDocumentId(Node node) throws OnlyofficeEditorException, RepositoryException {
-    if (node.isNodeType("mix:referenceable")) {
-      return node.getUUID();
-    }
-    return null;
-  }
-
-  /**
-   * {@inheritDoc}
-   */
-  @Override
   public String getEditorLink(Node node) throws RepositoryException, OnlyofficeEditorException {
     if (canEditDocument(node)) {
       String workspace = node.getSession().getWorkspace().getName();
@@ -1000,24 +854,6 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
    * {@inheritDoc}
    */
   @Override
-  public Node getDocumentById(String workspace, String uuid) throws RepositoryException {
-    if (workspace == null) {
-      workspace = jcrService.getCurrentRepository().getConfiguration().getDefaultWorkspaceName();
-    }
-    try {
-      return nodeByUUID(workspace, uuid);
-    } catch (ItemNotFoundException e) {
-      if (LOG.isDebugEnabled()) {
-        LOG.debug("The node is not found. Workspace: {}, UUID: {}", workspace, uuid);
-      }
-      return null;
-    }
-  }
-
-  /**
-   * {@inheritDoc}
-   */
-  @Override
   public Node getDocument(String workspace, String path) throws RepositoryException, BadParameterException {
     if (workspace == null) {
       workspace = jcrService.getCurrentRepository().getConfiguration().getDefaultWorkspaceName();
@@ -1033,37 +869,103 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
   }
 
   /**
-   * On-start initializer.
+   * {@inheritDoc}
    */
   @Override
-  public void start() {
-    InputStream is = null;
-    try {
-      String workspace = jcrService.getCurrentRepository().getConfiguration().getDefaultWorkspaceName();
-      Session session = jcrService.getCurrentRepository().getSystemSession(workspace);
-      ExtendedNodeTypeManager nodeTypeManager = (ExtendedNodeTypeManager) session.getWorkspace().getNodeTypeManager();
-      is = OnlyofficeEditorService.class.getResourceAsStream("/conf/portal/jcr/onlyoffice-nodetypes.xml");
-      nodeTypeManager.registerNodeTypes(is, ExtendedNodeTypeManager.REPLACE_IF_EXISTS, NodeTypeDataManager.TEXT_XML);
-    } catch (Exception e) {
-      LOG.error("Cannot update nodetypes.", e);
-    } finally {
-      if (is != null) {
+  public DocumentContent getContent(String userId, String key) throws OnlyofficeEditorException, RepositoryException {
+    ConcurrentMap<String, Config> configs = activeCache.get(key);
+    if (configs != null) {
+      Config config = configs.get(userId);
+      if (config != null) {
+        validateUser(userId, config);
+
+        // Use user session here:
+        // remember real context state and session provider to restore them at
+        // the end
+        ConversationState contextState = ConversationState.getCurrent();
+        SessionProvider contextProvider = sessionProviders.getSessionProvider(null);
         try {
-          is.close();
-        } catch (IOException e) {
-          LOG.error("Cannot close InputStream", e);
+          // We all the job under actual (requester) user here
+          if (!setUserConvoState(userId)) {
+            logError(userId, config.getPath(), config.getDocId(), config.getDocument().getKey(), "Cannot set conversation state");
+            throw new OnlyofficeEditorException("Cannot set conversation state " + userId);
+          }
+          // work in user session
+          Node node = node(config.getWorkspace(), config.getPath());
+          Node content = nodeContent(node);
+
+          final String mimeType = content.getProperty("jcr:mimeType").getString();
+          // data stream will be closed when EoF will be reached
+          final InputStream data = new AutoCloseInputStream(content.getProperty("jcr:data").getStream());
+          return new DocumentContent() {
+            @Override
+            public InputStream getData() {
+              return data;
+            }
+
+            @Override
+            public String getType() {
+              return mimeType;
+            }
+          };
+        } finally {
+          restoreConvoState(contextState, contextProvider);
         }
+      } else {
+        throw new BadParameterException("User editor not found or already closed " + userId);
       }
+    } else {
+      throw new BadParameterException("File key not found " + key);
     }
-    LOG.info("Onlyoffice Editor service successfuly started");
   }
 
   /**
-   * On-stop finalizer.
+   * {@inheritDoc}
    */
   @Override
-  public void stop() {
-    LOG.info("Onlyoffice  Editor service successfuly stopped");
+  public boolean canDownloadBy(String hostName) {
+    if (documentserverAccessOnly) {
+      // #19 support advanced configuration of DS's allowed hosts
+      return documentserverHostName.equalsIgnoreCase(hostName) || documentserverAllowedhosts.contains(lowerCase(hostName));
+    }
+    return true;
+  }
+
+  /**
+   * {@inheritDoc}
+   */
+  @Override
+  public ChangeState getState(String userId, String key) throws OnlyofficeEditorException {
+    ConcurrentMap<String, Config> configs = activeCache.get(key);
+    if (configs != null) {
+      Config config = configs.get(userId);
+      if (config != null) {
+        validateUser(userId, config);
+        String[] users = getActiveUsers(configs);
+        return new ChangeState(false, config.getError(), users);
+      } else {
+        throw new BadParameterException("User editor not found " + userId);
+      }
+    } else {
+      // not found - thus already saved
+      return new ChangeState(true, null, new String[0]);
+    }
+  }
+
+  /**
+   * {@inheritDoc}
+   */
+  @Override
+  public void addListener(OnlyofficeEditorListener listener) {
+    this.listeners.add(listener);
+  }
+
+  /**
+   * {@inheritDoc}
+   */
+  @Override
+  public void removeListener(OnlyofficeEditorListener listener) {
+    this.listeners.remove(listener);
   }
 
   /**
@@ -1117,6 +1019,17 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
    * {@inheritDoc}
    */
   @Override
+  public String getDocumentId(Node node) throws OnlyofficeEditorException, RepositoryException {
+    if (node.isNodeType("mix:referenceable")) {
+      return node.getUUID();
+    }
+    return null;
+  }
+
+  /**
+   * {@inheritDoc}
+   */
+  @Override
   public boolean isDocumentMimeSupported(Node node) throws RepositoryException {
     if (this.documentTypePlugin != null) {
       if (node != null) {
@@ -1132,6 +1045,24 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
       }
     }
     return true;
+  }
+
+  /**
+   * {@inheritDoc}
+   */
+  @Override
+  public Node getDocumentById(String workspace, String uuid) throws RepositoryException {
+    if (workspace == null) {
+      workspace = jcrService.getCurrentRepository().getConfiguration().getDefaultWorkspaceName();
+    }
+    try {
+      return nodeByUUID(workspace, uuid);
+    } catch (ItemNotFoundException e) {
+      if (LOG.isDebugEnabled()) {
+        LOG.debug("The node is not found. Workspace: {}, UUID: {}", workspace, uuid);
+      }
+      return null;
+    }
   }
 
   /**
@@ -1202,18 +1133,6 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
    * {@inheritDoc}
    */
   @Override
-  public Editor.User getUser(String key, String userId) {
-    ConcurrentMap<String, Config> configs = activeCache.get(key);
-    if (configs != null && configs.containsKey(userId)) {
-      return configs.get(userId).getEditorConfig().getUser();
-    }
-    return null;
-  }
-
-  /**
-   * {@inheritDoc}
-   */
-  @Override
   public void forceSave(String userId, String key, boolean download, boolean coEdit, boolean forcesaved, String comment) {
     HttpURLConnection connection = null;
     try {
@@ -1242,8 +1161,7 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
 
       try (OutputStream outputStream = connection.getOutputStream()) {
         outputStream.write(postDataBytes);
-      }
-      catch(Exception e) {
+      } catch (Exception e) {
         LOG.error("Error occured while sending request to Document Server: ", e);
       }
       // read the response
@@ -1259,6 +1177,18 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
         connection.disconnect();
       }
     }
+  }
+
+  /**
+   * {@inheritDoc}
+   */
+  @Override
+  public Editor.User getUser(String key, String userId) {
+    ConcurrentMap<String, Config> configs = activeCache.get(key);
+    if (configs != null && configs.containsKey(userId)) {
+      return configs.get(userId).getEditorConfig().getUser();
+    }
+    return null;
   }
 
   @Override
@@ -1322,7 +1252,8 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
         systemNode.save();
       }
 
-      String destPath = parentNode.getPath().equals("/") ? parentNode.getPath() + newTitle : parentNode.getPath() + "/" + newTitle;
+      String destPath =
+                      parentNode.getPath().equals("/") ? parentNode.getPath() + newTitle : parentNode.getPath() + "/" + newTitle;
       parentNode.getSession().move(node.getPath(), destPath);
       node.setProperty("exo:lastModifier", userId);
       node.setProperty("exo:name", newTitle);
@@ -1356,11 +1287,13 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
   }
 
   /**
-   * Addds file preferences to the node (path for opening shared doc for particular user).
+   * Addds file preferences to the node (path for opening shared doc for
+   * particular user).
+   * 
    * @param node the node
    * @param userId the userId
    * @param path the path
-   * @throws RepositoryException  the repositoryException
+   * @throws RepositoryException the repositoryException
    */
   @Override
   public void addFilePreferences(Node node, String userId, String path) throws RepositoryException {
@@ -1387,232 +1320,17 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
   // *********************** implementation level ***************
 
   /**
-   * Save link.
+   * Node by UUID.
    *
-   * @param userId the userId
-   * @param key the key
-   * @param url the url
-   */
-  protected void saveLink(String userId, String key, String url) {
-    ConcurrentMap<String, Config> configs = activeCache.get(key);
-    if (configs != null) {
-      Config config = configs.get(userId);
-      config.getEditorConfig().getUser().setDownloadLink(url);
-      config.getEditorConfig().getUser().setLinkSaved(System.currentTimeMillis());
-      activeCache.put(key, configs);
-      activeCache.put(config.getDocId(), configs);
-    }
-  }
-
-  /**
-   * Downloads document's content to the JCR node when the editor is closed.
-   * 
-   * @param status the status
-   */
-  protected void downloadClosed(DocumentStatus status) {
-    Config config = status.getConfig();
-    // First mark closing, then do actual download and save in storage
-    config.closing();
-    broadcastEvent(status, OnlyofficeEditorService.EDITOR_CLOSED_EVENT);
-    try {
-      download(status);
-      config.getEditorConfig().getUser().setLastSaved(System.currentTimeMillis());
-      config.closed(); // reset transient closing state
-    } catch (OnlyofficeEditorException | RepositoryException e) {
-      LOG.error("Error occured while downloading document content [Closed]. docId: " + config.getDocId(), e);
-    }
-  }
-
-  /**
-   * Node title.
-   *
-   * @param node the node
-   * @return the string
-   * @throws RepositoryException the repository exception
-   */
-  protected String nodeTitle(Node node) throws RepositoryException {
-    String title = null;
-    if (node.hasProperty("exo:title")) {
-      title = node.getProperty("exo:title").getString();
-    } else if (node.hasProperty("jcr:content/dc:title")) {
-      Property dcTitle = node.getProperty("jcr:content/dc:title");
-      if (dcTitle.getDefinition().isMultiple()) {
-        Value[] dctValues = dcTitle.getValues();
-        if (dctValues.length > 0) {
-          title = dctValues[0].getString();
-        }
-      } else {
-        title = dcTitle.getString();
-      }
-    } else if (node.hasProperty("exo:name")) {
-      // FYI exo:name seems the same as node name
-      title = node.getProperty("exo:name").getString();
-    }
-    if (title == null) {
-      title = node.getName();
-    }
-    return title;
-  }
-
-  /**
-   * File type.
-   *
-   * @param node the node
-   * @return the string
-   * @throws RepositoryException the repository exception
-   */
-  protected String fileType(Node node) throws RepositoryException {
-    String title = nodeTitle(node);
-    int dotIndex = title.lastIndexOf('.');
-    if (dotIndex >= 0 && dotIndex < title.length()) {
-      String fileExt = title.substring(dotIndex + 1).trim().toLowerCase();
-      if (fileTypes.containsKey(fileExt)) {
-        return fileExt;
-      }
-    }
-    return null;
-  }
-
-  /**
-   * Document type.
-   *
-   * @param fileType the file type
-   * @return the string
-   */
-  protected String documentType(String fileType) {
-    String docType = fileTypes.get(fileType);
-    if (docType != null) {
-      return docType;
-    }
-    return TYPE_TEXT; // we assume text document by default
-  }
-
-  /**
-   * Node content.
-   *
-   * @param node the node
+   * @param workspace the workspace
+   * @param uuid the UUID
    * @return the node
    * @throws RepositoryException the repository exception
    */
-  protected Node nodeContent(Node node) throws RepositoryException {
-    return node.getNode("jcr:content");
-  }
-
-  /**
-   * Node created.
-   *
-   * @param node the node
-   * @return the calendar
-   * @throws RepositoryException the repository exception
-   */
-  protected Calendar nodeCreated(Node node) throws RepositoryException {
-    return node.getProperty("jcr:created").getDate();
-  }
-
-  /**
-   * Mime type.
-   *
-   * @param content the content
-   * @return the string
-   * @throws RepositoryException the repository exception
-   */
-  protected String mimeType(Node content) throws RepositoryException {
-    return content.getProperty("jcr:mimeType").getString();
-  }
-
-  /**
-   * Data.
-   *
-   * @param content the content
-   * @return the property
-   * @throws RepositoryException the repository exception
-   */
-  protected Property data(Node content) throws RepositoryException {
-    return content.getProperty("jcr:data");
-  }
-
-  /**
-   * Generate id.
-   *
-   * @param workspace the workspace
-   * @param path the path
-   * @return the uuid
-   */
-  protected UUID generateId(String workspace, String path) {
-    StringBuilder s = new StringBuilder();
-    s.append(workspace);
-    s.append(path);
-    s.append(System.currentTimeMillis());
-    s.append(String.valueOf(RANDOM.nextLong()));
-
-    return UUID.nameUUIDFromBytes(s.toString().getBytes());
-  }
-
-  /**
-   * Node path with the pattern workspace:path/to/node.
-   *
-   * @param workspace the workspace
-   * @param path the path
-   * @return the string
-   */
-  protected String nodePath(String workspace, String path) {
-    return new StringBuilder().append(workspace).append(":").append(path).toString();
-  }
-
-  /**
-   * Node path with the pattern workspace:path/to/node.
-   *
-   * @param config the config
-   * @return the string
-   */
-  protected String nodePath(Config config) {
-    return nodePath(config.getWorkspace(), config.getPath());
-  }
-
-  /**
-   * Sync users.
-   *
-   * @param configs the configs
-   * @param users the users
-   * @return true, if actually changed editor config user(s)
-   */
-  protected boolean syncUsers(ConcurrentMap<String, Config> configs, String[] users) {
-    Set<String> editors = new HashSet<String>(Arrays.asList(users));
-    // remove gone editors
-    boolean updated = false;
-    for (Iterator<Map.Entry<String, Config>> ceiter = configs.entrySet().iterator(); ceiter.hasNext();) {
-      Map.Entry<String, Config> ce = ceiter.next();
-      String user = ce.getKey();
-      Config config = ce.getValue();
-
-      DocumentStatus status = new DocumentStatus.Builder().config(config)
-                                                          .key(config.getDocument().getKey())
-                                                          .url(config.getEditorUrl())
-                                                          .users(users)
-                                                          .build();
-
-      if (editors.contains(user)) {
-        if (config.isCreated() || config.isClosed()) {
-          // editor was (re)opened by user
-          config.open();
-          fireJoined(status);
-          broadcastEvent(status, OnlyofficeEditorService.EDITOR_OPENED_EVENT);
-          updated = true;
-        }
-      } else {
-        // editor was closed by user: it will be closing if closed via WebUI of
-        // ECMS explorer, open in general case
-        if (config.isClosing() || config.isOpen()) {
-          // closed because user sync happens when someone else still editing or
-          // nothing edited
-          config.closed();
-          fireLeaved(status);
-          broadcastEvent(status, OnlyofficeEditorService.EDITOR_CLOSED_EVENT);
-          updated = true;
-        }
-      }
-    }
-    return updated;
+  protected Node nodeByUUID(String workspace, String uuid) throws RepositoryException {
+    SessionProvider sp = sessionProviders.getSessionProvider(null);
+    Session userSession = sp.getSession(workspace, jcrService.getCurrentRepository());
+    return userSession.getNodeByUUID(uuid);
   }
 
   /**
@@ -1637,22 +1355,465 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
   }
 
   /**
-   * Downloads document's content to the JCR node creating a new version.
-   * 
-   * @param status the status
+   * Validate user.
+   *
+   * @param userId the user id
+   * @param config the config
+   * @throws BadParameterException if user not found
+   * @throws OnlyofficeEditorException if error searching user in organization
+   *           service
    */
-  protected void downloadVersion(DocumentStatus status) {
-    try {
-      download(status);
-      status.getConfig().getEditorConfig().getUser().setLastSaved(System.currentTimeMillis());
-    } catch (RepositoryException | OnlyofficeEditorException e) {
-      LOG.error("Error occured while downloading document [Version]. docId: " + status.getConfig().getDocId(), e);
+  protected void validateUser(String userId, Config config) throws BadParameterException, OnlyofficeEditorException {
+    User user = getUser(userId);
+    if (user == null) {
+      LOG.warn("Attempt to access editor document (" + nodePath(config) + ") under not existing user " + userId);
+      throw new BadParameterException("User not found for " + config.getDocument().getTitle());
     }
   }
 
   /**
+   * Sets ConversationState by userId.
+   *
+   * @param userId the userId
+   * @return true if successful, false when the user is not found
+   */
+  @SuppressWarnings("deprecation")
+  protected boolean setUserConvoState(String userId) {
+    Identity userIdentity = userIdentity(userId);
+    if (userIdentity != null) {
+      ConversationState state = new ConversationState(userIdentity);
+      // Keep subject as attribute in ConversationState.
+      state.setAttribute(ConversationState.SUBJECT, userIdentity.getSubject());
+      ConversationState.setCurrent(state);
+      SessionProvider userProvider = new SessionProvider(state);
+      sessionProviders.setSessionProvider(null, userProvider);
+      return true;
+    }
+    LOG.warn("User identity not found " + userId + " for setting conversation state");
+    return false;
+  }
+
+  /**
+   * Logs editor errors.
+   *
+   * @param userId the userId
+   * @param path the path
+   * @param docId the docId
+   * @param key the key
+   * @param reason the reason
+   */
+  protected void logError(String userId, String path, String docId, String key, String reason) {
+    LOG.error("Editor error: " + reason + " [UserId: " + userId + ", docId: " + docId + ", path: " + path + ", key: " + key
+        + "]");
+  }
+
+  /**
+   * Node content.
+   *
+   * @param node the node
+   * @return the node
+   * @throws RepositoryException the repository exception
+   */
+  protected Node nodeContent(Node node) throws RepositoryException {
+    return node.getNode("jcr:content");
+  }
+
+  /**
+   * Restores the conversation state.
+   *
+   * @param contextState the contextState
+   * @param contextProvider the contextProvider
+   */
+  protected void restoreConvoState(ConversationState contextState, SessionProvider contextProvider) {
+    ConversationState.setCurrent(contextState);
+    sessionProviders.setSessionProvider(null, contextProvider);
+  }
+
+  /**
+   * Find or create user identity.
+   *
+   * @param userId the user id
+   * @return the identity can be null if not found and cannot be created via
+   *         current authenticator
+   */
+  protected Identity userIdentity(String userId) {
+    Identity userIdentity = identityRegistry.getIdentity(userId);
+    if (userIdentity == null) {
+      // We create user identity by authenticator, but not register it in the
+      // registry
+      try {
+        if (LOG.isDebugEnabled()) {
+          LOG.debug("User identity not registered, trying to create it for: " + userId);
+        }
+        userIdentity = authenticator.createIdentity(userId);
+      } catch (Exception e) {
+        LOG.warn("Failed to create user identity: " + userId, e);
+      }
+    }
+    return userIdentity;
+  }
+
+  /**
+   * Platform url.
+   *
+   * @param schema the schema
+   * @param host the host
+   * @param port the port
+   * @return the string builder
+   */
+  protected StringBuilder platformUrl(String schema, String host, int port) {
+    StringBuilder platformUrl = new StringBuilder();
+    platformUrl.append(schema);
+    platformUrl.append("://");
+    platformUrl.append(host);
+    if (port >= 0 && port != 80 && port != 443) {
+      platformUrl.append(':');
+      platformUrl.append(port);
+    }
+    platformUrl.append('/');
+    platformUrl.append(PortalContainer.getCurrentPortalContainerName());
+
+    return platformUrl;
+  }
+
+  /**
+   * Editor URL path.
+   *
+   * @param docId the doc id
+   * @return the string
+   */
+  protected String editorURLPath(String docId) {
+    return new StringBuilder().append('/')
+                              .append(CommonsUtils.getCurrentPortalOwner())
+                              .append("/oeditor?docId=")
+                              .append(docId)
+                              .toString();
+  }
+
+  /**
+   * Gets the editor.
+   *
+   * @param userId the user id
+   * @param docId the node docId
+   * @param createCoEditing if <code>true</code> and has no editor for given
+   *          user, create a copy for co-editing if document already editing by
+   *          other users
+   * @return the editor
+   * @throws OnlyofficeEditorException the onlyoffice editor exception
+   * @throws RepositoryException the repository exception
+   */
+  protected Config getEditor(String userId, String docId, boolean createCoEditing) throws OnlyofficeEditorException,
+                                                                                   RepositoryException {
+    ConcurrentMap<String, Config> configs = activeCache.get(docId);
+    if (configs != null) {
+      Config config = configs.get(userId);
+      DocumentStatus.Builder statusBuilder = new DocumentStatus.Builder();
+      statusBuilder.users(new String[] { userId });
+      if (config == null && createCoEditing) {
+        // copy editor for this user from another entry in the configs map
+        try {
+          Config another = configs.values().iterator().next();
+          User user = getUser(userId); // and use this user language
+          if (user != null) {
+            config = another.forUser(user.getUserName(),
+                                     user.getDisplayName(),
+                                     getUserLang(userId),
+                                     documentserverSecret);
+            Config existing = configs.putIfAbsent(userId, config);
+            if (existing == null) {
+              // need update the configs in the cache (for replicated cache)
+              activeCache.put(config.getDocument().getKey(), configs);
+              activeCache.put(config.getDocId(), configs);
+            } else {
+              config = existing;
+            }
+            statusBuilder.config(config);
+            statusBuilder.url(config.getEditorUrl());
+            statusBuilder.key(config.getDocument().getKey());
+            fireGet(statusBuilder.build());
+          } else {
+            LOG.warn("Attempt to obtain document editor (" + nodePath(another) + ") under not existing user " + userId);
+            throw new BadParameterException("User not found for " + another.getDocument().getTitle());
+          }
+        } catch (NoSuchElementException e) { // if configs was cleaned by
+                                             // closing all active editors
+          config = null;
+        }
+      } else if (createCoEditing) {
+        // otherwise: config already obtained
+        statusBuilder.config(config);
+        statusBuilder.url(config.getEditorUrl());
+        statusBuilder.key(config.getDocument().getKey());
+        fireGet(statusBuilder.build());
+      }
+
+      return config; // can be null
+    }
+    return null;
+  }
+
+  /**
+   * Node.
+   *
+   * @param workspace the workspace
+   * @param path the path
+   * @return the node
+   * @throws BadParameterException the bad parameter exception
+   * @throws RepositoryException the repository exception
+   */
+  protected Node node(String workspace, String path) throws BadParameterException, RepositoryException {
+    SessionProvider sp = sessionProviders.getSessionProvider(null);
+    Session userSession = sp.getSession(workspace, jcrService.getCurrentRepository());
+
+    Item item = finder.findItem(userSession, path);
+    if (item.isNode()) {
+      return (Node) item;
+    } else {
+      throw new BadParameterException("Not a node " + path);
+    }
+  }
+
+  /**
+   * Gets the user lang.
+   *
+   * @param userId the user id
+   * @return the lang can be <code>null</code> if user has no profile or
+   *         language in it or user profile error
+   */
+  protected String getUserLang(String userId) {
+    UserProfileHandler hanlder = organization.getUserProfileHandler();
+    try {
+      UserProfile userProfile = hanlder.findUserProfileByName(userId);
+      if (userProfile != null) {
+        String lang = userProfile.getAttribute(Constants.USER_LANGUAGE);
+        if (lang != null) {
+          // XXX Onlyoffice doesn't support country codes (as of Apr 6, 2016)
+          // All supported langauges here
+          // http://helpcenter.onlyoffice.com/tipstricks/available-languages.aspx
+          int cci = lang.indexOf("_");
+          if (cci > 0) {
+            lang = lang.substring(0, cci);
+          }
+        } else {
+          lang = null;
+        }
+        return lang;
+      } else {
+        return null;
+      }
+    } catch (Exception e) {
+      LOG.warn("Error searching user profile " + userId, e);
+      return null;
+    }
+  }
+
+  /**
+   * Fire get.
+   *
+   * @param status the status
+   */
+  protected void fireGet(DocumentStatus status) {
+    for (OnlyofficeEditorListener l : listeners) {
+      try {
+        l.onGet(status);
+      } catch (Throwable t) {
+        LOG.warn("Read (Get) listener error", t);
+      }
+    }
+  }
+
+  /**
+   * Node path with the pattern workspace:path/to/node.
+   *
+   * @param config the config
+   * @return the string
+   */
+  protected String nodePath(Config config) {
+    return nodePath(config.getWorkspace(), config.getPath());
+  }
+
+  /**
+   * Node path with the pattern workspace:path/to/node.
+   *
+   * @param workspace the workspace
+   * @param path the path
+   * @return the string
+   */
+  protected String nodePath(String workspace, String path) {
+    return new StringBuilder().append(workspace).append(":").append(path).toString();
+  }
+
+  /**
+   * On-start initializer.
+   */
+  @Override
+  public void start() {
+    InputStream is = null;
+    try {
+      String workspace = jcrService.getCurrentRepository().getConfiguration().getDefaultWorkspaceName();
+      Session session = jcrService.getCurrentRepository().getSystemSession(workspace);
+      ExtendedNodeTypeManager nodeTypeManager = (ExtendedNodeTypeManager) session.getWorkspace().getNodeTypeManager();
+      is = OnlyofficeEditorService.class.getResourceAsStream("/conf/portal/jcr/onlyoffice-nodetypes.xml");
+      nodeTypeManager.registerNodeTypes(is, ExtendedNodeTypeManager.REPLACE_IF_EXISTS, NodeTypeDataManager.TEXT_XML);
+    } catch (Exception e) {
+      LOG.error("Cannot update nodetypes.", e);
+    } finally {
+      if (is != null) {
+        try {
+          is.close();
+        } catch (IOException e) {
+          LOG.error("Cannot close InputStream", e);
+        }
+      }
+    }
+    LOG.info("Onlyoffice Editor service successfuly started");
+  }
+
+  /**
+   * On-stop finalizer.
+   */
+  @Override
+  public void stop() {
+    LOG.info("Onlyoffice  Editor service successfuly stopped");
+  }
+
+  protected String addComment(String activityId, String commentText, String userId) {
+    if (activityId != null && !activityId.isEmpty() && commentText != null && !commentText.trim().isEmpty()) {
+      IdentityManager identityManager = WCMCoreUtils.getService(IdentityManager.class);
+      org.exoplatform.social.core.identity.model.Identity identity =
+                                                                   identityManager.getOrCreateIdentity(OrganizationIdentityProvider.NAME,
+                                                                                                       userId,
+                                                                                                       false);
+      ExoSocialActivity activity = activityManager.getActivity(activityId);
+      ExoSocialActivity comment = new ExoSocialActivityImpl(identity.getId(),
+                                                            SpaceActivityPublisher.SPACE_APP_ID,
+                                                            commentText,
+                                                            null);
+      activityManager.saveComment(activity, comment);
+      return comment.getId();
+    } else {
+      LOG.warn("Cannot add comment. ActivityId and comment shouldn't be null or empty. activityId: {}, comment: {}",
+               activityId,
+               commentText);
+      return null;
+    }
+
+  }
+
+  /**
+   * Broadcasts an event using the listenerService.
+   *
+   * @param status the status
+   * @param eventType the eventType
+   */
+  protected void broadcastEvent(DocumentStatus status, String eventType) {
+    try {
+      if (LOG.isDebugEnabled()) {
+        LOG.debug("Fire {} event. DocumentStatus: {}", eventType, status.toJSON());
+      }
+      listenerService.broadcast(eventType, this, status);
+    } catch (Exception e) {
+      LOG.error("Error firing listener with Onlyoffice {} event for user: {}, document: {}",
+                eventType,
+                status.getConfig().getEditorConfig().getUser().getId(),
+                status.getConfig().getDocId(),
+                e);
+    }
+  }
+
+  /**
+   * Checks if current user can rename the document.
+   *
+   * @param node the node
+   * @return true if user can rename
+   */
+  protected boolean canRenameDocument(Node node) {
+    try {
+      NodeImpl parent = (NodeImpl) node.getParent();
+      return parent.hasPermission(PermissionType.READ) && parent.hasPermission(PermissionType.ADD_NODE)
+          && parent.hasPermission(PermissionType.SET_PROPERTY);
+    } catch (Exception e) {
+      return false;
+    }
+  }
+
+  /**
+   * Checkout.
+   *
+   * @param node the node
+   * @return true, if successful
+   * @throws RepositoryException the repository exception
+   */
+  protected boolean checkout(Node node) throws RepositoryException {
+    if (node.isNodeType("mix:versionable")) {
+      if (!node.isCheckedOut()) {
+        node.checkout();
+      }
+      return true;
+    }
+    return false;
+  }
+
+  /**
+   * Creates a version of draft. Used to create version after manually uploaded
+   * content.
+   *
+   * @param node the node
+   * @throws RepositoryException the repository exception
+   * @throws OnlyofficeEditorException the onlyoffice exception
+   */
+  protected void createVersionOfDraft(Node node) throws RepositoryException, OnlyofficeEditorException {
+    ConversationState contextState = ConversationState.getCurrent();
+    SessionProvider contextProvider = sessionProviders.getSessionProvider(null);
+    String userId = node.getProperty("exo:lastModifier").getString();
+    if (setUserConvoState(userId)) {
+      if (LOG.isDebugEnabled()) {
+        LOG.debug("Creating a version from draft. Path: " + node.getPath() + " user: " + userId);
+      }
+      try {
+        node.save();
+        if (checkout(node)) {
+          node.checkin();
+          node.checkout();
+        }
+      } catch (Exception e) {
+        LOG.error("Couldnl't create a version from draft for user: " + userId);
+      }
+    } else {
+      logError(userId, node.getPath(), node.getUUID(), null, "Cannot set conversation state");
+      throw new OnlyofficeEditorException("Cannot set conversation state " + userId);
+    }
+    restoreConvoState(contextState, contextProvider);
+  }
+
+  /**
+   * Data.
+   *
+   * @param content the content
+   * @return the property
+   * @throws RepositoryException the repository exception
+   */
+  protected Property data(Node content) throws RepositoryException {
+    return content.getProperty("jcr:data");
+  }
+
+  /**
+   * Document type.
+   *
+   * @param fileType the file type
+   * @return the string
+   */
+  protected String documentType(String fileType) {
+    String docType = fileTypes.get(fileType);
+    if (docType != null) {
+      return docType;
+    }
+    return TYPE_TEXT; // we assume text document by default
+  }
+
+  /**
    * Downloads document's content to the JCR node.
-   * 
+   *
    * @param status the status
    * @throws OnlyofficeEditorException the OnlyofficeEditorException
    * @throws RepositoryException the RepositoryException
@@ -1691,7 +1852,8 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
       }
     }
 
-    // remember real context state and session provider to restore them at the end
+    // remember real context state and session provider to restore them at the
+    // end
     ConversationState contextState = ConversationState.getCurrent();
     SessionProvider contextProvider = sessionProviders.getSessionProvider(null);
     try {
@@ -1774,7 +1936,8 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
             node.setProperty("exo:lastModifier", userId);
           }
 
-          // TODO: Need to set SameModifier to false if last time the document was saved by forcesave
+          // TODO: Need to set SameModifier to false if last time the document
+          // was saved by forcesave
           modifierConfig.setSameModifier(sameModifier);
           modifierConfig.setPreviousModified(content.getProperty("jcr:lastModified").getDate());
 
@@ -1941,166 +2104,342 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
   }
 
   /**
-   * Updates config in the activeCache.
+   * Downloads document's content to the JCR node when the editor is closed.
    *
-   * @param config the config
+   * @param status the status
    */
-  protected void updateCache(Config config) {
-    ConcurrentMap<String, Config> configs = activeCache.get(config.getDocument().getKey());
-    if (configs != null) {
-      activeCache.put(config.getDocument().getKey(), configs);
-      activeCache.put(config.getDocId(), configs);
+  protected void downloadClosed(DocumentStatus status) {
+    Config config = status.getConfig();
+    // First mark closing, then do actual download and save in storage
+    config.closing();
+    broadcastEvent(status, OnlyofficeEditorService.EDITOR_CLOSED_EVENT);
+    try {
+      download(status);
+      config.getEditorConfig().getUser().setLastSaved(System.currentTimeMillis());
+      config.closed(); // reset transient closing state
+    } catch (OnlyofficeEditorException | RepositoryException e) {
+      LOG.error("Error occured while downloading document content [Closed]. docId: " + config.getDocId(), e);
     }
   }
 
-  protected String addComment(String activityId, String commentText, String userId) {
-    if (activityId != null && !activityId.isEmpty() && commentText != null && !commentText.trim().isEmpty()) {
-      IdentityManager identityManager = WCMCoreUtils.getService(IdentityManager.class);
-      org.exoplatform.social.core.identity.model.Identity identity =
-                                                                   identityManager.getOrCreateIdentity(OrganizationIdentityProvider.NAME,
-                                                                                                       userId,
-                                                                                                       false);
-      ExoSocialActivity activity = activityManager.getActivity(activityId);
-      ExoSocialActivity comment = new ExoSocialActivityImpl(identity.getId(),
-                                                            SpaceActivityPublisher.SPACE_APP_ID,
-                                                            commentText,
-                                                            null);
-      activityManager.saveComment(activity, comment);
-      return comment.getId();
-    } else {
-      LOG.warn("Cannot add comment. ActivityId and comment shouldn't be null or empty. activityId: {}, comment: {}",
-               activityId,
-               commentText);
+  /**
+   * Downloads document's content to the JCR node creating a new version.
+   *
+   * @param status the status
+   */
+  protected void downloadVersion(DocumentStatus status) {
+    try {
+      download(status);
+      status.getConfig().getEditorConfig().getUser().setLastSaved(System.currentTimeMillis());
+    } catch (RepositoryException | OnlyofficeEditorException e) {
+      LOG.error("Error occured while downloading document [Version]. docId: " + status.getConfig().getDocId(), e);
+    }
+  }
+
+  /**
+   * ECMS explorer page relative URL (within the Platform).
+   *
+   * @param jcrPath the jcr path
+   * @return the string
+   */
+  protected String explorerLink(String jcrPath) {
+    try {
+      return documentService.getLinkInDocumentsApp(jcrPath);
+    } catch (Exception e) {
+      LOG.warn("Error creating document link for " + jcrPath, e);
+      return new StringBuilder().append('/').append(PortalContainer.getCurrentPortalContainerName()).toString();
+    }
+  }
+
+  /**
+   * Explorer uri.
+   *
+   * @param schema the schema
+   * @param host the host
+   * @param port the port
+   * @param ecmsLink the ecms link
+   * @return the uri
+   */
+  protected URI explorerUri(String schema, String host, int port, String ecmsLink) {
+    URI uri;
+    try {
+      ecmsLink = URLDecoder.decode(ecmsLink, StandardCharsets.UTF_8.name());
+      String[] linkParts = ecmsLink.split("\\?");
+      if (linkParts.length >= 2) {
+        uri = new URI(schema, null, host, port, linkParts[0], linkParts[1], null);
+      } else {
+        uri = new URI(schema, null, host, port, ecmsLink, null, null);
+      }
+    } catch (Exception e) {
+      LOG.warn("Error creating document URI", e);
+      try {
+        uri = URI.create(ecmsLink);
+      } catch (Exception e1) {
+        if (LOG.isDebugEnabled()) {
+          LOG.debug("Error creating document URI from ECMS link and after error: " + e.getMessage(), e1);
+        }
+        uri = null;
+      }
+    }
+    return uri;
+  }
+
+  /**
+   * File type.
+   *
+   * @param node the node
+   * @return the string
+   * @throws RepositoryException the repository exception
+   */
+  protected String fileType(Node node) throws RepositoryException {
+    String title = nodeTitle(node);
+    int dotIndex = title.lastIndexOf('.');
+    if (dotIndex >= 0 && dotIndex < title.length()) {
+      String fileExt = title.substring(dotIndex + 1).trim().toLowerCase();
+      if (fileTypes.containsKey(fileExt)) {
+        return fileExt;
+      }
+    }
+    return null;
+  }
+
+  /**
+   * Fire created.
+   *
+   * @param status the status
+   */
+  protected void fireCreated(DocumentStatus status) {
+    for (OnlyofficeEditorListener l : listeners) {
+      try {
+        l.onCreate(status);
+      } catch (Throwable t) {
+        LOG.warn("Creation listener error", t);
+      }
+    }
+  }
+
+  /**
+   * Fire error.
+   *
+   * @param status the status
+   */
+  protected void fireError(DocumentStatus status) {
+    for (OnlyofficeEditorListener l : listeners) {
+      try {
+        l.onError(status);
+      } catch (Throwable t) {
+        LOG.warn("Error listener error", t);
+      }
+    }
+  }
+
+  /**
+   * Fire joined.
+   *
+   * @param status the status
+   */
+  protected void fireJoined(DocumentStatus status) {
+    for (OnlyofficeEditorListener l : listeners) {
+      try {
+        l.onJoined(status);
+      } catch (Throwable t) {
+        LOG.warn("User joining listener error", t);
+      }
+    }
+  }
+
+  /**
+   * Fire leaved.
+   *
+   * @param status the status
+   */
+  protected void fireLeaved(DocumentStatus status) {
+    for (OnlyofficeEditorListener l : listeners) {
+      try {
+        l.onLeaved(status);
+      } catch (Throwable t) {
+        LOG.warn("User leaving listener error", t);
+      }
+    }
+  }
+
+  /**
+   * Fire saved.
+   *
+   * @param status the status
+   */
+  protected void fireSaved(DocumentStatus status) {
+    for (OnlyofficeEditorListener l : listeners) {
+      try {
+        l.onSaved(status);
+      } catch (Throwable t) {
+        LOG.warn("Saving listener error", t);
+      }
+    }
+  }
+
+  /**
+   * Generate id.
+   *
+   * @param workspace the workspace
+   * @param path the path
+   * @return the uuid
+   */
+  protected UUID generateId(String workspace, String path) {
+    StringBuilder s = new StringBuilder();
+    s.append(workspace);
+    s.append(path);
+    s.append(System.currentTimeMillis());
+    s.append(String.valueOf(RANDOM.nextLong()));
+
+    return UUID.nameUUIDFromBytes(s.toString().getBytes());
+  }
+
+  /**
+   * Gets display path.
+   *
+   * @param node the node
+   * @param userId the userId
+   * @return the display path
+   */
+  protected String getDisplayPath(Node node, String userId) {
+    try {
+      DriveData driveData = documentService.getDriveOfNode(node.getPath());
+      List<String> elems = Arrays.asList(node.getPath().split("/"));
+      String parentFolder;
+      try {
+        parentFolder = node.getParent().getProperty("exo:title").getString();
+      } catch (Exception e) {
+        LOG.debug("Couldn't get exo:title from node parent. Node {}, message {}", node.getPath(), e.getMessage());
+        parentFolder = elems.get(elems.size() - 2);
+      }
+      String title = node.hasProperty("exo:title") ? node.getProperty("exo:title").getString() : elems.get(elems.size() - 1);
+      String drive = "";
+      if (driveData != null) {
+        String driveName = driveData.getName();
+        // User's documents
+        if (node.getPath().startsWith(usersPath)) {
+          drive = driveName;
+          // Shared document
+          if (!userId.equals(getUserId(node.getPath()))) {
+            Node symlink = getSymlink(node, userId);
+            if (symlink != null) {
+              return getDisplayPath(symlink, userId);
+            } else {
+              parentFolder = HIDDEN_FOLDER;
+            }
+          }
+          // Spaces's documents
+        } else if (driveName.startsWith(".spaces.")) {
+          String spacePrettyName = driveName.substring(driveName.lastIndexOf(".") + 1);
+          Space space = spaceService.getSpaceByPrettyName(spacePrettyName);
+          if (space != null) {
+            drive = space.getDisplayName();
+          } else {
+            LOG.warn("Cannot find space by pretty name {}", spacePrettyName);
+            drive = spacePrettyName;
+          }
+          // Group's documents
+        } else if (driveName.startsWith(".platform.")) {
+          String groupId = driveName.replaceAll(".", "/");
+          Group group = organization.getGroupHandler().findGroupById(groupId);
+          if (group != null) {
+            drive = group.getLabel();
+          } else {
+            LOG.warn("Cannot find group by id {}", groupId);
+            drive = groupId;
+          }
+        }
+      }
+      return drive + ":" + parentFolder + "/" + title;
+    } catch (Exception e) {
+      LOG.error("Error occured while creating display path", e);
       return null;
     }
-
   }
 
   /**
-   * Creates a version of draft. Used to create version after manually uploaded
-   * content.
+   * Gets lastmodified from node.
    *
    * @param node the node
-   * @throws RepositoryException the repository exception
-   * @throws OnlyofficeEditorException the onlyoffice exception
+   * @return the lastmodified
+   * @throws ValueFormatException the valueFormatException
+   * @throws PathNotFoundException the pathNotFoundException
+   * @throws RepositoryException the repositoryException
    */
-  protected void createVersionOfDraft(Node node) throws RepositoryException, OnlyofficeEditorException {
-    ConversationState contextState = ConversationState.getCurrent();
-    SessionProvider contextProvider = sessionProviders.getSessionProvider(null);
-    String userId = node.getProperty("exo:lastModifier").getString();
-    if (setUserConvoState(userId)) {
-      if (LOG.isDebugEnabled()) {
-        LOG.debug("Creating a version from draft. Path: " + node.getPath() + " user: " + userId);
-      }
+  protected String getLastModified(Node node) throws ValueFormatException, PathNotFoundException, RepositoryException {
+    if (node.hasProperty("exo:lastModifiedDate")) {
+      Calendar date = node.getProperty("exo:lastModifiedDate").getDate();
+      Locale locale;
       try {
-        node.save();
-        if (checkout(node)) {
-          node.checkin();
-          node.checkout();
-        }
+        locale = Util.getPortalRequestContext().getLocale();
       } catch (Exception e) {
-        LOG.error("Couldnl't create a version from draft for user: " + userId);
+        LOG.warn("Cannot get locale from portal request context. {}", e.getMessage());
+        locale = Locale.getDefault();
       }
-    } else {
-      logError(userId, node.getPath(), node.getUUID(), null, "Cannot set conversation state");
-      throw new OnlyofficeEditorException("Cannot set conversation state " + userId);
+      SimpleDateFormat dateFormat = new SimpleDateFormat(LAST_EDITED_DATE_FORMAT, locale);
+      return dateFormat.format(date.getTimeInMillis());
     }
-    restoreConvoState(contextState, contextProvider);
+    return null;
   }
 
   /**
-   * Node.
+   * Gets last modifier display name from node.
    *
-   * @param workspace the workspace
-   * @param path the path
-   * @return the node
-   * @throws BadParameterException the bad parameter exception
-   * @throws RepositoryException the repository exception
+   * @param node the node.
+   * @return the display name of last modifier
+   * @throws ValueFormatException the valueFormatException
+   * @throws PathNotFoundException the pathNotFoundException
+   * @throws RepositoryException the repositoryException
+   * @throws OnlyofficeEditorException the onlyofficeEditorException
    */
-  protected Node node(String workspace, String path) throws BadParameterException, RepositoryException {
-    SessionProvider sp = sessionProviders.getSessionProvider(null);
-    Session userSession = sp.getSession(workspace, jcrService.getCurrentRepository());
-
-    Item item = finder.findItem(userSession, path);
-    if (item.isNode()) {
-      return (Node) item;
-    } else {
-      throw new BadParameterException("Not a node " + path);
+  protected String getLastModifier(Node node) throws ValueFormatException,
+                                              PathNotFoundException,
+                                              RepositoryException,
+                                              OnlyofficeEditorException {
+    if (node.hasProperty("exo:lastModifier")) {
+      String lastModifierId = node.getProperty("exo:lastModifier").getString();
+      User modifier = getUser(lastModifierId);
+      if (modifier != null) {
+        return modifier.getDisplayName();
+      }
     }
+    return null;
   }
 
   /**
-   * System node.
-   *
-   * @param workspace the workspace
-   * @param path the path
-   * @return the node
-   * @throws BadParameterException the bad parameter exception
-   * @throws RepositoryException the repository exception
-   */
-  protected Node systemNode(String workspace, String path) throws BadParameterException, RepositoryException {
-    SessionProvider sp = sessionProviders.getSystemSessionProvider(null);
-    Session sysSession = sp.getSession(workspace, jcrService.getCurrentRepository());
-
-    Item item = finder.findItem(sysSession, path);
-    if (item.isNode()) {
-      return (Node) item;
-    } else {
-      throw new BadParameterException("Not a node " + path);
-    }
-  }
-
-  /**
-   * Node by UUID.
-   *
-   * @param workspace the workspace
-   * @param uuid the UUID
-   * @return the node
-   * @throws RepositoryException the repository exception
-   */
-  protected Node nodeByUUID(String workspace, String uuid) throws RepositoryException {
-    SessionProvider sp = sessionProviders.getSessionProvider(null);
-    Session userSession = sp.getSession(workspace, jcrService.getCurrentRepository());
-    return userSession.getNodeByUUID(uuid);
-  }
-
-  /**
-   * Checkout.
+   * Gets parent folder of the file based on file preferences
    *
    * @param node the node
-   * @return true, if successful
-   * @throws RepositoryException the repository exception
+   * @param userId the userId
+   * @return the Node
+   * @throws Exception the exception
    */
-  protected boolean checkout(Node node) throws RepositoryException {
-    if (node.isNodeType("mix:versionable")) {
-      if (!node.isCheckedOut()) {
-        node.checkout();
+  protected Node getSymlink(Node node, String userId) throws Exception {
+    if (node.hasNode("eoo:preferences")) {
+      Node filePreferences = node.getNode("eoo:preferences");
+      if (filePreferences.hasNode(userId)) {
+        Node userPreferences = filePreferences.getNode(userId);
+        String path = userPreferences.getProperty("path").getString();
+        return (Node) node.getSession().getItem(path);
       }
-      return true;
     }
-    return false;
+    return null;
   }
 
   /**
-   * Unlock given node.
+   * Gets userId from node path.
    *
-   * @param node the node
-   * @param lock the lock
-   * @throws OnlyofficeEditorException the onlyoffice editor exception
-   * @throws RepositoryException the repository exception
+   * @param path the node path
+   * @return the userId
    */
-  protected void unlock(Node node, LockState lock) throws OnlyofficeEditorException, RepositoryException {
-    node.unlock();
-    try {
-      LockUtil.removeLock(node);
-    } catch (Exception e) {
-      if (RepositoryException.class.isAssignableFrom(e.getClass())) {
-        throw RepositoryException.class.cast(e);
-      } else {
-        logError(null, node.getPath(), node.getUUID(), null, "Error removing document lock");
-        throw new OnlyofficeEditorException("Error removing document lock", e);
-      }
+  protected String getUserId(String path) {
+    List<String> elems = Arrays.asList(path.split("/"));
+    int position = 2;
+    while (elems.get(position).endsWith("_")) {
+      position++;
     }
+    return elems.get(position);
   }
 
   /**
@@ -2187,547 +2526,14 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
   }
 
   /**
-   * Validate user.
+   * Mime type.
    *
-   * @param userId the user id
-   * @param config the config
-   * @throws BadParameterException if user not found
-   * @throws OnlyofficeEditorException if error searching user in organization
-   *           service
-   */
-  protected void validateUser(String userId, Config config) throws BadParameterException, OnlyofficeEditorException {
-    User user = getUser(userId);
-    if (user == null) {
-      LOG.warn("Attempt to access editor document (" + nodePath(config) + ") under not existing user " + userId);
-      throw new BadParameterException("User not found for " + config.getDocument().getTitle());
-    }
-  }
-
-  /**
-   * Gets the user lang.
-   *
-   * @param userId the user id
-   * @return the lang can be <code>null</code> if user has no profile or
-   *         language in it or user profile error
-   */
-  protected String getUserLang(String userId) {
-    UserProfileHandler hanlder = organization.getUserProfileHandler();
-    try {
-      UserProfile userProfile = hanlder.findUserProfileByName(userId);
-      if (userProfile != null) {
-        String lang = userProfile.getAttribute(Constants.USER_LANGUAGE);
-        if (lang != null) {
-          // XXX Onlyoffice doesn't support country codes (as of Apr 6, 2016)
-          // All supported langauges here
-          // http://helpcenter.onlyoffice.com/tipstricks/available-languages.aspx
-          int cci = lang.indexOf("_");
-          if (cci > 0) {
-            lang = lang.substring(0, cci);
-          }
-        } else {
-          lang = null;
-        }
-        return lang;
-      } else {
-        return null;
-      }
-    } catch (Exception e) {
-      LOG.warn("Error searching user profile " + userId, e);
-      return null;
-    }
-  }
-
-  /**
-   * Platform url.
-   *
-   * @param schema the schema
-   * @param host the host
-   * @param port the port
-   * @return the string builder
-   */
-  protected StringBuilder platformUrl(String schema, String host, int port) {
-    StringBuilder platformUrl = new StringBuilder();
-    platformUrl.append(schema);
-    platformUrl.append("://");
-    platformUrl.append(host);
-    if (port >= 0 && port != 80 && port != 443) {
-      platformUrl.append(':');
-      platformUrl.append(port);
-    }
-    platformUrl.append('/');
-    platformUrl.append(PortalContainer.getCurrentPortalContainerName());
-
-    return platformUrl;
-  }
-
-  /**
-   * Explorer uri.
-   *
-   * @param schema the schema
-   * @param host the host
-   * @param port the port
-   * @param ecmsLink the ecms link
-   * @return the uri
-   */
-  protected URI explorerUri(String schema, String host, int port, String ecmsLink) {
-    URI uri;
-    try {
-      ecmsLink = URLDecoder.decode(ecmsLink, StandardCharsets.UTF_8.name());
-      String[] linkParts = ecmsLink.split("\\?");
-      if (linkParts.length >= 2) {
-        uri = new URI(schema, null, host, port, linkParts[0], linkParts[1], null);
-      } else {
-        uri = new URI(schema, null, host, port, ecmsLink, null, null);
-      }
-    } catch (Exception e) {
-      LOG.warn("Error creating document URI", e);
-      try {
-        uri = URI.create(ecmsLink);
-      } catch (Exception e1) {
-        if (LOG.isDebugEnabled()) {
-          LOG.debug("Error creating document URI from ECMS link and after error: " + e.getMessage(), e1);
-        }
-        uri = null;
-      }
-    }
-    return uri;
-  }
-
-  /**
-   * ECMS explorer page relative URL (within the Platform).
-   *
-   * @param jcrPath the jcr path
+   * @param content the content
    * @return the string
+   * @throws RepositoryException the repository exception
    */
-  protected String explorerLink(String jcrPath) {
-    try {
-      return documentService.getLinkInDocumentsApp(jcrPath);
-    } catch (Exception e) {
-      LOG.warn("Error creating document link for " + jcrPath, e);
-      return new StringBuilder().append('/').append(PortalContainer.getCurrentPortalContainerName()).toString();
-    }
-  }
-
-  /**
-   * Platform REST URL.
-   *
-   * @param platformUrl the platform URL
-   * @return the string builder
-   */
-  protected StringBuilder platformRestUrl(CharSequence platformUrl) {
-    StringBuilder restUrl = new StringBuilder(platformUrl);
-    restUrl.append('/');
-    restUrl.append(PortalContainer.getCurrentRestContextName());
-
-    return restUrl;
-  }
-
-  /**
-   * Broadcasts an event using the listenerService.
-   * 
-   * @param status the status
-   * @param eventType the eventType
-   */
-  protected void broadcastEvent(DocumentStatus status, String eventType) {
-    try {
-      if (LOG.isDebugEnabled()) {
-        LOG.debug("Fire {} event. DocumentStatus: {}", eventType, status.toJSON());
-      }
-      listenerService.broadcast(eventType, this, status);
-    } catch (Exception e) {
-      LOG.error("Error firing listener with Onlyoffice {} event for user: {}, document: {}",
-                eventType,
-                status.getConfig().getEditorConfig().getUser().getId(),
-                status.getConfig().getDocId(),
-                e);
-    }
-  }
-
-  /**
-   * Fire created.
-   *
-   * @param status the status
-   */
-  protected void fireCreated(DocumentStatus status) {
-    for (OnlyofficeEditorListener l : listeners) {
-      try {
-        l.onCreate(status);
-      } catch (Throwable t) {
-        LOG.warn("Creation listener error", t);
-      }
-    }
-  }
-
-  /**
-   * Fire get.
-   *
-   * @param status the status
-   */
-  protected void fireGet(DocumentStatus status) {
-    for (OnlyofficeEditorListener l : listeners) {
-      try {
-        l.onGet(status);
-      } catch (Throwable t) {
-        LOG.warn("Read (Get) listener error", t);
-      }
-    }
-  }
-
-  /**
-   * Fire joined.
-   *
-   * @param status the status
-   */
-  protected void fireJoined(DocumentStatus status) {
-    for (OnlyofficeEditorListener l : listeners) {
-      try {
-        l.onJoined(status);
-      } catch (Throwable t) {
-        LOG.warn("User joining listener error", t);
-      }
-    }
-  }
-
-  /**
-   * Fire leaved.
-   *
-   * @param status the status
-   */
-  protected void fireLeaved(DocumentStatus status) {
-    for (OnlyofficeEditorListener l : listeners) {
-      try {
-        l.onLeaved(status);
-      } catch (Throwable t) {
-        LOG.warn("User leaving listener error", t);
-      }
-    }
-  }
-
-  /**
-   * Fire saved.
-   *
-   * @param status the status
-   */
-  protected void fireSaved(DocumentStatus status) {
-    for (OnlyofficeEditorListener l : listeners) {
-      try {
-        l.onSaved(status);
-      } catch (Throwable t) {
-        LOG.warn("Saving listener error", t);
-      }
-    }
-  }
-
-  /**
-   * Fire error.
-   *
-   * @param status the status
-   */
-  protected void fireError(DocumentStatus status) {
-    for (OnlyofficeEditorListener l : listeners) {
-      try {
-        l.onError(status);
-      } catch (Throwable t) {
-        LOG.warn("Error listener error", t);
-      }
-    }
-  }
-
-  /**
-   * Find or create user identity.
-   *
-   * @param userId the user id
-   * @return the identity can be null if not found and cannot be created via
-   *         current authenticator
-   */
-  protected Identity userIdentity(String userId) {
-    Identity userIdentity = identityRegistry.getIdentity(userId);
-    if (userIdentity == null) {
-      // We create user identity by authenticator, but not register it in the
-      // registry
-      try {
-        if (LOG.isDebugEnabled()) {
-          LOG.debug("User identity not registered, trying to create it for: " + userId);
-        }
-        userIdentity = authenticator.createIdentity(userId);
-      } catch (Exception e) {
-        LOG.warn("Failed to create user identity: " + userId, e);
-      }
-    }
-    return userIdentity;
-  }
-
-  /**
-   * Get lower case copy of the given string.
-   *
-   * @param str the str
-   * @return the string
-   */
-  protected String lowerCase(String str) {
-    return str.toUpperCase().toLowerCase();
-  }
-
-  /**
-   * Editor URL path.
-   *
-   * @param docId the doc id
-   * @return the string
-   */
-  protected String editorURLPath(String docId) {
-    return new StringBuilder().append('/')
-                              .append(CommonsUtils.getCurrentPortalOwner())
-                              .append("/oeditor?docId=")
-                              .append(docId)
-                              .toString();
-  }
-
-  /**
-   * Logs editor errors.
-   *
-   * @param userId the userId
-   * @param path the path
-   * @param docId the docId
-   * @param key the key
-   * @param reason the reason
-   */
-  protected void logError(String userId, String path, String docId, String key, String reason) {
-    LOG.error("Editor error: " + reason + " [UserId: " + userId + ", docId: " + docId + ", path: " + path + ", key: " + key
-        + "]");
-  }
-
-  /**
-   * Sets ConversationState by userId.
-   *
-   * @param userId the userId
-   * @return true if successful, false when the user is not found
-   */
-  @SuppressWarnings("deprecation")
-  protected boolean setUserConvoState(String userId) {
-    Identity userIdentity = userIdentity(userId);
-    if (userIdentity != null) {
-      ConversationState state = new ConversationState(userIdentity);
-      // Keep subject as attribute in ConversationState.
-      state.setAttribute(ConversationState.SUBJECT, userIdentity.getSubject());
-      ConversationState.setCurrent(state);
-      SessionProvider userProvider = new SessionProvider(state);
-      sessionProviders.setSessionProvider(null, userProvider);
-      return true;
-    }
-    LOG.warn("User identity not found " + userId + " for setting conversation state");
-    return false;
-  }
-
-  /**
-   * Restores the conversation state.
-   * 
-   * @param contextState the contextState
-   * @param contextProvider the contextProvider
-   */
-  protected void restoreConvoState(ConversationState contextState, SessionProvider contextProvider) {
-    ConversationState.setCurrent(contextState);
-    sessionProviders.setSessionProvider(null, contextProvider);
-  }
-
-  /**
-   * Initializes fileTypes map
-   */
-  protected void initFileTypes() {
-    fileTypes.put("docx", TYPE_TEXT);
-    fileTypes.put("doc", TYPE_TEXT);
-    fileTypes.put("odt", TYPE_TEXT);
-    fileTypes.put("txt", TYPE_TEXT);
-    fileTypes.put("rtf", TYPE_TEXT);
-    fileTypes.put("mht", TYPE_TEXT);
-    fileTypes.put("html", TYPE_TEXT);
-    fileTypes.put("htm", TYPE_TEXT);
-    fileTypes.put("epub", TYPE_TEXT);
-    fileTypes.put("pdf", TYPE_TEXT);
-    fileTypes.put("djvu", TYPE_TEXT);
-    fileTypes.put("xps", TYPE_TEXT);
-    // Speadsheet formats
-    fileTypes.put("xlsx", TYPE_SPREADSHEET);
-    fileTypes.put("xls", TYPE_SPREADSHEET);
-    fileTypes.put("ods", TYPE_SPREADSHEET);
-    // Presentation formats
-    fileTypes.put("pptx", TYPE_PRESENTATION);
-    fileTypes.put("ppt", TYPE_PRESENTATION);
-    fileTypes.put("ppsx", TYPE_PRESENTATION);
-    fileTypes.put("pps", TYPE_PRESENTATION);
-    fileTypes.put("odp", TYPE_PRESENTATION);
-  }
-
-  /**
-   * Adds debug listener to active cache
-   */
-  protected void addDebugCacheListener() {
-    activeCache.addCacheListener(new CacheListener<String, ConcurrentMap<String, Config>>() {
-
-      @Override
-      public void onExpire(CacheListenerContext context, String key, ConcurrentMap<String, Config> obj) throws Exception {
-        LOG.debug(CACHE_NAME + " onExpire > " + key + ": " + obj);
-      }
-
-      @Override
-      public void onRemove(CacheListenerContext context, String key, ConcurrentMap<String, Config> obj) throws Exception {
-        LOG.debug(CACHE_NAME + " onRemove > " + key + ": " + obj);
-      }
-
-      @Override
-      public void onPut(CacheListenerContext context, String key, ConcurrentMap<String, Config> obj) throws Exception {
-        LOG.debug(CACHE_NAME + " onPut > " + key + ": " + obj);
-      }
-
-      @Override
-      public void onGet(CacheListenerContext context, String key, ConcurrentMap<String, Config> obj) throws Exception {
-        LOG.debug(CACHE_NAME + " onGet > " + key + ": " + obj);
-      }
-
-      @Override
-      public void onClearCache(CacheListenerContext context) throws Exception {
-        LOG.debug(CACHE_NAME + " onClearCache");
-      }
-    });
-  }
-
-  /**
-   * Gets documentserver host name.
-   *
-   * @param dsSchema the dsSchema
-   * @param dsHost the dsHost
-   * @return hostname
-   * @throws ConfigurationException the configurationException
-   */
-  protected String getDocumentserverHost(String dsSchema, String dsHost) throws ConfigurationException {
-    if (dsSchema == null || (dsSchema = dsSchema.trim()).length() == 0) {
-      dsSchema = "http";
-    }
-    if (dsHost == null || (dsHost = dsHost.trim()).length() == 0) {
-      throw new ConfigurationException("Configuration of " + CONFIG_DS_HOST + " required");
-    }
-    int portIndex = dsHost.indexOf(HTTP_PORT_DELIMITER);
-    if (portIndex > 0) {
-      // cut port from DS host to use in canDownloadBy() method
-      return dsHost.substring(0, portIndex);
-    }
-    return dsHost;
-  }
-
-  /**
-   * Gets allowed hosts.
-   *
-   * @param dsAllowedHost the dsAllowedHost
-   * @return allowed hosts
-   */
-  protected Set<String> getDocumentserverAllowedHosts(String dsAllowedHost) {
-    if (dsAllowedHost != null && !dsAllowedHost.isEmpty()) {
-      Set<String> allowedhosts = new HashSet<>();
-      for (String ahost : dsAllowedHost.split(",")) {
-        ahost = ahost.trim();
-        if (!ahost.isEmpty()) {
-          allowedhosts.add(lowerCase(ahost));
-        }
-      }
-      return Collections.unmodifiableSet(allowedhosts);
-    } else {
-      return Collections.emptySet();
-    }
-  }
-
-  /**
-   * Gets display path. 
-   *
-   * @param node the node
-   * @param userId the userId
-   * @return the display path
-   */
-  protected String getDisplayPath(Node node, String userId) {
-    try {
-      DriveData driveData = documentService.getDriveOfNode(node.getPath());
-      List<String> elems = Arrays.asList(node.getPath().split("/"));
-      String parentFolder;
-      try {
-        parentFolder = node.getParent().getProperty("exo:title").getString();
-      } catch (Exception e) {
-        LOG.debug("Couldn't get exo:title from node parent. Node {}, message {}", node.getPath(), e.getMessage());
-        parentFolder = elems.get(elems.size() - 2);
-      }
-      String title = node.hasProperty("exo:title") ? node.getProperty("exo:title").getString() : elems.get(elems.size() - 1);
-      String drive = "";
-      if (driveData != null) {
-        String driveName = driveData.getName();
-        // User's documents
-        if (node.getPath().startsWith(usersPath)) {
-          drive = driveName;
-          // Shared document
-          if (!userId.equals(getUserId(node.getPath()))) {
-            Node symlink = getSymlink(node, userId);
-            if (symlink != null) {
-              return getDisplayPath(symlink, userId);
-            } else {
-              parentFolder = HIDDEN_FOLDER;
-            }
-          }
-          // Spaces's documents
-        } else if (driveName.startsWith(".spaces.")) {
-          String spacePrettyName = driveName.substring(driveName.lastIndexOf(".") + 1);
-          Space space = spaceService.getSpaceByPrettyName(spacePrettyName);
-          if (space != null) {
-            drive = space.getDisplayName();
-          } else {
-            LOG.warn("Cannot find space by pretty name {}", spacePrettyName);
-            drive = spacePrettyName;
-          }
-          // Group's documents
-        } else if (driveName.startsWith(".platform.")) {
-          String groupId = driveName.replaceAll(".", "/");
-          Group group = organization.getGroupHandler().findGroupById(groupId);
-          if (group != null) {
-            drive = group.getLabel();
-          } else {
-            LOG.warn("Cannot find group by id {}", groupId);
-            drive = groupId;
-          }
-        }
-      }
-      return drive + ":" + parentFolder + "/" + title;
-    } catch (Exception e) {
-      LOG.error("Error occured while creating display path", e);
-      return null;
-    }
-  }
-
-  /**
-   * Gets parent folder of the file based on file preferences
-   * @param node the node
-   * @param userId the userId
-   * @return the Node
-   * @throws Exception the exception
-   */
-  protected Node getSymlink(Node node, String userId) throws Exception {
-    if (node.hasNode("eoo:preferences")) {
-      Node filePreferences = node.getNode("eoo:preferences");
-      if (filePreferences.hasNode(userId)) {
-        Node userPreferences = filePreferences.getNode(userId);
-        String path = userPreferences.getProperty("path").getString();
-        return (Node) node.getSession().getItem(path);
-      }
-    }
-    return null;
-  }
-
-  /**
-   * Gets userId from node path.
-   * 
-   * @param path the node path
-   * @return the userId
-   */
-  protected String getUserId(String path) {
-    List<String> elems = Arrays.asList(path.split("/"));
-    int position = 2;
-    while (elems.get(position).endsWith("_")) {
-      position++;
-    }
-    return elems.get(position);
+  protected String mimeType(Node content) throws RepositoryException {
+    return content.getProperty("jcr:mimeType").getString();
   }
 
   /**
@@ -2752,68 +2558,246 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
   }
 
   /**
-   * Checks if current user can rename the document.
+   * Node created.
    *
    * @param node the node
-   * @return true if user can rename 
+   * @return the calendar
+   * @throws RepositoryException the repository exception
    */
-  protected boolean canRenameDocument(Node node) {
+  protected Calendar nodeCreated(Node node) throws RepositoryException {
+    return node.getProperty("jcr:created").getDate();
+  }
+
+  /**
+   * Node title.
+   *
+   * @param node the node
+   * @return the string
+   * @throws RepositoryException the repository exception
+   */
+  protected String nodeTitle(Node node) throws RepositoryException {
+    String title = null;
+    if (node.hasProperty("exo:title")) {
+      title = node.getProperty("exo:title").getString();
+    } else if (node.hasProperty("jcr:content/dc:title")) {
+      Property dcTitle = node.getProperty("jcr:content/dc:title");
+      if (dcTitle.getDefinition().isMultiple()) {
+        Value[] dctValues = dcTitle.getValues();
+        if (dctValues.length > 0) {
+          title = dctValues[0].getString();
+        }
+      } else {
+        title = dcTitle.getString();
+      }
+    } else if (node.hasProperty("exo:name")) {
+      // FYI exo:name seems the same as node name
+      title = node.getProperty("exo:name").getString();
+    }
+    if (title == null) {
+      title = node.getName();
+    }
+    return title;
+  }
+
+  /**
+   * Platform REST URL.
+   *
+   * @param platformUrl the platform URL
+   * @return the string builder
+   */
+  protected StringBuilder platformRestUrl(CharSequence platformUrl) {
+    StringBuilder restUrl = new StringBuilder(platformUrl);
+    restUrl.append('/');
+    restUrl.append(PortalContainer.getCurrentRestContextName());
+
+    return restUrl;
+  }
+
+  /**
+   * Save link.
+   *
+   * @param userId the userId
+   * @param key the key
+   * @param url the url
+   */
+  protected void saveLink(String userId, String key, String url) {
+    ConcurrentMap<String, Config> configs = activeCache.get(key);
+    if (configs != null) {
+      Config config = configs.get(userId);
+      config.getEditorConfig().getUser().setDownloadLink(url);
+      config.getEditorConfig().getUser().setLinkSaved(System.currentTimeMillis());
+      activeCache.put(key, configs);
+      activeCache.put(config.getDocId(), configs);
+    }
+  }
+
+  /**
+   * Sync users.
+   *
+   * @param configs the configs
+   * @param users the users
+   * @return true, if actually changed editor config user(s)
+   */
+  protected boolean syncUsers(ConcurrentMap<String, Config> configs, String[] users) {
+    Set<String> editors = new HashSet<String>(Arrays.asList(users));
+    // remove gone editors
+    boolean updated = false;
+    for (Iterator<Map.Entry<String, Config>> ceiter = configs.entrySet().iterator(); ceiter.hasNext();) {
+      Map.Entry<String, Config> ce = ceiter.next();
+      String user = ce.getKey();
+      Config config = ce.getValue();
+
+      DocumentStatus status = new DocumentStatus.Builder().config(config)
+                                                          .key(config.getDocument().getKey())
+                                                          .url(config.getEditorUrl())
+                                                          .users(users)
+                                                          .build();
+
+      if (editors.contains(user)) {
+        if (config.isCreated() || config.isClosed()) {
+          // editor was (re)opened by user
+          config.open();
+          fireJoined(status);
+          broadcastEvent(status, OnlyofficeEditorService.EDITOR_OPENED_EVENT);
+          updated = true;
+        }
+      } else {
+        // editor was closed by user: it will be closing if closed via WebUI of
+        // ECMS explorer, open in general case
+        if (config.isClosing() || config.isOpen()) {
+          // closed because user sync happens when someone else still editing or
+          // nothing edited
+          config.closed();
+          fireLeaved(status);
+          broadcastEvent(status, OnlyofficeEditorService.EDITOR_CLOSED_EVENT);
+          updated = true;
+        }
+      }
+    }
+    return updated;
+  }
+
+  /**
+   * Unlock given node.
+   *
+   * @param node the node
+   * @param lock the lock
+   * @throws OnlyofficeEditorException the onlyoffice editor exception
+   * @throws RepositoryException the repository exception
+   */
+  protected void unlock(Node node, LockState lock) throws OnlyofficeEditorException, RepositoryException {
+    node.unlock();
     try {
-      NodeImpl parent = (NodeImpl) node.getParent();
-      return parent.hasPermission(PermissionType.READ) && parent.hasPermission(PermissionType.ADD_NODE)
-          && parent.hasPermission(PermissionType.SET_PROPERTY);
+      LockUtil.removeLock(node);
     } catch (Exception e) {
-      return false;
+      if (RepositoryException.class.isAssignableFrom(e.getClass())) {
+        throw RepositoryException.class.cast(e);
+      } else {
+        logError(null, node.getPath(), node.getUUID(), null, "Error removing document lock");
+        throw new OnlyofficeEditorException("Error removing document lock", e);
+      }
     }
   }
 
   /**
-   * Gets lastmodified from node.
+   * Updates config in the activeCache.
    *
-   * @param node the node
-   * @return the lastmodified
-   * @throws ValueFormatException the valueFormatException
-   * @throws PathNotFoundException the pathNotFoundException
-   * @throws RepositoryException the repositoryException
+   * @param config the config
    */
-  protected String getLastModified(Node node) throws ValueFormatException, PathNotFoundException, RepositoryException {
-    if (node.hasProperty("exo:lastModifiedDate")) {
-      Calendar date = node.getProperty("exo:lastModifiedDate").getDate();
-      Locale locale;
-      try {
-        locale = Util.getPortalRequestContext().getLocale();
-      } catch (Exception e) {
-        LOG.warn("Cannot get locale from portal request context. {}", e.getMessage());
-        locale = Locale.getDefault();
-      }
-      SimpleDateFormat dateFormat = new SimpleDateFormat(LAST_EDITED_DATE_FORMAT, locale);
-      return dateFormat.format(date.getTimeInMillis());
+  protected void updateCache(Config config) {
+    ConcurrentMap<String, Config> configs = activeCache.get(config.getDocument().getKey());
+    if (configs != null) {
+      activeCache.put(config.getDocument().getKey(), configs);
+      activeCache.put(config.getDocId(), configs);
     }
-    return null;
   }
 
   /**
-   * Gets last modifier display name from node.
-   * 
-   * @param node the node.
-   * @return the display name of last modifier
-   * @throws ValueFormatException the valueFormatException
-   * @throws PathNotFoundException the pathNotFoundException
-   * @throws RepositoryException the repositoryException
-   * @throws OnlyofficeEditorException the onlyofficeEditorException
+   * NewDocumentTypesConfig.
    */
-  protected String getLastModifier(Node node) throws ValueFormatException,
-                                              PathNotFoundException,
-                                              RepositoryException,
-                                              OnlyofficeEditorException {
-    if (node.hasProperty("exo:lastModifier")) {
-      String lastModifierId = node.getProperty("exo:lastModifier").getString();
-      User modifier = getUser(lastModifierId);
-      if (modifier != null) {
-        return modifier.getDisplayName();
-      }
+  public static class DocumentTypesConfig {
+
+    /** The mime types. */
+    protected List<String> mimeTypes;
+
+    /**
+     * Gets the mime types.
+     *
+     * @return the mime types
+     */
+    public List<String> getMimeTypes() {
+      return mimeTypes;
     }
-    return null;
+
+    /**
+     * Sets the mime types.
+     *
+     * @param mimeTypes the new mime types
+     */
+    public void setMimeTypes(List<String> mimeTypes) {
+      this.mimeTypes = mimeTypes;
+    }
+  }
+
+  /**
+   * The Class LockState.
+   */
+  class LockState {
+
+    /** The lock. */
+    final Lock   lock;
+
+    /** The lock token. */
+    final String lockToken;
+
+    /**
+     * Instantiates a new lock state.
+     *
+     * @param lockToken the lock token
+     */
+    LockState(String lockToken) {
+      super();
+      this.lockToken = lockToken;
+      this.lock = null;
+    }
+
+    /**
+     * Instantiates a new lock state.
+     *
+     * @param lock the lock
+     */
+    LockState(Lock lock) {
+      super();
+      this.lockToken = null;
+      this.lock = lock;
+    }
+
+    /**
+     * Instantiates a new lock state.
+     */
+    LockState() {
+      super();
+      this.lockToken = null;
+      this.lock = null;
+    }
+
+    /**
+     * Check can edit a document associated with this lock.
+     *
+     * @return true, if successful
+     */
+    boolean canEdit() {
+      return lock != null || lockToken != null;
+    }
+
+    /**
+     * Check if was locked by this editor service.
+     *
+     * @return true, if successful
+     */
+    boolean wasLocked() {
+      return lock != null;
+    }
   }
 
 }
