@@ -32,7 +32,7 @@
   <groupId>org.exoplatform.addons.onlyoffice</groupId>
   <version>1.5.x-SNAPSHOT</version>
   <packaging>pom</packaging>
-  <name>eXo OnlyOffice Editor :: Parent</name>
+  <name>eXo Add-on:: OnlyOffice Editor</name>
   <description>eXo OnlyOffice Editor for Documents extension</description>
 
   <scm>

@@ -28,7 +28,7 @@
   </parent>
   <artifactId>exo-onlyoffice-editor-webapp</artifactId>
   <packaging>war</packaging>
-  <name>eXo OnlyOffice Editor :: Extension Webapp</name>
+  <name>eXo Add-on:: OnlyOffice Editor Extension Webapp</name>
   <description>eXo OnlyOffice Editor web application of portal extension</description>
 
   <dependencies>

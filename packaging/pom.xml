@@ -28,7 +28,7 @@
   </parent>
   <artifactId>exo-onlyoffice-editor-packaging</artifactId>
   <packaging>pom</packaging>
-  <name>eXo OnlyOffice Editor :: Extension Packaging</name>
+  <name>eXo Add-on:: OnlyOffice Editor Packaging</name>
   <description>eXo OnlyOffice Editor packaging for installation</description>
 
   <dependencies>

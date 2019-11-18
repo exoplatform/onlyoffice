@@ -29,7 +29,7 @@
   </parent>
   <artifactId>exo-onlyoffice-editor-services</artifactId>
   <packaging>jar</packaging>
-  <name>eXo OnlyOffice Editor :: Extension Services</name>
+  <name>eXo Add-on:: OnlyOffice Editor Services</name>
   <description>eXo OnlyOffice Editor services of portal extension</description>
 
   <properties>
