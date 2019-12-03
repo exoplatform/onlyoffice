@@ -98,19 +98,16 @@
     </depends>
   </module>
 
-  <portlet-skin>
-    <application-name>onlyoffice</application-name>
-    <portlet-name>OnlyofficeDocumentStatePortlet</portlet-name>
-    <skin-name>Enterprise</skin-name>
-    <css-path>/skin/onlyoffice-extras.css</css-path>
-    <overwrite>true</overwrite>
-  </portlet-skin>
-
-  <portlet-skin>
-    <application-name>onlyoffice</application-name>
-    <portlet-name>OnlyofficeDocumentStatePortlet</portlet-name>
+  <portal-skin>
     <skin-name>Default</skin-name>
+    <skin-module>onlyoffice-extras</skin-module>
     <css-path>/skin/onlyoffice-extras.css</css-path>
-    <overwrite>true</overwrite>
-  </portlet-skin>
+  </portal-skin>
+
+  <portal-skin>
+    <skin-name>Enterprise</skin-name>
+    <skin-module>onlyoffice-extras</skin-module>
+    <css-path>/skin/onlyoffice-extras.css</css-path>
+  </portal-skin>
+
 </gatein-resources>

@@ -35,17 +35,4 @@
       <short-title>Onlyoffice editor</short-title>
     </portlet-info>
   </portlet>
-  
-  <portlet>
-    <portlet-name>OnlyofficeDocumentStatePortlet</portlet-name>
-    <display-name xml:lang="EN">Onlyoffice Document State Portlet</display-name>
-    <portlet-class>org.exoplatform.onlyoffice.portlet.DocumentStatePortlet</portlet-class>
-    <supports>
-      <mime-type>text/html</mime-type>
-    </supports>
-    <portlet-info>
-      <title>Onlyoffice document state portlet</title>
-      <short-title>Onlyoffice document</short-title>
-    </portlet-info>
-  </portlet>
 </portlet-app>
