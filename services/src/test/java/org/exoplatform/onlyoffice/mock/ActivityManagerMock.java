@@ -43,6 +43,10 @@ public class ActivityManagerMock implements ActivityManager {
   }
 
   @Override
+  public void updateActivity(ExoSocialActivity activity, boolean broadcast) {
+  }
+
+  @Override
   public void deleteActivity(ExoSocialActivity activity) {
   }
 
