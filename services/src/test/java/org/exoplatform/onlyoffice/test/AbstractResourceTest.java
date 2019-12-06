@@ -7,7 +7,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 
-import javax.jcr.Node;
+import javax.jcr.*;
 import javax.servlet.http.HttpServletRequest;
 
 import org.exoplatform.commons.testing.BaseCommonsTestCase;
@@ -48,6 +48,8 @@ public class AbstractResourceTest extends BaseCommonsTestCase {
 
   /** The session provider. */
   protected SessionProvider         sessionProvider;
+  
+  protected Session                 session;
 
   /** The onlyoffice editor service. */
   protected OnlyofficeEditorService onlyofficeEditorService;
@@ -114,8 +116,9 @@ public class AbstractResourceTest extends BaseCommonsTestCase {
    * Start session as a user.
    *
    * @param user the user
+   * @throws RepositoryException 
    */
-  protected void startSessionAs(String user) {
+  protected void startSessionAs(String user) throws RepositoryException {
     HashSet<MembershipEntry> memberships = new HashSet<MembershipEntry>();
     memberships.add(new MembershipEntry("/platform/administrators"));
     Identity identity = new Identity(user, memberships);
@@ -123,6 +126,7 @@ public class AbstractResourceTest extends BaseCommonsTestCase {
     ConversationState.setCurrent(state);
     sessionProviderService.setSessionProvider(null, new SessionProvider(state));
     sessionProvider = sessionProviderService.getSessionProvider(null);
+    session = sessionProvider.getSession("portal-test", SessionProviderService.getRepository());
   }
 
   /**

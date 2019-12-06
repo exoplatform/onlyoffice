@@ -9,11 +9,6 @@
   </component>
 
   <component>
-    <key>org.exoplatform.services.organization.idm.PicketLinkIDMCacheService</key>
-    <type>org.exoplatform.services.organization.idm.PicketLinkIDMCacheService</type>
-  </component>
-
-  <component>
     <key>org.gatein.common.transaction.JTAUserTransactionLifecycleService</key>
     <type>org.gatein.common.transaction.JTAUserTransactionLifecycleServiceImpl</type>
   </component>

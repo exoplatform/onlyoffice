@@ -116,16 +116,6 @@
   </component>
 
   <component>
-    <type>org.exoplatform.commons.notification.NotificationConfiguration</type>
-    <init-params>
-      <value-param>
-        <name>workspace</name>
-        <value>portal-test</value>
-      </value-param>
-    </init-params>
-  </component>
-
-  <component>
     <key>org.exoplatform.commons.api.event.EventManager</key>
     <type>org.exoplatform.commons.event.impl.EventManagerImpl</type>
   </component>
@@ -346,18 +336,6 @@
           <property name="metadata" value="http://www.exoplatform.com/jcr/metadata/1.1/" />
           <property name="jos" value="http://www.exoplatform.com/jcr-services/organization-service/1.0/" />
         </properties-param>
-      </init-params>
-    </component-plugin>
-    <component-plugin>
-      <name>add.social.nodeType</name>
-      <set-method>addPlugin</set-method>
-      <type>org.exoplatform.services.jcr.impl.AddNodeTypePlugin</type>
-      <init-params>
-        <values-param>
-          <name>autoCreatedInNewRepository</name>
-          <description>Node types configuration file</description>
-          <value>jar:/conf/portal/chromattic-nodetypes.xml</value>
-        </values-param>
       </init-params>
     </component-plugin>
   </external-component-plugins>

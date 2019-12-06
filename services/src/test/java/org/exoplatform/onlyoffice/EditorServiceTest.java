@@ -56,7 +56,6 @@ public class EditorServiceTest extends AbstractResourceTest {
     if (key == null) {
       try {
         startSessionAs(USER);
-        session = sessionProvider.getSession("portal-test", jcrService.getCurrentRepository());
         key = createTestDocument(USER, "abc.docx", "Testing Content");
         contentPayload.put("key", key);
 
