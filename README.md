@@ -60,6 +60,14 @@ If you want use released binaries from eXo Catalog, simple run command in root o
 
 When building from sources, then go to `/packaging/target` folder of the project and extract `exo-onlyoffice-packaging.zip` to a root of your server. You also may setup local add-ons catalog for eXo Addon manager if plan development with frequent installations, and then use this archive as a local package.
 
+### Compatibility matrix
+
+| eXo Addon version | OnlyOffice version |
+|-------------------|--------------------|
+| >= 2.0.x          | 5.4.2.46           |
+| >= 1.5.0-M07      | 5.4.2.46           |
+| < 1.5.0-M07       | 5.3.0.243          |
+
 ## Configuration
 
 Onlyoffice add-on need to know an adress of your Document Server and eXo Platform server, and it's also required to point a protocol scheme to use (`http` or `https`). Add following lines to your `exo.properties`.
@@ -147,4 +155,3 @@ The version event is published when a new version of a document has been created
 The error event appears when an error has occured while working with the Document Server.
 
 The data object passed to the event has DocumentStatus class which contains some useful information for end-user apps. For example, it contains the config, that has a full information about the editor, including the opened and closed times (for the opened and closed events). The coEdited field helps to figure out the original reason of the version event (true means that the version has been created becouse of coediting, false - due to autosave timer)
-
