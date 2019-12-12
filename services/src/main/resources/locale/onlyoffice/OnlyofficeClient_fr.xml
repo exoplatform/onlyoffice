@@ -5,8 +5,28 @@
     <EditButtonTitle>Modifier en ligne</EditButtonTitle>
     <UpdateBannerTitle>Le document a été mis à jour.</UpdateBannerTitle>
     <ReloadButtonTitle>Recharger</ReloadButtonTitle>
+    <SaveVersionLavel> Enregistrer la version</SaveVersionLavel>
+    <SeeMoreButton>Voir plus</SeeMoreButton>
+    <CloseButton>Fermer</CloseButton>
+    <SaveButton>Enregistrer</SaveButton>
+    <PlaceHolderTextarea>Écrivez votre résumé des changements ...</PlaceHolderTextarea>
+    <TitleTooltip>Cliquez pour modifier</TitleTooltip>
+    <OpenDrawerBtn>Ajouter une nouvelle version</OpenDrawerBtn>
+    <AlertSave>Changements sauvegardés</AlertSave>
+    <ErrorSave>Pas plus de 500 caractères</ErrorSave>
 
     <ErrorTitle>Erreur</ErrorTitle>
     <InfoTitle>Information</InfoTitle>
+    <TimeConvert>
+      <Less_Than_A_Minute>moins d'une minute</Less_Than_A_Minute>
+      <About_A_Minute>about a minute ago</About_A_Minute>
+      <About_X_Minutes>about {0} minutes ago</About_X_Minutes>
+      <About_An_Hour>about an hour ago</About_An_Hour>
+      <About_X_Hours>about {0} hours ago</About_X_Hours>
+      <About_A_Day>about a day ago</About_A_Day>
+      <About_X_Days>about {0} days ago</About_X_Days>
+      <About_A_Month>about a month ago</About_A_Month>
+      <About_X_Months>about {0} months ago</About_X_Months>
+    </TimeConvert>
   </OnlyofficeEditorClient>
 </bundle>

@@ -1,9 +1,6 @@
 package org.exoplatform.onlyoffice;
 
-import java.util.Calendar;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import javax.jcr.Node;
@@ -1272,6 +1269,45 @@ public class OnlyofficeEditorServiceTest extends BaseCommonsTestCase {
                 .signWith(Keys.hmacShaKeyFor(SECRET_KEY.getBytes()))
                 .compact();
     assertTrue(editorService.validateToken(token, key));
+    node.remove();
+  }
+
+  /**
+   * Test update title when not found document
+   */
+  @Test
+  public void testGetVersions() throws Exception {
+    // Given
+    startSessionAs("john");
+    Node node = createDocument("Test Document.docx", "nt:file", "testContent", false);
+    Config config = editorService.createEditor("http", "127.0.0.1", 8080, "john", null, node.getUUID());
+    DocumentStatus status = new DocumentStatus.Builder().status(6L)
+            .users(new String[] { "john" })
+            .userId("john")
+            .saved(true)
+            .key(config.getDocument().getKey())
+            .comment("Document updated")
+            .build();
+    editorService.updateDocument(status);
+
+    // When
+    List<Version> versions = editorService.getVersions("portal-test", node.getUUID());
+
+    // Then
+    assertNotNull(versions);
+    assertEquals(2, versions.size());
+    Version version1 = versions.get(0);
+    assertEquals("john", version1.getAuthor());
+    assertEquals("John Smith", version1.getFullName());
+    assertNotNull(version1.getVersionLabels());
+    assertEquals(0, version1.getVersionLabels().length);
+    Version version2 = versions.get(1);
+    assertEquals("john", version2.getAuthor());
+    assertEquals("John Smith", version2.getFullName());
+    assertNotNull(version2.getVersionLabels());
+    assertEquals(1, version2.getVersionLabels().length);
+    assertEquals("Document updated", version2.getVersionLabels()[0]);
+
     node.remove();
   }
 }
