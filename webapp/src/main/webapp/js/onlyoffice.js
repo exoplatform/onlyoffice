@@ -386,12 +386,18 @@
       }
       $bar.find("#save-btn").on("click", function() {
         var comment = $bar.find("#comment-box").val();
+        if (comment.length > 510){
+           UI.errorSave();
+           return;
+        }
         publishDocument(currentConfig.docId, {
           "type" : DOCUMENT_USERSAVED,
           "userId" : currentUserId,
           "clientId" : clientId,
           "key" : currentConfig.document.key,
           "comment" : comment
+        }).done(function() {
+          UI.alertSave();
         });
         $bar.find("#comment-box").val('');
         // Reset all timers after forcesaving
@@ -410,6 +416,7 @@
       $bar.find(".close-btn").on("click", function() {
         window.close();
       });
+
     };
 
     /**
@@ -526,7 +533,7 @@
               UI.showError(message("ErrorTitle"), message("ErrorFileDeletedEditor"));
             }
             if(state.type === DOCUMENT_SAVED) {
-              UI.updateBar(state.displayName, state.comment);
+              UI.updateBar(state.displayName, state.comment, currentConfig.workspace, currentConfig.docId);
               if(state.comment){
                 currentConfig.editorPage.comment = state.comment;
               }
@@ -539,7 +546,15 @@
               var oldTitle = currentConfig.document.title;
               currentConfig.document.title = state.title;
               window.document.title = window.document.title.replace(oldTitle, state.title);
-              $("#editor-top-bar").find(".editable-title").text(state.title);
+              $("#editor-drawer").find(".editable-title").text(state.title).append("<i class='uiIconPencilEdit'></i>");
+              var documentOldTitle = config.explorerUrl.substr(config.explorerUrl.lastIndexOf("/"));
+              var url = config.explorerUrl.split(documentOldTitle)[0];
+              var documentNewPath = url + "/" + state.title;
+              config.explorerUrl = documentNewPath;
+              $("#see-more-btn").prop("disabled", true);
+              setTimeout(function() {
+                $("#see-more-btn").prop("disabled", false);
+              }, 5000);
             }
           });
 
@@ -561,6 +576,7 @@
               publishDocument(currentConfig.docId, {
                 "type" : EDITOR_CLOSED,
                 "userId" : currentUserId,
+                "explorerUrl" : config.explorerUrl,
                 "key" : currentConfig.document.key,
                 "changes" : currentUserChanges
               });
@@ -582,6 +598,19 @@
         log("ERROR: editor config creation failed : " + error);
         UI.showError(message("ErrorTitle"), message("ErrorCreateConfig"));
       });
+
+      $("#open-drawer-btn").on('click', function() {
+         return UI.openDrawer();
+      });
+
+      $("#editor-drawer .header .closebtn").on('click', function() {
+         return UI.closeDrawer();
+       });
+
+       $("#see-more-btn").on('click', function() {
+         window.open(config.explorerUrl);
+       });
+
     };
 
     /**
@@ -858,25 +887,68 @@
       }
       $body.addClass("onlyofficeEditorBody");
     };
-    
-    this.updateBar = function(changer, comment) {
-      var $bar = $("#editor-top-bar");
-      var $commentBox = $bar.find(".editors-comment");
-      $commentBox.attr("data-original-title", comment);
-      $commentBox.empty();
-      if(comment){
-        $commentBox.append(comment);
-      }
-      var $lastEditedElem = $bar.find(".last-edited");
-      $lastEditedElem.empty();
-      $lastEditedElem.append("Last edited by " + changer + " " + formatDate(new Date()));
+
+    /**
+     * Alert save changes.
+     */
+    this.alertSave = function() {
+      $("#alert-saved").show();
+      setTimeout(function() {
+        $("#alert-saved").hide();
+      }, 3000);
+    };
+
+    /**
+     * Alert you have exceeded the limit of comment changes.
+     */
+    this.errorSave = function() {
+      $("#alert-error").show();
+      setTimeout(function() {
+        $("#alert-error").hide();
+      }, 3000);
+    };
+
+
+    this.updateBar = function(changer, comment, workspace, docId) {
+      UI.loadVersions(workspace, docId);
     };
 
     this.initBar = function(config) {
-      var drive = config.editorPage.displayPath.split(':')[0];
-      var folders = config.editorPage.displayPath.split(':')[1].split('/');
-      var title = folders.pop();
-      var $bar = $("#editor-top-bar");
+      var drive = config.editorPage.displayPath.split(':')[0].replace(/\  /g , ' ');
+      var $bar = $("#editor-drawer");
+      if(drive.startsWith('spaces/')) {
+        var folders = config.editorPage.displayPath.split(':')[1].split('/');
+        var title = folders.pop();
+        var spaceName = drive.split('spaces/')[1];
+        var newDrivePath = spaceName.replace(/\ /g, '_').toLowerCase();
+        var pathDocument = config.path.split(newDrivePath + '/')[1].split("/" + title)[0];
+        var pathDocumentWithIcon = pathDocument.replace(/\//g , function() {
+          return "<i class='uiIconArrowRight'></i>";
+        });
+        var $avatarSpaceElem = $bar.find(".spaceAvatar img");
+        $avatarSpaceElem.attr("src", "/rest/v1/social/spaces/" + newDrivePath + "/avatar");
+        var $tooltipSpaceElem = $bar.find(".spaceAvatar img");
+        $tooltipSpaceElem.attr("data-original-title", spaceName);
+      } else {
+        var folders = config.editorPage.displayPath.split(':')[1].split('/');
+        var title = folders.pop();
+        var path = config.editorPage.displayPath.split('/')[0];
+        var pathDocumentWithIcon = path.replace(/\//g , function() {
+          return "<i class='uiIconArrowRight'></i>";
+        } );
+        var $avatarSpaceElem = $bar.find(".spaceAvatar img");
+        $avatarSpaceElem.attr("src", "/rest/v1/social/users/" + config.editorConfig.user.id + "/avatar");
+        var $tooltipSpaceElem = $bar.find(".spaceAvatar img");
+        $tooltipSpaceElem.attr("data-original-title", config.editorConfig.user.name);
+      }
+      $(".header").append(message('SaveVersionLavel'));
+      $("#alert-saved").append(message('AlertSave'));
+      $("#alert-error").append(message('ErrorSave'));
+      $("#save-btn").append(message('SaveButton'));
+      $("#see-more-btn").append(message('SeeMoreButton'));
+      $("#open-drawer-btn").attr("data-original-title", message('OpenDrawerBtn'));
+      $(".closebtn").attr("data-original-title", message('CloseButton'));
+      $(".versionSummaryField").attr("placeholder", message('PlaceHolderTextarea'));
       if(config.editorPage.renameAllowed){
         $bar.find("a[rel=tooltip]").tooltip();
       } else {
@@ -886,19 +958,15 @@
         $bar.find("#comment-box").prop("disabled", true);
       }
       var $pathElem = $bar.find(".document-path");
-      $pathElem.append(drive + " : ");
-      $pathElem.append("<span class='folder'>" + folders[0] + "</span>" + " <i class='uiIconArrowRight'></i> ");
-     
-      var $titleElem = $bar.find(".document-title a");
-      $titleElem.append("<span class='editable-title'>" + title + "</span>");
+      $pathElem.append("<span class='folder'>" + pathDocumentWithIcon + "</span>" + " <i class='uiIconArrowRight'></i> ");
 
-      var $lastEditedElem = $bar.find(".last-edited");
-      $lastEditedElem.append("Last edited by " + config.editorPage.lastModifier + " " + config.editorPage.lastModified);
-      if(config.editorPage.comment){
-        var $comment = $bar.find(".editors-comment");
-        $comment.append(config.editorPage.comment);
-        $comment.attr("data-original-title", config.editorPage.comment);
-      }
+      var $titleElem = $bar.find(".document-title a");
+      $titleElem.append("<span class='editable-title'>" + title + " " + "<i class='uiIconPencilEdit'></i> </span>");
+      $titleElem.attr("data-original-title", message('TitleTooltip'));
+
+      $("#editor-drawer").ready(function () {
+        UI.loadVersions(config.workspace, config.docId);
+      });
 
       var $saveBtn = $bar.find("#save-btn .uiIconSave");
       $saveBtn.on("click", function(){
@@ -910,8 +978,109 @@
       return $bar;
     };
 
+    this.loadVersions = function(workspace, docId) {
+      $.ajax({
+        url: "/portal/rest/onlyoffice/editor/versions/" + workspace + "/" + docId,
+        success: function (data) {
+         var html = "";
+         var limit = data.length < 3 ? data.length : 3;
+         for (var i=0; i < limit; i++) {
+           html += "<table class='tableContentStyle'>" +
+             "<tr class='tableHead'>" +
+             "<th class='displayAvatarFullName'>" +
+             "<div class='avatarCircle'>" +
+             "<img src='/rest/v1/social/users/" + data[i].author + "/avatar'>" +
+             "</div>" +
+             "<div class='user-edit'>" + data[i].fullName + "</div>" +
+             "<div class='created-date' rel='tooltip' data-placement='bottom'  data-original-title='" + UI.getAbsoluteTime(data[i].createdTime) + "'>" +
+             UI.getRelativeTime(data[i].createdTime) +
+             "</div>" +
+             "</th>" +
+             "</tr>" +
+             "<tr class='tableContent'>" +
+             "<th>" +
+             "<div class='editors-comment-versions b' rel='tooltip' data-placement='bottom'  data-original-title='" + data[i].versionLabels + "'>" +
+             data[i].versionLabels +
+             "</div>" +
+             "</th>" +
+             "</tr>" +
+             "</table>";
+         };
+
+         $("#versions").html(html);
+         $(".editors-comment-versions").tooltip();
+         $(".created-date").tooltip();
+       },
+       error: function (xhr, ajaxOptions, thrownError) {
+         alert(xhr.responseText + "\n" + xhr.status + "\n" + thrownError);
+       }
+      });
+    };
+
+    this.getAbsoluteTime = function(time) {
+      return new Date(time).toLocaleString(eXo.env.portal.language);
+    };
+
+    this.getRelativeTime = function(time) {
+      const relativeTime = (new Date().getTime() - time) / 1000;
+      let value;
+      if (relativeTime < 60) {
+        return message('TimeConvert.Less_Than_A_Minute');
+      } else {
+        if (relativeTime < 120) {
+          return message('TimeConvert.About_A_Minute');
+        } else {
+          if (relativeTime < 3600) {
+            value = Math.round(relativeTime / 60);
+            return message('TimeConvert.About_X_Minutes').replace('{0}', value);
+          } else {
+            if (relativeTime < 7200) {
+              return message('TimeConvert.About_An_Hour');
+            } else {
+              if (relativeTime < 86400) {
+                value = Math.round(relativeTime / 3600);
+                return message('TimeConvert.About_X_Hours').replace('{0}', value);
+              } else {
+                if (relativeTime < 172800) {
+                  return message('TimeConvert.About_A_Day');
+                } else {
+                  if (relativeTime < 2592000) {
+                    value = Math.round(relativeTime / 86400);
+                    return message('TimeConvert.About_X_Days').replace('{0}', value);
+                  } else {
+                    if (relativeTime < 5184000) {
+                      return message('TimeConvert.About_A_Month');
+                    } else {
+                      value = Math.round(relativeTime / 2592000);
+                      return message('TimeConvert.label.About_X_Months').replace('{0}', value);
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    };
+
     this.isEditorLoaded = function() {
       return $("#UIPage .onlyofficeContainer").length > 0;
+    };
+
+    /**
+     * Open the drawer
+     */
+    this.openDrawer = function() {
+     $("#editor-drawer").addClass("open");
+     $("#drawer-backdrop").addClass("drawer-backdrop");
+    };
+
+    /**
+     * Close the drawer
+     */
+    this.closeDrawer = function() {
+      $("#editor-drawer").removeClass("open");
+      $("#drawer-backdrop").removeClass("drawer-backdrop");
     };
 
     /**
@@ -933,9 +1102,8 @@
 
           // create and start editor (this also will re-use an existing editor config from the server)
           docEditor = new DocsAPI.DocEditor("onlyoffice", localConfig);
-          console.log('>>>> ' + JSON.stringify(localConfig))
           // show editor
-          $container.find("#editor-top-bar").show();
+          $container.find("#editor-drawer").show();
           $container.find(".editor").show();
           $container.find(".loading").hide();
         } else {
@@ -1096,11 +1264,10 @@
 
   $(function() {
     try {
-      // load required styles (it didn't work right via gatein-resources.xml in PLF 5.0)
+      // load jquery-ui required stylesheets in js since only 1 stylesheet can be loaded for a given portlet in gatein-resources.xml
       loadStyle("/onlyoffice/skin/jquery-ui.css");
       loadStyle("/onlyoffice/skin/jquery.pnotify.default.css");
       loadStyle("/onlyoffice/skin/jquery.pnotify.default.icons.css");
-      loadStyle("/onlyoffice/skin/onlyoffice.css");
 
       // configure Pnotify
       $.pnotify.defaults.styling = "jqueryui";

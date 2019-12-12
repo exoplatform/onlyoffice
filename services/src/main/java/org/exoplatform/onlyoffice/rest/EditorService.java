@@ -21,15 +21,12 @@ package org.exoplatform.onlyoffice.rest;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.URI;
-import java.util.Locale;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
 import javax.annotation.security.RolesAllowed;
 import javax.jcr.RepositoryException;
 import javax.servlet.http.HttpServletRequest;
-import javax.ws.rs.FormParam;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
@@ -41,6 +38,8 @@ import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 import javax.ws.rs.core.UriInfo;
 
+import org.apache.commons.lang3.StringUtils;
+import org.exoplatform.onlyoffice.*;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
@@ -48,14 +47,6 @@ import org.json.simple.parser.ParseException;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import org.exoplatform.onlyoffice.BadParameterException;
-import org.exoplatform.onlyoffice.ChangeState;
-import org.exoplatform.onlyoffice.Config;
-import org.exoplatform.onlyoffice.DocumentContent;
-import org.exoplatform.onlyoffice.DocumentStatus;
-import org.exoplatform.onlyoffice.OnlyofficeEditorException;
-import org.exoplatform.onlyoffice.OnlyofficeEditorService;
-import org.exoplatform.onlyoffice.Userdata;
 import org.exoplatform.services.log.ExoLogger;
 import org.exoplatform.services.log.Log;
 import org.exoplatform.services.rest.resource.ResourceContainer;
@@ -496,6 +487,44 @@ public class EditorService implements ResourceContainer {
     }
 
     return resp.build();
+  }
+
+  /**
+   * Getting versions of the given document
+   *
+   * @param uriInfo the request info
+   * @param request the request
+   * @param workspace the document workspace
+   * @param key the document key
+   * @return {@link Response}
+   */
+  @GET
+  @Path("/versions/{workspace}/{key}")
+  @RolesAllowed("users")
+  @Produces(MediaType.APPLICATION_JSON)
+  public Response getVersions(@Context UriInfo uriInfo, @Context HttpServletRequest request, @PathParam("workspace") String workspace,
+                              @PathParam("key") String key) {
+    if (LOG.isDebugEnabled()) {
+      LOG.debug("> get versions of doc " + key + " in workspace " + workspace);
+    }
+    try {
+      if (StringUtils.isBlank(workspace)) {
+         return Response.status(Response.Status.BAD_REQUEST).build();
+      }
+      if (StringUtils.isBlank(key)) {
+         return Response.status(Response.Status.BAD_REQUEST).build();
+      }
+
+      List<Version> versions = editors.getVersions(workspace, key);
+      if (versions != null) {
+         return Response.ok(versions).build();
+      } else {
+         return Response.ok(Collections.EMPTY_LIST).build();
+      }
+    } catch (Exception e) {
+      LOG.error("Error when fetching the versions of the document " + key, e);
+      return Response.serverError().build();
+    }
   }
 
   /**
