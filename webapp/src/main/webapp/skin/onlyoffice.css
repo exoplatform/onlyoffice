@@ -169,6 +169,12 @@ a.icon-place {
   font-size: 13px;
 }
 
+.onlyofficeEditorBody #open-drawer-btn .uiIconSaveDrawer:before {
+  content: "\e79e";
+  margin: 0px -5px;
+  font-size: 23px;
+}
+
 .onlyofficeEditorBody #editor-drawer .header {
   font-size: 19px;
   font-weight: bold;
@@ -251,13 +257,13 @@ a.icon-place {
 .onlyofficeEditorBody #editor-drawer .user-edit {
   padding: 8px;
   color: #333333;
-  width: 155px;
+  width: 45%;
   text-align: left;
 }
 
 .onlyofficeEditorBody #editor-drawer .created-date {
   padding: 9px;
-  width: 155px;
+  width: 40%;
   text-align: end;
   color: #999999;
   font-size: 12px;

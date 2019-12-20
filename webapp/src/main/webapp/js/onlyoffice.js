@@ -914,6 +914,8 @@
     };
 
     this.initBar = function(config) {
+      config.editorPage.displayPath= decodeURI(config.editorPage.displayPath);
+      config.path = decodeURI(config.path);
       var drive = config.editorPage.displayPath.split(':')[0].replace(/\  /g , ' ');
       var $bar = $("#editor-drawer");
       if(drive.startsWith('spaces/')) {
@@ -929,6 +931,7 @@
         $avatarSpaceElem.attr("src", "/rest/v1/social/spaces/" + newDrivePath + "/avatar");
         var $tooltipSpaceElem = $bar.find(".spaceAvatar img");
         $tooltipSpaceElem.attr("data-original-title", spaceName);
+        $(".spaceAvatar img").tooltip();
       } else {
         var folders = config.editorPage.displayPath.split(':')[1].split('/');
         var title = folders.pop();
@@ -940,6 +943,7 @@
         $avatarSpaceElem.attr("src", "/rest/v1/social/users/" + config.editorConfig.user.id + "/avatar");
         var $tooltipSpaceElem = $bar.find(".spaceAvatar img");
         $tooltipSpaceElem.attr("data-original-title", config.editorConfig.user.name);
+        $(".spaceAvatar img").tooltip();
       }
       $(".header").append(message('SaveVersionLavel'));
       $("#alert-saved").append(message('AlertSave'));
@@ -949,6 +953,7 @@
       $("#open-drawer-btn").attr("data-original-title", message('OpenDrawerBtn'));
       $(".closebtn").attr("data-original-title", message('CloseButton'));
       $(".versionSummaryField").attr("placeholder", message('PlaceHolderTextarea'));
+      $("#open-drawer-btn").tooltip();
       if(config.editorPage.renameAllowed){
         $bar.find("a[rel=tooltip]").tooltip();
       } else {

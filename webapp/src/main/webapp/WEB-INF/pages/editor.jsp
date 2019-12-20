@@ -8,7 +8,7 @@
   </div --%>
   <div id="open-drawer-btn" class="btn-primary open-drawer-btn" rel="tooltip" data-placement="bottom" data-original-title="">
     <a class="icon-place">
-      <i class="uiIconSave"></i>
+      <i class="uiIconSaveDrawer"></i>
     </a>
   </div>
 
