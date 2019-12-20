@@ -1884,7 +1884,6 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
             // Set the same data to call listeners
             content.setProperty("jcr:data", content.getProperty("jcr:data").getStream());
           }
-
           node.save();
           long statusCode = status.getStatus() != null ? status.getStatus() : -1;
 
