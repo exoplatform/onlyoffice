@@ -349,4 +349,5 @@
   
 
 <remove-configuration>org.exoplatform.wcm.ext.component.document.service.ContentViewerRESTService</remove-configuration>
+<remove-configuration>org.exoplatform.commons.search.service.UnifiedSearchService</remove-configuration>
 </configuration>

@@ -3,27 +3,24 @@ package org.exoplatform.onlyoffice;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import javax.jcr.*;
+import javax.jcr.Node;
+import javax.jcr.Session;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.ArrayUtils;
 import org.junit.Test;
 
 import org.exoplatform.commons.testing.BaseCommonsTestCase;
-import org.exoplatform.component.test.ConfigurationUnit;
-import org.exoplatform.component.test.ConfiguredBy;
-import org.exoplatform.component.test.ContainerScope;
+import org.exoplatform.component.test.*;
 import org.exoplatform.container.ExoContainerContext;
 import org.exoplatform.services.jcr.access.PermissionType;
+import org.exoplatform.services.jcr.ext.ActivityTypeUtils;
 import org.exoplatform.services.jcr.ext.app.SessionProviderService;
 import org.exoplatform.services.jcr.ext.common.SessionProvider;
 import org.exoplatform.services.jcr.impl.core.NodeImpl;
 import org.exoplatform.services.log.ExoLogger;
 import org.exoplatform.services.log.Log;
-import org.exoplatform.services.security.ConversationState;
-import org.exoplatform.services.security.Identity;
-import org.exoplatform.services.security.MembershipEntry;
-import org.exoplatform.social.utils.ActivityTypeUtils;
+import org.exoplatform.services.security.*;
 
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
@@ -660,7 +657,7 @@ public class OnlyofficeEditorServiceTest extends BaseCommonsTestCase {
     // Then
     Config.Editor.User user = editorService.getLastModifier(node.getUUID());
     assertNotNull(user);
-    assertEquals(user.getName(), "John Smith");
+    assertEquals(user.getName(), "John Anthony");
     assertNotSame(user.lastModified, "0");
     node.remove();
   }
@@ -742,7 +739,7 @@ public class OnlyofficeEditorServiceTest extends BaseCommonsTestCase {
     // Then
     Config.Editor.User user = editorService.getUser(node.getUUID(), "john");
     assertNotNull(user);
-    assertEquals(user.getName(), "John Smith");
+    assertEquals(user.getName(), "John Anthony");
     node.remove();
   }
 
@@ -1306,12 +1303,12 @@ public class OnlyofficeEditorServiceTest extends BaseCommonsTestCase {
     assertEquals(2, versions.size());
     Version version1 = versions.get(0);
     assertEquals("john", version1.getAuthor());
-    assertEquals("John Smith", version1.getFullName());
+    assertEquals("John Anthony", version1.getFullName());
     assertNotNull(version1.getVersionLabels());
     assertEquals(0, version1.getVersionLabels().length);
     Version version2 = versions.get(1);
     assertEquals("john", version2.getAuthor());
-    assertEquals("John Smith", version2.getFullName());
+    assertEquals("John Anthony", version2.getFullName());
     assertNotNull(version2.getVersionLabels());
     assertEquals(1, version2.getVersionLabels().length);
     assertEquals("Document updated", version2.getVersionLabels()[0]);
