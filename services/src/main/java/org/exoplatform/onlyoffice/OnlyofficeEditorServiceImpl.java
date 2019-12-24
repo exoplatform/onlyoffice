@@ -1023,14 +1023,15 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
   @Override
   public List<Version> getVersions(String workspace, String docId) throws Exception {
     List<Version> versions = new ArrayList<>() ;
-
     Node currentNode = getDocumentById(workspace, docId);
     if(currentNode != null) {
       VersionNode rootVersion = new VersionNode(currentNode, currentNode.getSession());
 
       List<VersionNode> versionNodes = getNodeVersions(rootVersion.getChildren(), new ArrayList<>());
+      int versionNodesLength = versionNodes.size() > 3 ? 3 : versionNodes.size();
 
-      for (VersionNode versionNode : versionNodes) {
+      for (int i = 0 ; i < versionNodesLength; i++) {
+        VersionNode versionNode = versionNodes.get(i);
         Version version = new Version();
         version.setAuthor(versionNode.getAuthor());
         version.setName(versionNode.getName());
