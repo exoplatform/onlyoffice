@@ -1273,7 +1273,7 @@ public class OnlyofficeEditorServiceTest extends BaseCommonsTestCase {
   }
 
   /**
-   * Test update title when not found document
+   * Test get list of versions
    */
   @Test
   public void testGetVersions() throws Exception {
