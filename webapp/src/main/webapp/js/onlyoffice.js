@@ -1016,8 +1016,8 @@
          $(".editors-comment-versions").tooltip();
          $(".created-date").tooltip();
        },
-       error: function (xhr, ajaxOptions, thrownError) {
-         alert(xhr.responseText + "\n" + xhr.status + "\n" + thrownError);
+       error: function (xhr, thrownError) {
+         log("Error fetching versions: " + xhr.responseText + "\n" + xhr.status + "\n" + thrownError, thrownError);
        }
       });
     };
