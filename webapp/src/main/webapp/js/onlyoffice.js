@@ -913,6 +913,21 @@
       UI.loadVersions(workspace, docId);
     };
 
+    //Function for remove accents
+    this.removeAccents = function (str){
+      var accents    = 'ÀÁÂÃÄÅàáâãäåÒÓÔÕÕÖØòóôõöøÈÉÊËèéêëðÇçÐÌÍÎÏìíîïÙÚÛÜùúûüÑñŠšŸÿýŽž';
+      var accentsOut = "AAAAAAaaaaaaOOOOOOOooooooEEEEeeeeeCcDIIIIiiiiUUUUuuuuNnSsYyyZz";
+      str = str.split('');
+      var strLen = str.length;
+      var i, x;
+      for (i = 0; i < strLen; i++) {
+        if ((x = accents.indexOf(str[i])) != -1) {
+          str[i] = accentsOut[x];
+        }
+      }
+      return str.join('');
+    };
+
     this.initBar = function(config) {
       config.editorPage.displayPath= decodeURI(config.editorPage.displayPath);
       config.path = decodeURI(config.path);
@@ -921,9 +936,11 @@
       if(drive.startsWith('spaces/')) {
         var folders = config.editorPage.displayPath.split(':')[1].split('/');
         var title = folders.pop();
+        var titleWithoutAccent = this.removeAccents(title);
         var spaceName = drive.split('spaces/')[1];
-        var newDrivePath = spaceName.replace(/\ /g, '_').toLowerCase();
-        var pathDocument = config.path.split(newDrivePath + '/')[1].split("/" + title)[0];
+        var spaceNameWithoutAccent = this.removeAccents(spaceName);
+        var newDrivePath = spaceNameWithoutAccent.replace(/\ /g, '_').toLowerCase();
+        var pathDocument = config.path.split(newDrivePath + '/')[1].split("/" + titleWithoutAccent)[0];
         var pathDocumentWithIcon = pathDocument.replace(/\//g , function() {
           return "<i class='uiIconArrowRight'></i>";
         });
