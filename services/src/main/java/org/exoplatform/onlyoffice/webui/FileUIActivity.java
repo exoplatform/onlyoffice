@@ -45,7 +45,7 @@ import org.exoplatform.webui.core.lifecycle.UIFormLifecycle;
  * @version $Id: FileUIActivity.java 00000 Feb 20, 2019 pnedonosko $
  */
 @ComponentConfigs({
-    @ComponentConfig(lifecycle = UIFormLifecycle.class, template = "classpath:groovy/ecm/social-integration/plugin/space/FileUIActivity.gtmpl", events = {
+    @ComponentConfig(lifecycle = UIFormLifecycle.class, template = "war:/groovy/ecm/social-integration/plugin/space/FileUIActivity.gtmpl", events = {
         @EventConfig(listeners = FileUIActivity.ViewDocumentActionListener.class),
         @EventConfig(listeners = BaseUIActivity.LoadLikesActionListener.class),
         @EventConfig(listeners = BaseUIActivity.ToggleDisplayCommentFormActionListener.class),
