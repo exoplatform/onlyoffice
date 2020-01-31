@@ -43,10 +43,6 @@ public class ActivityManagerMock implements ActivityManager {
   }
 
   @Override
-  public void updateActivity(ExoSocialActivity activity, boolean broadcast) {
-  }
-
-  @Override
   public void deleteActivity(ExoSocialActivity activity) {
   }
 
@@ -162,13 +158,6 @@ public class ActivityManagerMock implements ActivityManager {
   }
 
   @Override
-  public List<ExoSocialActivity> getActivitiesOfConnections(Identity ownerIdentity,
-                                                            int offset,
-                                                            int length) throws ActivityStorageException {
-    return null;
-  }
-
-  @Override
   public List<ExoSocialActivity> getActivitiesOfUserSpaces(Identity ownerIdentity) {
     return null;
   }
@@ -208,10 +197,6 @@ public class ActivityManagerMock implements ActivityManager {
   @Override
   public int getActivitiesCount(Identity owner) throws ActivityStorageException {
     return 0;
-  }
-
-  @Override
-  public void processActivitiy(ExoSocialActivity activity) {
   }
 
   @Override

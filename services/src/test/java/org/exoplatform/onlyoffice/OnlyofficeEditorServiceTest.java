@@ -4,26 +4,23 @@ import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import javax.jcr.Node;
+import javax.jcr.Session;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.ArrayUtils;
 import org.junit.Test;
 
 import org.exoplatform.commons.testing.BaseCommonsTestCase;
-import org.exoplatform.commons.utils.ActivityTypeUtils;
-import org.exoplatform.component.test.ConfigurationUnit;
-import org.exoplatform.component.test.ConfiguredBy;
-import org.exoplatform.component.test.ContainerScope;
+import org.exoplatform.component.test.*;
 import org.exoplatform.container.ExoContainerContext;
 import org.exoplatform.services.jcr.access.PermissionType;
+import org.exoplatform.services.jcr.ext.ActivityTypeUtils;
 import org.exoplatform.services.jcr.ext.app.SessionProviderService;
 import org.exoplatform.services.jcr.ext.common.SessionProvider;
 import org.exoplatform.services.jcr.impl.core.NodeImpl;
 import org.exoplatform.services.log.ExoLogger;
 import org.exoplatform.services.log.Log;
-import org.exoplatform.services.security.ConversationState;
-import org.exoplatform.services.security.Identity;
-import org.exoplatform.services.security.MembershipEntry;
+import org.exoplatform.services.security.*;
 
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
@@ -42,6 +39,8 @@ public class OnlyofficeEditorServiceTest extends BaseCommonsTestCase {
   protected OnlyofficeEditorService editorService;
 
   protected SessionProviderService  sessionProviderService;
+
+  protected Session                 session;
 
   /**
    * Before class.
@@ -76,19 +75,18 @@ public class OnlyofficeEditorServiceTest extends BaseCommonsTestCase {
     assertTrue(node.hasNode("eoo:preferences"));
     assertTrue(node.getNode("eoo:preferences").hasNode("john"));
     assertTrue(node.getNode("eoo:preferences").getNode("john").hasProperty("path"));
-    assertSame(node.getNode("eoo:preferences").getNode("john").getProperty("path").getValue().getString(), "path");
+    assertEquals(node.getNode("eoo:preferences").getNode("john").getProperty("path").getValue().getString(), "path");
     node.remove();
   }
 
   /* create document */
   protected NodeImpl createDocument(String title, String type, String data, Boolean createAtRoot) throws Exception {
+    startSessionAs("root");
     NodeImpl rootNode = (NodeImpl) session.getRootNode();
     rootNode.setPermission("john", new String[] { PermissionType.ADD_NODE, PermissionType.SET_PROPERTY });
 
     NodeImpl node = createAtRoot ? (NodeImpl) rootNode.addNode(title, type)
                                  : (NodeImpl) rootNode.addNode("Users", "nt:folder").addNode(title, type);
-    node.addMixin("mix:referenceable");
-    node.addMixin("mix:versionable");
     node.addMixin("exo:privilegeable");
     node.addMixin("exo:activityInfo");
     node.addMixin("exo:datetime");
@@ -107,8 +105,11 @@ public class OnlyofficeEditorServiceTest extends BaseCommonsTestCase {
       contentNode.setProperty("exo:dateCreated", Calendar.getInstance());
       contentNode.setProperty("exo:dateModified", Calendar.getInstance());
     }
+    node.addMixin("mix:referenceable");
+    node.addMixin("mix:versionable");
+    rootNode.getSession().save();
 
-    rootNode.save();
+    rootNode.getSession().save();
     return node;
   }
 
@@ -171,7 +172,8 @@ public class OnlyofficeEditorServiceTest extends BaseCommonsTestCase {
     ConversationState.setCurrent(state);
     SessionProvider provider = new SessionProvider(state);
     sessionProviderService.setSessionProvider(null, provider);
-    session = provider.getSession(WORKSPACE_NAME, repositoryService.getCurrentRepository());
+    SessionProvider systemSessionProvider = SessionProviderService.getSystemSessionProvider();
+    session = systemSessionProvider.getSession("portal-test", SessionProviderService.getRepository());
   }
 
   /**
@@ -591,7 +593,7 @@ public class OnlyofficeEditorServiceTest extends BaseCommonsTestCase {
 
     // Then
     assertNotNull(configTest);
-    assertSame(configTest, config);
+    assertEquals(configTest, config);
     node.remove();
   }
 
@@ -606,8 +608,11 @@ public class OnlyofficeEditorServiceTest extends BaseCommonsTestCase {
 
     // When
     Config config = editorService.createEditor("http", "127.0.0.1", 8080, "john", null, node.getUUID());
-    node.removeMixin("mix:referenceable");
     node.removeMixin("mix:versionable");
+    node.save();
+
+    node.removeMixin("mix:referenceable");
+    node.save();
 
     // Then
     Config configTest = editorService.getEditor("john", config.getWorkspace(), node.getPath());
@@ -632,7 +637,7 @@ public class OnlyofficeEditorServiceTest extends BaseCommonsTestCase {
 
     // Then
     assertNotNull(configTest);
-    assertSame(configTest, config);
+    assertEquals(configTest, config);
     node.remove();
   }
 
@@ -652,7 +657,7 @@ public class OnlyofficeEditorServiceTest extends BaseCommonsTestCase {
     // Then
     Config.Editor.User user = editorService.getLastModifier(node.getUUID());
     assertNotNull(user);
-    assertEquals(user.getName(), "John Smith");
+    assertEquals(user.getName(), "John Anthony");
     assertNotSame(user.lastModified, "0");
     node.remove();
   }
@@ -734,7 +739,7 @@ public class OnlyofficeEditorServiceTest extends BaseCommonsTestCase {
     // Then
     Config.Editor.User user = editorService.getUser(node.getUUID(), "john");
     assertNotNull(user);
-    assertEquals(user.getName(), "John Smith");
+    assertEquals(user.getName(), "John Anthony");
     node.remove();
   }
 
@@ -897,8 +902,8 @@ public class OnlyofficeEditorServiceTest extends BaseCommonsTestCase {
     // Then
     Node document = editorService.getDocumentById("portal-test", node.getUUID());
     assertNotNull(document);
-    assertSame(node.getUUID(), document.getUUID());
-    assertSame(node.getPath(), document.getPath());
+    assertEquals(node.getUUID(), document.getUUID());
+    assertEquals(node.getPath(), document.getPath());
     assertEquals(node.getPrimaryNodeType().getName(), document.getPrimaryNodeType().getName());
     node.remove();
   }
@@ -1008,8 +1013,8 @@ public class OnlyofficeEditorServiceTest extends BaseCommonsTestCase {
     assertNotNull(status.getConfig());
     assertNotSame(config.getEditorConfig().getUser().getLastSaved(), 0);
     assertNotNull(document);
-    assertSame(node.getUUID(), document.getUUID());
-    assertSame(node.getPath(), document.getPath());
+    assertEquals(node.getUUID(), document.getUUID());
+    assertEquals(node.getPath(), document.getPath());
     assertEquals(node.getPrimaryNodeType().getName(), document.getPrimaryNodeType().getName());
     node.remove();
   }
@@ -1090,8 +1095,8 @@ public class OnlyofficeEditorServiceTest extends BaseCommonsTestCase {
     // Then
     Node document = editorService.getDocumentById("portal-test", node.getUUID());
     assertNotNull(document);
-    assertSame(node.getUUID(), document.getUUID());
-    assertSame(node.getPath(), document.getPath());
+    assertEquals(node.getUUID(), document.getUUID());
+    assertEquals(node.getPath(), document.getPath());
     assertEquals(node.getPrimaryNodeType().getName(), document.getPrimaryNodeType().getName());
     node.remove();
   }
@@ -1298,12 +1303,12 @@ public class OnlyofficeEditorServiceTest extends BaseCommonsTestCase {
     assertEquals(2, versions.size());
     Version version1 = versions.get(0);
     assertEquals("john", version1.getAuthor());
-    assertEquals("John Smith", version1.getFullName());
+    assertEquals("John Anthony", version1.getFullName());
     assertNotNull(version1.getVersionLabels());
     assertEquals(0, version1.getVersionLabels().length);
     Version version2 = versions.get(1);
     assertEquals("john", version2.getAuthor());
-    assertEquals("John Smith", version2.getFullName());
+    assertEquals("John Anthony", version2.getFullName());
     assertNotNull(version2.getVersionLabels());
     assertEquals(1, version2.getVersionLabels().length);
     assertEquals("Document updated", version2.getVersionLabels()[0]);
