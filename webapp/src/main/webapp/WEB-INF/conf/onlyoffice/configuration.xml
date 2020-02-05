@@ -65,6 +65,9 @@
               <collection type="java.util.ArrayList">
                 <value>
                   <object type="org.exoplatform.services.cms.documents.DocumentTemplate">
+                    <field name="extension">
+                      <string>.docx</string>
+                    </field>
                     <field name="path">
                       <string>classpath:files/template.docx</string>
                     </field>
@@ -78,6 +81,9 @@
                 </value>
                 <value>
                   <object type="org.exoplatform.services.cms.documents.DocumentTemplate">
+                    <field name="extension">
+                      <string>.xlsx</string>
+                    </field>
                     <field name="path">
                       <string>classpath:files/template.xlsx</string>
                     </field>
@@ -91,6 +97,9 @@
                 </value>
                 <value>
                   <object type="org.exoplatform.services.cms.documents.DocumentTemplate">
+                    <field name="extension">
+                      <string>.pptx</string>
+                    </field>
                     <field name="path">
                       <string>classpath:files/template.pptx</string>
                     </field>
