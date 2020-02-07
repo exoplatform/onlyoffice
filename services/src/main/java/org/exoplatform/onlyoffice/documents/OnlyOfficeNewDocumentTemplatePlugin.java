@@ -10,7 +10,7 @@ import org.exoplatform.container.xml.InitParams;
 import org.exoplatform.container.xml.ObjectParameter;
 import org.exoplatform.services.cms.documents.DocumentService;
 import org.exoplatform.services.cms.documents.DocumentTemplate;
-import org.exoplatform.services.cms.documents.NewDocumentEditorPlugin;
+import org.exoplatform.services.cms.documents.DocumentEditorPlugin;
 import org.exoplatform.services.cms.documents.NewDocumentTemplatePlugin;
 import org.exoplatform.services.log.ExoLogger;
 import org.exoplatform.services.log.Log;
@@ -84,7 +84,7 @@ public class OnlyOfficeNewDocumentTemplatePlugin extends BaseComponentPlugin imp
   }
 
   @Override
-  public NewDocumentEditorPlugin getEditor() {
+  public DocumentEditorPlugin getEditor() {
     return documentService.getRegisteredEditorPlugins()
                           .stream()
                           .filter(plugin -> plugin.getProviderName().equals(OnlyOfficeNewDocumentEditorPlugin.PROVIDER_NAME))

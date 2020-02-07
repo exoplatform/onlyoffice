@@ -10,7 +10,7 @@ import javax.jcr.RepositoryException;
 import org.exoplatform.container.component.ComponentPlugin;
 import org.exoplatform.services.cms.documents.DocumentService;
 import org.exoplatform.services.cms.documents.DocumentTemplate;
-import org.exoplatform.services.cms.documents.NewDocumentEditorPlugin;
+import org.exoplatform.services.cms.documents.DocumentEditorPlugin;
 import org.exoplatform.services.cms.documents.NewDocumentTemplatePlugin;
 import org.exoplatform.services.cms.documents.model.Document;
 import org.exoplatform.services.cms.drives.DriveData;
@@ -162,7 +162,7 @@ public class DocumentServiceMock implements DocumentService {
    * @return the registered editor plugins
    */
   @Override
-  public Set<NewDocumentEditorPlugin> getRegisteredEditorPlugins() {
+  public Set<DocumentEditorPlugin> getRegisteredEditorPlugins() {
     // TODO Auto-generated method stub
     return null;
   }
