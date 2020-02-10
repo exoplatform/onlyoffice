@@ -101,20 +101,6 @@
     <overwrite>true</overwrite>
   </portlet-skin>
 
-  <portlet-skin>
-    <application-name>onlyoffice</application-name>
-    <portlet-name>OnlyofficeEditorPortlet</portlet-name>
-    <skin-name>Default</skin-name>
-    <css-path>/skin/onlyoffice.css</css-path>
-    <overwrite>true</overwrite>
-  </portlet-skin>
-
-  <portal-skin>
-    <skin-name>Default</skin-name>
-    <skin-module>onlyoffice-extras</skin-module>
-    <css-path>/skin/onlyoffice-extras.css</css-path>
-  </portal-skin>
-
   <portal-skin>
     <skin-name>Enterprise</skin-name>
     <skin-module>onlyoffice-extras</skin-module>
