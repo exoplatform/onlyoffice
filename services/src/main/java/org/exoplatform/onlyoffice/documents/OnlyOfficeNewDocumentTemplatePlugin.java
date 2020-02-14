@@ -87,7 +87,7 @@ public class OnlyOfficeNewDocumentTemplatePlugin extends BaseComponentPlugin imp
   public DocumentEditorPlugin getEditor() {
     return documentService.getRegisteredEditorPlugins()
                           .stream()
-                          .filter(plugin -> plugin.getProviderName().equals(OnlyOfficeNewDocumentEditorPlugin.PROVIDER_NAME))
+                          .filter(plugin -> plugin.getProviderName().equals(OnlyOfficeDocumentEditorPlugin.PROVIDER_NAME))
                           .findAny()
                           .orElse(null);
   }

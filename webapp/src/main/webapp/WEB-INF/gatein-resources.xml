@@ -91,6 +91,9 @@
     <depends>
       <module>onlyofficeRedux</module>
     </depends>
+    <depends>
+      <module>editorbuttons</module>
+    </depends>
   </module>
 
   <portlet-skin>

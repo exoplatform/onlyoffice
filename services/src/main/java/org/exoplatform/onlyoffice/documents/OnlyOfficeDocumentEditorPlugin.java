@@ -1,10 +1,25 @@
+/*
+ * Copyright (C) 2003-2020 eXo Platform SAS.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Affero General Public License
+ * as published by the Free Software Foundation; either version 3
+ * of the License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, see<http://www.gnu.org/licenses/>.
+ */
 package org.exoplatform.onlyoffice.documents;
 
 import static org.exoplatform.onlyoffice.webui.OnlyofficeContext.callModule;
 import static org.exoplatform.onlyoffice.webui.OnlyofficeContext.editorLink;
 
 import java.util.Map;
-import java.util.ResourceBundle;
 import java.util.concurrent.ConcurrentHashMap;
 
 import javax.jcr.Node;
@@ -13,25 +28,23 @@ import javax.jcr.RepositoryException;
 import org.exoplatform.container.component.BaseComponentPlugin;
 import org.exoplatform.onlyoffice.OnlyofficeEditorException;
 import org.exoplatform.onlyoffice.OnlyofficeEditorService;
-import org.exoplatform.services.cms.documents.DocumentTemplate;
-import org.exoplatform.services.cms.documents.model.EditorButton;
 import org.exoplatform.services.cms.documents.DocumentEditorPlugin;
+import org.exoplatform.services.cms.documents.DocumentTemplate;
 import org.exoplatform.services.log.ExoLogger;
 import org.exoplatform.services.log.Log;
 import org.exoplatform.services.resources.ResourceBundleService;
-import org.exoplatform.web.application.JavascriptManager;
 import org.exoplatform.webui.application.WebuiRequestContext;
 
 /**
  * The Class OnlyOfficeNewDocumentEditorPlugin.
  */
-public class OnlyOfficeNewDocumentEditorPlugin extends BaseComponentPlugin implements DocumentEditorPlugin {
+public class OnlyOfficeDocumentEditorPlugin extends BaseComponentPlugin implements DocumentEditorPlugin {
 
   /** The Constant PROVIDER_NAME. */
   protected static final String           PROVIDER_NAME = "OnlyOffice";
 
   /** The Constant LOG. */
-  protected static final Log              LOG           = ExoLogger.getLogger(OnlyOfficeNewDocumentEditorPlugin.class);
+  protected static final Log              LOG           = ExoLogger.getLogger(OnlyOfficeDocumentEditorPlugin.class);
 
   /** The editor service. */
   protected final OnlyofficeEditorService editorService;
@@ -48,7 +61,7 @@ public class OnlyOfficeNewDocumentEditorPlugin extends BaseComponentPlugin imple
    * @param editorService the editor service
    * @param i18nService the i18nService
    */
-  public OnlyOfficeNewDocumentEditorPlugin(OnlyofficeEditorService editorService, ResourceBundleService i18nService) {
+  public OnlyOfficeDocumentEditorPlugin(OnlyofficeEditorService editorService, ResourceBundleService i18nService) {
     this.editorService = editorService;
     this.i18nService = i18nService;
   }
@@ -78,13 +91,9 @@ public class OnlyOfficeNewDocumentEditorPlugin extends BaseComponentPlugin imple
     if (link != null) {
       link = "'" + editorLink(link, "documents") + "'";
     } else {
-      link = "null";
+      link = "null".intern();
     }
-
-    WebuiRequestContext requestContext = WebuiRequestContext.getCurrentInstance();
-    JavascriptManager js = requestContext.getJavascriptManager();
-    js.require("SHARED/onlyoffice", "onlyoffice").addScripts("onlyoffice.initEditorPage(" + link + ");");
-
+    callModule("initEditorPage(" + link + ");");
   }
 
   /**
@@ -93,62 +102,57 @@ public class OnlyOfficeNewDocumentEditorPlugin extends BaseComponentPlugin imple
    * @param template the template
    * @param parentPath the parent path
    * @param title the title
-   */
-  @Override
-  public void beforeDocumentCreate(DocumentTemplate template, String parentPath, String title) {
-    WebuiRequestContext requestContext = WebuiRequestContext.getCurrentInstance();
-    JavascriptManager js = requestContext.getJavascriptManager();
-    js.require("SHARED/onlyoffice", "onlyoffice").addScripts("onlyoffice.initNewDocument();");
-  }
-
-  /**
-   * Gets the editor button.
-   *
-   * @param uuid the uuid
-   * @param workspace the workspace
-   * @param context the context
-   * @return the editor button
    * @throws Exception the exception
    */
   @Override
-  public EditorButton getEditorButton(String uuid, String workspace, String context) throws Exception {
-    Node symlink = editorService.getDocumentById(workspace, uuid);
-    Node node = editorService.getDocument(symlink.getSession().getWorkspace().getName(), symlink.getPath());
-    if (symlink.isNodeType("exo:symlink")) {
-      String userId = WebuiRequestContext.getCurrentInstance().getRemoteUser();
-      editorService.addFilePreferences(node, userId, symlink.getPath());
-    }
-    String link = node != null ? contextEditorLink(node, context) : null;
-    if (link != null) {
-      ResourceBundle i18n = i18nService.getResourceBundle(new String[] { "locale.onlyoffice.OnlyofficeClient" },
-                                                          WebuiRequestContext.getCurrentInstance().getLocale());
-      String label = i18n.getString("OnlyofficeEditorClient.EditButtonTitle");
-      String fileId = editorService.initDocument(node);
-      return new EditorButton(link, label, fileId, PROVIDER_NAME);
-    }
-    return null;
+  public void beforeDocumentCreate(DocumentTemplate template, String parentPath, String title) throws Exception {
+    callModule("initActivity('initNewDocument();");
   }
 
   /**
    * Inits the activity.
    *
-   * @param fileId the file id
+   * @param uuid the uuid
+   * @param workspace the workspace
+   * @param activityId the activity id
+   * @param context the context
    * @throws Exception the exception
    */
   @Override
-  public void initActivity(String fileId) throws Exception {
-    callModule("initActivity('" + fileId + "');");
+  public void initActivity(String uuid, String workspace, String activityId, String context) throws Exception {
+    Node symlink = editorService.getDocumentById(workspace, uuid);
+    Node node = editorService.getDocument(symlink.getSession().getWorkspace().getName(), symlink.getPath());
+    if (node != null) {
+      String fileId = editorService.initDocument(node);
+      String link = contextEditorLink(node, context);
+      callModule("initActivity('" + fileId + "', " + link + ");");
+    }
   }
 
+ 
   /**
    * Inits the preview.
    *
-   * @param fileId the file id
+   * @param uuid the uuid
+   * @param workspace the workspace
+   * @param activityId the activity id
+   * @param context the context
+   * @param index the index
    * @throws Exception the exception
    */
   @Override
-  public void initPreview(String fileId) throws Exception {
-    callModule("initPreview('" + fileId + "');");
+  public void initPreview(String uuid, String workspace, String activityId, String context, int index) throws Exception {
+    Node symlink = editorService.getDocumentById(workspace, uuid);
+    Node node = editorService.getDocument(symlink.getSession().getWorkspace().getName(), symlink.getPath());
+    if (node != null) {
+      if (symlink.isNodeType("exo:symlink")) {
+        String userId = WebuiRequestContext.getCurrentInstance().getRemoteUser();
+        editorService.addFilePreferences(node, userId, symlink.getPath());
+      }
+      String fileId = editorService.initDocument(node);
+      String link = contextEditorLink(node, context);
+      callModule("initPreview('" + fileId + "', " + link + ", '" + activityId + "', '" + index + "');");
+    }
   }
 
   /**
@@ -176,9 +180,9 @@ public class OnlyOfficeNewDocumentEditorPlugin extends BaseComponentPlugin imple
   private String contextEditorLink(Node node, String context) {
     String link = editorLinks.computeIfAbsent(node, n -> getEditorLink(n));
     if (link != null && !link.isEmpty()) {
-      return new StringBuilder().append(editorLink(link, context)).toString();
+      return new StringBuilder().append("'").append(editorLink(link, context)).append("'").toString();
     }
-    return null;
+    return "null".intern();
   }
 
 }

@@ -1,16 +1,15 @@
 package org.exoplatform.onlyoffice.mock;
 
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 
 import org.exoplatform.container.component.ComponentPlugin;
+import org.exoplatform.services.cms.documents.DocumentEditorPlugin;
 import org.exoplatform.services.cms.documents.DocumentService;
 import org.exoplatform.services.cms.documents.DocumentTemplate;
-import org.exoplatform.services.cms.documents.DocumentEditorPlugin;
 import org.exoplatform.services.cms.documents.NewDocumentTemplatePlugin;
 import org.exoplatform.services.cms.documents.model.Document;
 import org.exoplatform.services.cms.drives.DriveData;
@@ -165,6 +164,12 @@ public class DocumentServiceMock implements DocumentService {
   public Set<DocumentEditorPlugin> getRegisteredEditorPlugins() {
     // TODO Auto-generated method stub
     return null;
+  }
+
+  @Override
+  public boolean hasDocumentEditorPlugins() {
+    // TODO Auto-generated method stub
+    return false;
   }
 
 }
