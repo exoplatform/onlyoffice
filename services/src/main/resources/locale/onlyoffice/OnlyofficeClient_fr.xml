@@ -5,7 +5,9 @@
     <EditButtonTitle>Modifier en ligne</EditButtonTitle>
     <UpdateBannerTitle>Le document a été mis à jour.</UpdateBannerTitle>
     <ReloadButtonTitle>Recharger</ReloadButtonTitle>
-    <SaveVersionLavel> Enregistrer la version</SaveVersionLavel>
+    <SaveVersionLabel> Enregistrer la version</SaveVersionLabel>
+    <SeeMoreButton>Accéder à l'historique complet des versions</SeeMoreButton>
+    <LoadMoreButton>Charger plus</LoadMoreButton>
     <SeeMoreButton>Voir plus</SeeMoreButton>
     <CloseButton>Fermer</CloseButton>
     <SaveButton>Enregistrer</SaveButton>

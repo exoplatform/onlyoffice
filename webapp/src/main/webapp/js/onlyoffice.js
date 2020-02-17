@@ -191,6 +191,9 @@
     // The editor window is used while creating a new document.
     var editorWindow;
 
+    // The page index to load in the first iteration
+     var pageToLoad = 1 ;
+
     // Redux store for dispatching document updates inside the app
     var store = redux.createStore(function(state, action) {
       if (dispatchableEvents.includes(action.type)) {
@@ -385,6 +388,7 @@
         });
       }
       $bar.find("#save-btn").on("click", function() {
+        pageToLoad = 1;
         var comment = $bar.find("#comment-box").val();
         if (comment.length > 510){
            UI.errorSave();
@@ -611,6 +615,10 @@
          window.open(config.explorerUrl);
        });
 
+       $("#load-more-btn").on('click', function() {
+         UI.loadVersions(currentConfig.workspace, currentConfig.docId, 3, pageToLoad);
+         pageToLoad++;
+       });
     };
 
     /**
@@ -724,6 +732,8 @@
     var docEditor;
 
     var notification;
+
+    var updateVesionsList = false;
 
     /**
      * Returns the html markup of the 'Edit Online' button.
@@ -907,9 +917,12 @@
       }, 3000);
     };
 
-
+    /**
+       * Update real time version list.
+     */
     this.updateBar = function(changer, comment, workspace, docId) {
-      UI.loadVersions(workspace, docId);
+      UI.loadVersions(workspace, docId, 3, 0);
+      updateVesionsList = true ;
     };
 
     //Function for remove accents
@@ -961,11 +974,12 @@
         $tooltipSpaceElem.attr("data-original-title", config.editorConfig.user.name);
         $(".spaceAvatar img").tooltip();
       }
-      $(".header").append(message('SaveVersionLavel'));
+      $(".header").append(message('SaveVersionLabel'));
       $("#alert-saved").append(message('AlertSave'));
       $("#alert-error").append(message('ErrorSave'));
       $("#save-btn").append(message('SaveButton'));
-      $("#see-more-btn").append(message('SeeMoreButton'));
+      $("#see-more-btn").attr("data-original-title",message('SeeMoreButton'));
+      $("#load-more-btn").append(message('LoadMoreButton'));
       $("#open-drawer-btn").attr("data-original-title", message('OpenDrawerBtn'));
       $(".closebtn").attr("data-original-title", message('CloseButton'));
       $(".versionSummaryField").attr("placeholder", message('PlaceHolderTextarea'));
@@ -986,7 +1000,7 @@
       $titleElem.attr("data-original-title", message('TitleTooltip'));
 
       $("#editor-drawer").ready(function () {
-        UI.loadVersions(config.workspace, config.docId);
+        UI.loadVersions(config.workspace, config.docId, 3, 0);
       });
 
       var $saveBtn = $bar.find("#save-btn .uiIconSave");
@@ -999,9 +1013,9 @@
       return $bar;
     };
 
-    this.loadVersions = function(workspace, docId) {
+    this.loadVersions = function(workspace, docId, itemParPage, pageNum) {
       $.ajax({
-        url: "/portal/rest/onlyoffice/editor/versions/" + workspace + "/" + docId,
+        url: "/portal/rest/onlyoffice/editor/versions/" + workspace + "/" + docId + "/" + itemParPage + "/" + pageNum ,
         success: function (data) {
          var html = "";
          var limit = data.length < 3 ? data.length : 3;
@@ -1028,12 +1042,27 @@
              "</table>";
          };
 
-         $("#versions").html(html);
+         //Test update DOM versions list or load more versions
+          if(updateVesionsList) {
+           $("#versions").html(html);
+          }
+          else{
+           $("#versions").append(html);
+          };
          $(".editors-comment-versions").tooltip();
          $(".created-date").tooltip();
+         updateVesionsList = false;
+         // Disable load buton when no more versions
+
+         if ((pageNum >= (data[0].versionPageNumber - 1))) {
+         $("#load-more-btn").prop("disabled", true);
+         } else {
+         $("#load-more-btn").prop("disabled", false);
+         };
        },
        error: function (xhr, thrownError) {
          log("Error fetching versions: " + xhr.responseText + "\n" + xhr.status + "\n" + thrownError, thrownError);
+         $("#load-more-btn").prop("disabled", true);
        }
       });
     };

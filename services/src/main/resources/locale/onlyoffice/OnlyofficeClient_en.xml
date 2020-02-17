@@ -3,8 +3,9 @@
   <!-- For client UI -->
   <OnlyofficeEditorClient>
     <EditButtonTitle>Edit Online</EditButtonTitle>
-    <SaveVersionLavel>Save version</SaveVersionLavel>
-    <SeeMoreButton>See more</SeeMoreButton>
+    <SaveVersionLabel>Save version</SaveVersionLabel>
+    <SeeMoreButton>Go to full version history</SeeMoreButton>
+    <LoadMoreButton>Load more</LoadMoreButton>
     <CloseButton>Close</CloseButton>
     <SaveButton>Save</SaveButton>
     <PlaceHolderTextarea>Write your summary of changes ...</PlaceHolderTextarea>

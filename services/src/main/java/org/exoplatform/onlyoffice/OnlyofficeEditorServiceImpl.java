@@ -1009,16 +1009,15 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
    * {@inheritDoc}
    */
   @Override
-  public List<Version> getVersions(String workspace, String docId) throws Exception {
+  public List<Version> getVersions(String workspace, String docId, int itemParPage, int pageNum) throws Exception {
     List<Version> versions = new ArrayList<>() ;
     Node currentNode = getDocumentById(workspace, docId);
     if(currentNode != null) {
       VersionNode rootVersion = new VersionNode(currentNode, currentNode.getSession());
 
       List<VersionNode> versionNodes = getNodeVersions(rootVersion.getChildren(), new ArrayList<>());
-      int versionNodesLength = versionNodes.size() > 3 ? 3 : versionNodes.size();
-
-      for (int i = 0 ; i < versionNodesLength; i++) {
+      int pageNbrs = (int) Math.ceil((double)versionNodes.size() / (double)itemParPage);
+      for (int i = 0 ; i < versionNodes.size() ; i++) {
         VersionNode versionNode = versionNodes.get(i);
         Version version = new Version();
         version.setAuthor(versionNode.getAuthor());
@@ -1027,11 +1026,24 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
         version.setFullName(getUser(versionNode.getAuthor()).getDisplayName());
         version.setVersionLabels(versionNode.getVersionLabels());
         version.setCreatedTime(versionNode.getCreatedTime().getTimeInMillis());
+        version.setVersionPageNumber(pageNbrs);
         versions.add(version);
       }
     }
+    return  getPages(versions, itemParPage, pageNum);
+  }
 
-    return versions;
+  private  <T> List<T> getPages(List<T> c, Integer pageSize, int nb) {
+    if (c == null)
+      return Collections.emptyList();
+    List<T> list = new ArrayList<T>(c);
+    if (pageSize == null || pageSize <= 0 || pageSize > list.size())
+      pageSize = list.size();
+    int numPages = (int) Math.ceil((double)list.size() / (double)pageSize);
+    List<List<T>> pages = new ArrayList<List<T>>(numPages);
+    for (int pageNum = 0; pageNum < numPages;)
+      pages.add(list.subList(pageNum * pageSize, Math.min(++pageNum * pageSize, list.size())));
+    return pages.get(nb);
   }
 
   private List<VersionNode> getNodeVersions(List<VersionNode> children, List<VersionNode> versionNodes) throws Exception {
