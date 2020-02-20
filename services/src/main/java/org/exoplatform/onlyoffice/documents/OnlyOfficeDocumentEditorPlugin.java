@@ -26,10 +26,12 @@ import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 
 import org.exoplatform.container.component.BaseComponentPlugin;
+import org.exoplatform.onlyoffice.OnlyOfficeDocumentUpdateActivityHandler;
 import org.exoplatform.onlyoffice.OnlyofficeEditorException;
 import org.exoplatform.onlyoffice.OnlyofficeEditorService;
 import org.exoplatform.services.cms.documents.DocumentEditorPlugin;
 import org.exoplatform.services.cms.documents.DocumentTemplate;
+import org.exoplatform.services.cms.documents.DocumentUpdateActivityHandler;
 import org.exoplatform.services.log.ExoLogger;
 import org.exoplatform.services.log.Log;
 import org.exoplatform.services.resources.ResourceBundleService;
@@ -54,6 +56,8 @@ public class OnlyOfficeDocumentEditorPlugin extends BaseComponentPlugin implemen
 
   /** The editor links. */
   protected final Map<Node, String>       editorLinks   = new ConcurrentHashMap<>();
+  
+  protected final OnlyOfficeDocumentUpdateActivityHandler updateHandler;
 
   /**
    * Instantiates a new only office new document editor plugin.
@@ -64,6 +68,7 @@ public class OnlyOfficeDocumentEditorPlugin extends BaseComponentPlugin implemen
   public OnlyOfficeDocumentEditorPlugin(OnlyofficeEditorService editorService, ResourceBundleService i18nService) {
     this.editorService = editorService;
     this.i18nService = i18nService;
+    this.updateHandler = new OnlyOfficeDocumentUpdateActivityHandler();
   }
 
   /**
@@ -154,6 +159,11 @@ public class OnlyOfficeDocumentEditorPlugin extends BaseComponentPlugin implemen
       callModule("initPreview('" + fileId + "', " + link + ", '" + activityId + "', '" + index + "');");
     }
   }
+  
+  @Override
+  public DocumentUpdateActivityHandler getDocumentUpdateHandler() {
+    return updateHandler;
+  }
 
   /**
    * Gets the editor link.
@@ -184,5 +194,6 @@ public class OnlyOfficeDocumentEditorPlugin extends BaseComponentPlugin implemen
     }
     return "null".intern();
   }
+
 
 }
