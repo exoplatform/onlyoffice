@@ -2,7 +2,7 @@
 <bundle>
   <!-- For client UI -->
   <OnlyofficeEditorClient>
-    <EditButtonTitle>Edit Online</EditButtonTitle>
+    <EditButtonTitle>Edit in Only Office</EditButtonTitle>
     <SaveVersionLavel>Save version</SaveVersionLavel>
     <SeeMoreButton>See more</SeeMoreButton>
     <CloseButton>Close</CloseButton>

@@ -616,7 +616,7 @@
     /**
      * Initializes a file activity in the activity stream.
      */
-    this.initActivity = function(docId, editorLink) {
+    this.initActivity = function(docId, editorLink, activityId) {
       log("Initialize activity with document: " + docId);
       // Listen to document updates
       store.subscribe(function() {

@@ -125,7 +125,7 @@ public class OnlyOfficeDocumentEditorPlugin extends BaseComponentPlugin implemen
     if (node != null) {
       String fileId = editorService.initDocument(node);
       String link = contextEditorLink(node, context);
-      callModule("initActivity('" + fileId + "', " + link + ");");
+      callModule("initActivity('" + fileId + "', " + link + ", '" + activityId + "');");
     }
   }
 

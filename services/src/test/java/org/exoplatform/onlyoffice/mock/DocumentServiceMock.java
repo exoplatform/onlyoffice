@@ -172,4 +172,16 @@ public class DocumentServiceMock implements DocumentService {
     return false;
   }
 
+  @Override
+  public String getPreferedEditor(String userId, String uuid, String workspace) throws Exception {
+    // TODO Auto-generated method stub
+    return null;
+  }
+
+  @Override
+  public void setPreferedEditor(String userId, String provider, String uuid, String workspace) throws Exception {
+    // TODO Auto-generated method stub
+    
+  }
+
 }
