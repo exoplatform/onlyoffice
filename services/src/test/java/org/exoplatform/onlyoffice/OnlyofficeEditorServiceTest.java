@@ -1287,22 +1287,23 @@ public class OnlyofficeEditorServiceTest extends BaseCommonsTestCase {
     Node node = createDocument("Test Document.docx", "nt:file", "testContent", false);
     Config config = editorService.createEditor("http", "127.0.0.1", 8080, "john", null, node.getUUID());
     DocumentStatus status = new DocumentStatus.Builder().status(6L)
-            .users(new String[] { "john" })
-            .userId("john")
-            .saved(true)
-            .key(config.getDocument().getKey())
-            .comment("Document updated")
-            .build();
+                                                        .users(new String[] { "john" })
+                                                        .userId("john")
+                                                        .saved(true)
+                                                        .key(config.getDocument().getKey())
+                                                        .comment("Document updated")
+                                                        .build();
     editorService.updateDocument(status);
 
     // When
-    List<Version> versions = editorService.getVersions("portal-test", node.getUUID());
+    List<Version> versions = editorService.getVersions("portal-test", node.getUUID(), 3, 0);
 
     // Then
     assertNotNull(versions);
     assertEquals(2, versions.size());
     Version version1 = versions.get(0);
     assertEquals("john", version1.getAuthor());
+    assertEquals(1, version1.getVersionPageNumber());
     assertEquals("John Anthony", version1.getFullName());
     assertNotNull(version1.getVersionLabels());
     assertEquals(0, version1.getVersionLabels().length);

@@ -12,10 +12,20 @@ public class Version {
 
   private String   name                = "";
 
+  private int   versionPageNumber              = 0;
+
   private String[] versionLabels       = new String[0];
 
   public String getAuthor() {
     return this.author;
+  }
+
+  public int getVersionPageNumber() {
+    return this.versionPageNumber;
+  }
+
+  public void setVersionPageNumber(int versionPageNumber) {
+    this.versionPageNumber = versionPageNumber;
   }
 
   public void setAuthor(String author) {
