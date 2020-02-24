@@ -41,7 +41,7 @@ import org.exoplatform.webui.application.WebuiRequestContext;
 public class OnlyOfficeDocumentEditorPlugin extends BaseComponentPlugin implements DocumentEditorPlugin {
 
   /** The Constant PROVIDER_NAME. */
-  protected static final String           PROVIDER_NAME = "OnlyOffice";
+  protected static final String           PROVIDER_NAME = "onlyoffice";
 
   /** The Constant LOG. */
   protected static final Log              LOG           = ExoLogger.getLogger(OnlyOfficeDocumentEditorPlugin.class);
