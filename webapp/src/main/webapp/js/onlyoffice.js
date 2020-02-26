@@ -656,9 +656,6 @@
         }, 100);
         subscribeDocument(docId);
       });
-      if (editorLink) {
-        UI.addEditorButtonToPreview(editorLink, clickSelector);
-      }
     };
 
     /**
@@ -754,47 +751,6 @@
     var getRefreshBanner = function() {
       return "<div class='documentRefreshBanner'><div class='refreshBannerContent'>" + message("UpdateBannerTitle")
           + "<span class='refreshBannerLink'>" + message("ReloadButtonTitle") + "</span></div></div>";
-    };
-
-    /**
-     * Adds the 'Edit Online' button to No-preview screen (from the activity stream) when it's loaded.
-     */
-    var tryAddEditorButtonNoPreview = function(editorLink, attempts, delay) {
-      var $elem = $("#documentPreviewContainer .navigationContainer.noPreview");
-      if ($elem.length == 0 || !$elem.is(":visible")) {
-        if (attempts > 0) {
-          setTimeout(function() {
-            tryAddEditorButtonNoPreview(editorLink, attempts - 1, delay);
-          }, delay);
-        } else {
-          log("Cannot find .noPreview element");
-        }
-      } else if ($elem.find("a.editOnlineBtn").length == 0) {
-        var $detailContainer = $elem.find(".detailContainer");
-        var $downloadBtn = $detailContainer.find(".uiIconDownload").closest("a.btn");
-        if ($downloadBtn.length != 0) {
-          $downloadBtn.after(getNoPreviewEditorButton(editorLink));
-        } else {
-          $detailContainer.append(getNoPreviewEditorButton(editorLink));
-        }
-      }
-    };
-    /**
-     * Adds the 'Edit Online' button to a preview (from the activity stream) when it's loaded.
-     */
-    var tryAddEditorButtonToPreview = function(editorLink, attempts, delay) {
-      var $elem = $("#uiDocumentPreview .previewBtn");
-      if ($elem.length == 0 || !$elem.is(":visible")) {
-        if (attempts > 0) {
-          setTimeout(function() {
-            tryAddEditorButtonToPreview(editorLink, attempts - 1, delay);
-          }, delay);
-        } else {
-          log("Cannot find element " + $elem);
-        }
-      } else {
-        $elem.append("<div class='onlyOfficeEditBtn'>" + getEditorButton(editorLink) + "</div>");
-      }
     };
 
     // Use this in on-close window handler.
@@ -1189,20 +1145,6 @@
     this.addEditorButtonToActivity = function(editorLink, activityId) {
       $("#activityContainer" + activityId).find("div[id^='ActivityContextBox'] > .actionBar .statusAction.pull-left").append(
           getEditorButton(editorLink));
-    };
-
-    /**
-     * Ads the 'Edit Online' button to a preview (opened from the activity stream).
-     */
-    this.addEditorButtonToPreview = function(editorLink, clickSelector) {
-      $(clickSelector).click(function() {
-        // We set timeout here to avoid the case when the element is rendered but is going to be updated soon
-        setTimeout(function() {
-          tryAddEditorButtonToPreview(editorLink, 100, 100);
-          // We need wait for about 2min when doc cannot generate its preview
-          tryAddEditorButtonNoPreview(editorLink, 600, 250);
-        }, 100);
-      });
     };
 
     /**
