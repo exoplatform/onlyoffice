@@ -11,7 +11,9 @@ import org.exoplatform.services.cms.documents.DocumentEditorPlugin;
 import org.exoplatform.services.cms.documents.DocumentService;
 import org.exoplatform.services.cms.documents.DocumentTemplate;
 import org.exoplatform.services.cms.documents.NewDocumentTemplatePlugin;
+import org.exoplatform.services.cms.documents.exception.EditorProviderNotFoundException;
 import org.exoplatform.services.cms.documents.model.Document;
+import org.exoplatform.services.cms.documents.model.EditorProvider;
 import org.exoplatform.services.cms.drives.DriveData;
 
 /**
@@ -180,6 +182,33 @@ public class DocumentServiceMock implements DocumentService {
 
   @Override
   public void setPreferedEditor(String userId, String provider, String uuid, String workspace) throws Exception {
+    // TODO Auto-generated method stub
+    
+  }
+
+  /**
+   * {@inheritDoc}
+   */
+  @Override
+  public List<EditorProvider> getEditorProviders() {
+    // TODO Auto-generated method stub
+    return null;
+  }
+
+  /**
+   * {@inheritDoc}
+   */
+  @Override
+  public EditorProvider getEditorProvider(String provider) throws EditorProviderNotFoundException {
+    // TODO Auto-generated method stub
+    return null;
+  }
+
+  /**
+   * {@inheritDoc}
+   */
+  @Override
+  public void updateEditorProvider(EditorProvider editorProvider) throws EditorProviderNotFoundException {
     // TODO Auto-generated method stub
     
   }
