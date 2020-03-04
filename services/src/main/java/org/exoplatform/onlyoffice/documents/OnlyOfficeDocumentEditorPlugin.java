@@ -26,6 +26,8 @@ import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 
 import org.exoplatform.container.component.BaseComponentPlugin;
+import org.exoplatform.container.xml.InitParams;
+import org.exoplatform.container.xml.ObjectParameter;
 import org.exoplatform.onlyoffice.OnlyofficeEditorException;
 import org.exoplatform.onlyoffice.OnlyofficeEditorService;
 import org.exoplatform.services.cms.documents.DocumentEditorPlugin;
@@ -42,6 +44,9 @@ public class OnlyOfficeDocumentEditorPlugin extends BaseComponentPlugin implemen
 
   /** The Constant PROVIDER_NAME. */
   protected static final String           PROVIDER_NAME = "onlyoffice";
+  
+  /** The Constant PROVIDER_CONFIGURATION_PARAM. */
+  protected static final String     PROVIDER_CONFIGURATION_PARAM = "provider-configuration";
 
   /** The Constant LOG. */
   protected static final Log              LOG           = ExoLogger.getLogger(OnlyOfficeDocumentEditorPlugin.class);
@@ -54,14 +59,28 @@ public class OnlyOfficeDocumentEditorPlugin extends BaseComponentPlugin implemen
 
   /** The editor links. */
   protected final Map<Node, String>       editorLinks   = new ConcurrentHashMap<>();
+  
+  /** The config. */
+  protected ProviderConfig config;
 
   /**
    * Instantiates a new only office new document editor plugin.
    *
    * @param editorService the editor service
    * @param i18nService the i18nService
+   * @param initParams the initParams
    */
-  public OnlyOfficeDocumentEditorPlugin(OnlyofficeEditorService editorService, ResourceBundleService i18nService) {
+  public OnlyOfficeDocumentEditorPlugin(OnlyofficeEditorService editorService, ResourceBundleService i18nService, InitParams initParams) {
+    ObjectParameter typesParam = initParams.getObjectParam(PROVIDER_CONFIGURATION_PARAM);
+    if (typesParam != null) {
+      Object obj = typesParam.getObject();
+      if (obj != null && DocumentEditorPlugin.ProviderConfig.class.isAssignableFrom(obj.getClass())) {
+        DocumentEditorPlugin.ProviderConfig config = DocumentEditorPlugin.ProviderConfig.class.cast(obj);
+        this.config = config;
+      } else {
+        LOG.warn("The provider config not set for " + PROVIDER_NAME + " document editor plugin");
+      }
+    }
     this.editorService = editorService;
     this.i18nService = i18nService;
   }
@@ -183,6 +202,17 @@ public class OnlyOfficeDocumentEditorPlugin extends BaseComponentPlugin implemen
       return new StringBuilder().append("'").append(editorLink(link, context)).append("'").toString();
     }
     return "null".intern();
+  }
+
+
+  /**
+   * Gets the config.
+   *
+   * @return the config
+   */
+  @Override
+  public ProviderConfig getConfig() {
+    return config;
   }
 
 }

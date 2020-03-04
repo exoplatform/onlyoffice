@@ -127,6 +127,20 @@
       <set-method>addDocumentEditorPlugin</set-method>
       <type>org.exoplatform.onlyoffice.documents.OnlyOfficeDocumentEditorPlugin</type>
       <description>The document editor plugin</description>
+      <init-params>
+        <object-param>
+          <name>provider-configuration</name>
+          <object type="org.exoplatform.services.cms.documents.DocumentEditorPlugin$ProviderConfig">
+            <field name="permissions">
+              <collection type="java.util.ArrayList" item-type="java.lang.String">
+                <value>
+              <string>*:/platform/users</string>
+            </value>
+              </collection>
+            </field>
+          </object>
+        </object-param>
+      </init-params>
     </component-plugin>
   </external-component-plugins>
   
