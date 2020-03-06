@@ -7,12 +7,12 @@ import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 
 import org.exoplatform.container.component.ComponentPlugin;
-import org.exoplatform.services.cms.documents.DocumentEditorPlugin;
+import org.exoplatform.services.cms.documents.DocumentEditorProvider;
 import org.exoplatform.services.cms.documents.DocumentService;
 import org.exoplatform.services.cms.documents.DocumentTemplate;
 import org.exoplatform.services.cms.documents.NewDocumentTemplatePlugin;
 import org.exoplatform.services.cms.documents.exception.DocumentEditorProviderNotFoundException;
-import org.exoplatform.services.cms.documents.impl.DocumentEditorProvider;
+import org.exoplatform.services.cms.documents.impl.DocumentEditorProviderImpl;
 import org.exoplatform.services.cms.documents.model.Document;
 import org.exoplatform.services.cms.drives.DriveData;
 
@@ -157,19 +157,8 @@ public class DocumentServiceMock implements DocumentService {
     return null;
   }
 
-  /**
-   * Gets the registered editor plugins.
-   *
-   * @return the registered editor plugins
-   */
   @Override
-  public Set<DocumentEditorPlugin> getRegisteredEditorPlugins() {
-    // TODO Auto-generated method stub
-    return null;
-  }
-
-  @Override
-  public boolean hasDocumentEditorPlugins() {
+  public boolean hasDocumentEditorProviders() {
     // TODO Auto-generated method stub
     return false;
   }
@@ -187,13 +176,13 @@ public class DocumentServiceMock implements DocumentService {
   }
 
   @Override
-  public List<DocumentEditorProvider> getDocumentEditorProviders() {
+  public DocumentEditorProviderImpl getEditorProvider(String provider) throws DocumentEditorProviderNotFoundException {
     // TODO Auto-generated method stub
     return null;
   }
 
   @Override
-  public DocumentEditorProvider getEditorProvider(String provider) throws DocumentEditorProviderNotFoundException {
+  public Set<DocumentEditorProvider> getDocumentEditorProviders() {
     // TODO Auto-generated method stub
     return null;
   }
