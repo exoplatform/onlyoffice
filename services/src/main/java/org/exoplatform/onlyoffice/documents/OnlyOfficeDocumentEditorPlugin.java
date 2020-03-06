@@ -106,7 +106,7 @@ public class OnlyOfficeDocumentEditorPlugin extends BaseComponentPlugin implemen
    */
   @Override
   public void beforeDocumentCreate(DocumentTemplate template, String parentPath, String title) throws Exception {
-    callModule("initActivity('initNewDocument();");
+    callModule("initNewDocument();");
   }
 
   /**
