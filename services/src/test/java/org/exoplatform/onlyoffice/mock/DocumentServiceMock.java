@@ -153,7 +153,6 @@ public class DocumentServiceMock implements DocumentService {
    */
   @Override
   public Set<NewDocumentTemplatePlugin> getRegisteredTemplatePlugins() {
-    // TODO Auto-generated method stub
     return null;
   }
 
@@ -164,39 +163,63 @@ public class DocumentServiceMock implements DocumentService {
    */
   @Override
   public Set<DocumentEditorPlugin> getRegisteredEditorPlugins() {
-    // TODO Auto-generated method stub
     return null;
   }
 
+  /**
+   * Checks for document editor plugins.
+   *
+   * @return true, if successful
+   */
   @Override
   public boolean hasDocumentEditorPlugins() {
-    // TODO Auto-generated method stub
     return false;
   }
 
+  /**
+   * Gets the prefered editor.
+   *
+   * @param userId the user id
+   * @param uuid the uuid
+   * @param workspace the workspace
+   * @return the prefered editor
+   * @throws Exception the exception
+   */
   @Override
   public String getPreferedEditor(String userId, String uuid, String workspace) throws Exception {
-    // TODO Auto-generated method stub
     return null;
   }
 
+  /**
+   * Sets the prefered editor.
+   *
+   * @param userId the user id
+   * @param provider the provider
+   * @param uuid the uuid
+   * @param workspace the workspace
+   * @throws Exception the exception
+   */
   @Override
   public void setPreferedEditor(String userId, String provider, String uuid, String workspace) throws Exception {
-    // TODO Auto-generated method stub
     
   }
 
   /**
-   * {@inheritDoc}
+   * Gets the editor providers.
+   *
+   * @return the editor providers
    */
   @Override
   public List<EditorProvider> getEditorProviders() {
-    // TODO Auto-generated method stub
     return null;
   }
 
   /**
-   * {@inheritDoc}
+   * Gets the editor provider.
+   *
+   * @param provider the provider
+   * @return the editor provider
+   * @throws EditorProviderNotFoundException the editor provider not found exception
    */
   @Override
   public EditorProvider getEditorProvider(String provider) throws EditorProviderNotFoundException {
@@ -205,12 +228,15 @@ public class DocumentServiceMock implements DocumentService {
   }
 
   /**
-   * {@inheritDoc}
+   * Update editor provider.
+   *
+   * @param editorProvider the editor provider
+   * @throws EditorProviderNotFoundException the editor provider not found exception
    */
   @Override
   public void updateEditorProvider(EditorProvider editorProvider) throws EditorProviderNotFoundException {
-    // TODO Auto-generated method stub
     
   }
+
 
 }
