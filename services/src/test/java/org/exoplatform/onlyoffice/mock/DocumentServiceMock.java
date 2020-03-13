@@ -11,10 +11,8 @@ import org.exoplatform.services.cms.documents.DocumentService;
 import org.exoplatform.services.cms.documents.NewDocumentTemplate;
 import org.exoplatform.services.cms.documents.NewDocumentTemplateProvider;
 import org.exoplatform.services.cms.documents.exception.DocumentEditorProviderNotFoundException;
-import org.exoplatform.services.cms.documents.impl.DocumentEditorProviderImpl;
 import org.exoplatform.services.cms.documents.model.Document;
 import org.exoplatform.services.cms.drives.DriveData;
-
 
 /**
  * The Class DocumentServiceMock.
@@ -137,13 +135,14 @@ public class DocumentServiceMock implements DocumentService {
   }
 
   /**
-   * Checks for document template plugins.
+   * Gets the new document template providers.
    *
-   * @return true, if successful
+   * @return the new document template providers
    */
   @Override
-  public boolean hasDocumentTemplateProviders() {
-    return false;
+  public List<NewDocumentTemplateProvider> getNewDocumentTemplateProviders() {
+    // TODO Auto-generated method stub
+    return null;
   }
 
   /**
@@ -153,6 +152,17 @@ public class DocumentServiceMock implements DocumentService {
    */
   @Override
   public boolean hasDocumentEditorProviders() {
+    // TODO Auto-generated method stub
+    return false;
+  }
+
+  /**
+   * Checks for document template providers.
+   *
+   * @return true, if successful
+   */
+  @Override
+  public boolean hasDocumentTemplateProviders() {
     // TODO Auto-generated method stub
     return false;
   }
@@ -184,20 +194,7 @@ public class DocumentServiceMock implements DocumentService {
   @Override
   public void savePreferedEditor(String userId, String provider, String uuid, String workspace) throws Exception {
     // TODO Auto-generated method stub
-
-  }
-
-  /**
-   * Gets the editor provider.
-   *
-   * @param provider the provider
-   * @return the editor provider
-   * @throws DocumentEditorProviderNotFoundException the document editor provider not found exception
-   */
-  @Override
-  public DocumentEditorProviderImpl getEditorProvider(String provider) throws DocumentEditorProviderNotFoundException {
-    // TODO Auto-generated method stub
-    return null;
+    
   }
 
   /**
@@ -212,14 +209,20 @@ public class DocumentServiceMock implements DocumentService {
   }
 
   /**
-   * Gets the new document template providers.
+   * Gets the editor provider.
    *
-   * @return the new document template providers
+   * @param provider the provider
+   * @return the editor provider
+   * @throws DocumentEditorProviderNotFoundException the document editor provider not found exception
    */
   @Override
-  public List<NewDocumentTemplateProvider> getNewDocumentTemplateProviders() {
+  public DocumentEditorProvider getEditorProvider(String provider) throws DocumentEditorProviderNotFoundException {
     // TODO Auto-generated method stub
     return null;
   }
+
+
+
+
 
 }
