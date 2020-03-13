@@ -1,7 +1,6 @@
 package org.exoplatform.onlyoffice.mock;
 
 import java.util.List;
-import java.util.Set;
 
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
@@ -9,12 +8,13 @@ import javax.jcr.RepositoryException;
 import org.exoplatform.container.component.ComponentPlugin;
 import org.exoplatform.services.cms.documents.DocumentEditorProvider;
 import org.exoplatform.services.cms.documents.DocumentService;
-import org.exoplatform.services.cms.documents.DocumentTemplate;
-import org.exoplatform.services.cms.documents.NewDocumentTemplatePlugin;
+import org.exoplatform.services.cms.documents.NewDocumentTemplate;
+import org.exoplatform.services.cms.documents.NewDocumentTemplateProvider;
 import org.exoplatform.services.cms.documents.exception.DocumentEditorProviderNotFoundException;
 import org.exoplatform.services.cms.documents.impl.DocumentEditorProviderImpl;
 import org.exoplatform.services.cms.documents.model.Document;
 import org.exoplatform.services.cms.drives.DriveData;
+
 
 /**
  * The Class DocumentServiceMock.
@@ -132,7 +132,7 @@ public class DocumentServiceMock implements DocumentService {
    * @throws Exception the exception
    */
   @Override
-  public Node createDocumentFromTemplate(Node currentNode, String title, DocumentTemplate template) throws Exception {
+  public Node createDocumentFromTemplate(Node currentNode, String title, NewDocumentTemplate template) throws Exception {
     return null;
   }
 
@@ -142,47 +142,82 @@ public class DocumentServiceMock implements DocumentService {
    * @return true, if successful
    */
   @Override
-  public boolean hasDocumentTemplatePlugins() {
+  public boolean hasDocumentTemplateProviders() {
     return false;
   }
 
   /**
-   * Gets the registered template plugins.
+   * Checks for document editor providers.
    *
-   * @return the registered template plugins
+   * @return true, if successful
    */
-  @Override
-  public Set<NewDocumentTemplatePlugin> getRegisteredTemplatePlugins() {
-    // TODO Auto-generated method stub
-    return null;
-  }
-
   @Override
   public boolean hasDocumentEditorProviders() {
     // TODO Auto-generated method stub
     return false;
   }
 
+  /**
+   * Gets the prefered editor.
+   *
+   * @param userId the user id
+   * @param uuid the uuid
+   * @param workspace the workspace
+   * @return the prefered editor
+   * @throws Exception the exception
+   */
   @Override
   public String getPreferedEditor(String userId, String uuid, String workspace) throws Exception {
     // TODO Auto-generated method stub
     return null;
   }
 
+  /**
+   * Save prefered editor.
+   *
+   * @param userId the user id
+   * @param provider the provider
+   * @param uuid the uuid
+   * @param workspace the workspace
+   * @throws Exception the exception
+   */
   @Override
-  public void setPreferedEditor(String userId, String provider, String uuid, String workspace) throws Exception {
+  public void savePreferedEditor(String userId, String provider, String uuid, String workspace) throws Exception {
     // TODO Auto-generated method stub
-    
+
   }
 
+  /**
+   * Gets the editor provider.
+   *
+   * @param provider the provider
+   * @return the editor provider
+   * @throws DocumentEditorProviderNotFoundException the document editor provider not found exception
+   */
   @Override
   public DocumentEditorProviderImpl getEditorProvider(String provider) throws DocumentEditorProviderNotFoundException {
     // TODO Auto-generated method stub
     return null;
   }
 
+  /**
+   * Gets the document editor providers.
+   *
+   * @return the document editor providers
+   */
   @Override
-  public Set<DocumentEditorProvider> getDocumentEditorProviders() {
+  public List<DocumentEditorProvider> getDocumentEditorProviders() {
+    // TODO Auto-generated method stub
+    return null;
+  }
+
+  /**
+   * Gets the new document template providers.
+   *
+   * @return the new document template providers
+   */
+  @Override
+  public List<NewDocumentTemplateProvider> getNewDocumentTemplateProviders() {
     // TODO Auto-generated method stub
     return null;
   }

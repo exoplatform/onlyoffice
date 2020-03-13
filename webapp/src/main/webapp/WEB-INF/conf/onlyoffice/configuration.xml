@@ -64,7 +64,7 @@
             <field name="templates">
               <collection type="java.util.ArrayList">
                 <value>
-                  <object type="org.exoplatform.services.cms.documents.DocumentTemplate">
+                  <object type="org.exoplatform.services.cms.documents.NewDocumentTemplateConfig">
                     <field name="extension">
                       <string>.docx</string>
                     </field>
@@ -80,7 +80,7 @@
                   </object>
                 </value>
                 <value>
-                  <object type="org.exoplatform.services.cms.documents.DocumentTemplate">
+                  <object type="org.exoplatform.services.cms.documents.NewDocumentTemplateConfig">
                     <field name="extension">
                       <string>.xlsx</string>
                     </field>
@@ -96,7 +96,7 @@
                   </object>
                 </value>
                 <value>
-                  <object type="org.exoplatform.services.cms.documents.DocumentTemplate">
+                  <object type="org.exoplatform.services.cms.documents.NewDocumentTemplateConfig">
                     <field name="extension">
                       <string>.pptx</string>
                     </field>

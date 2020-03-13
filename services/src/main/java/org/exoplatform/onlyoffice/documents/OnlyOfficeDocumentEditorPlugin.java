@@ -16,7 +16,6 @@
  */
 package org.exoplatform.onlyoffice.documents;
 
-import static org.exoplatform.officeonline.webui.OfficeOnlineContext.callModule;
 import static org.exoplatform.onlyoffice.webui.OnlyofficeContext.callModule;
 import static org.exoplatform.onlyoffice.webui.OnlyofficeContext.editorLink;
 
@@ -27,11 +26,10 @@ import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 
 import org.exoplatform.container.component.BaseComponentPlugin;
-import org.exoplatform.officeonline.WOPIService;
 import org.exoplatform.onlyoffice.OnlyofficeEditorException;
 import org.exoplatform.onlyoffice.OnlyofficeEditorService;
-import org.exoplatform.services.cms.documents.DocumentEditorOps;
-import org.exoplatform.services.cms.documents.DocumentTemplate;
+import org.exoplatform.services.cms.documents.DocumentEditor;
+import org.exoplatform.services.cms.documents.NewDocumentTemplate;
 import org.exoplatform.services.log.ExoLogger;
 import org.exoplatform.services.log.Log;
 import org.exoplatform.services.resources.ResourceBundleService;
@@ -40,16 +38,17 @@ import org.exoplatform.webui.application.WebuiRequestContext;
 /**
  * The Class OnlyOfficeNewDocumentEditorPlugin.
  */
-public class OnlyOfficeDocumentEditorPlugin extends BaseComponentPlugin implements DocumentEditorOps {
+public class OnlyOfficeDocumentEditorPlugin extends BaseComponentPlugin implements DocumentEditor {
 
   /** The Constant PROVIDER_NAME. */
-  protected static final String           PROVIDER_NAME = "onlyoffice";
-  
+  protected static final String           PROVIDER_NAME                = "onlyoffice";
+
   /** The Constant PROVIDER_CONFIGURATION_PARAM. */
-  protected static final String     PROVIDER_CONFIGURATION_PARAM = "provider-configuration";
+  protected static final String           PROVIDER_CONFIGURATION_PARAM = "provider-configuration";
 
   /** The Constant LOG. */
-  protected static final Log              LOG           = ExoLogger.getLogger(OnlyOfficeDocumentEditorPlugin.class);
+  protected static final Log              LOG                          =
+                                              ExoLogger.getLogger(OnlyOfficeDocumentEditorPlugin.class);
 
   /** The editor service. */
   protected final OnlyofficeEditorService editorService;
@@ -58,8 +57,8 @@ public class OnlyOfficeDocumentEditorPlugin extends BaseComponentPlugin implemen
   protected final ResourceBundleService   i18nService;
 
   /** The editor links. */
-  protected final Map<Node, String>       editorLinks   = new ConcurrentHashMap<>();
-  
+  protected final Map<Node, String>       editorLinks                  = new ConcurrentHashMap<>();
+
   /**
    * Instantiates a new only office new document editor plugin.
    *
@@ -91,7 +90,9 @@ public class OnlyOfficeDocumentEditorPlugin extends BaseComponentPlugin implemen
   @Override
   public void onDocumentCreated(String workspace, String path) throws Exception {
     Node document = editorService.getDocument(workspace, path);
-    LOG.debug("Opening editor page for document {}", document);
+    if (LOG.isDebugEnabled()) {
+      LOG.debug("Opening editor page for document {}", document);
+    }
     String link = editorService.getEditorLink(document);
     if (link != null) {
       link = "'" + editorLink(link, "documents") + "'";
@@ -110,8 +111,8 @@ public class OnlyOfficeDocumentEditorPlugin extends BaseComponentPlugin implemen
    * @throws Exception the exception
    */
   @Override
-  public void beforeDocumentCreate(DocumentTemplate template, String parentPath, String title) throws Exception {
-    
+  public void beforeDocumentCreate(NewDocumentTemplate template, String parentPath, String title) throws Exception {
+
   }
 
   /**
@@ -134,7 +135,6 @@ public class OnlyOfficeDocumentEditorPlugin extends BaseComponentPlugin implemen
     }
   }
 
- 
   /**
    * Inits the preview.
    *
