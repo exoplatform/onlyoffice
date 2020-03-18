@@ -11,6 +11,7 @@
     <PlaceHolderTextarea>Write your summary of changes ...</PlaceHolderTextarea>
     <TitleTooltip>Click to edit</TitleTooltip>
     <OpenDrawerBtn>Add new version</OpenDrawerBtn>
+    <NoVersions>No versions</NoVersions>
     <AlertSave>Changes saved</AlertSave>
     <ErrorSave>No more than 500 characters</ErrorSave>
     <UpdateBannerTitle>The document has been updated.</UpdateBannerTitle>

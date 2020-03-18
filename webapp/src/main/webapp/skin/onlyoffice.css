@@ -215,6 +215,25 @@ a.icon-place {
    line-height: 24px;
 }
 
+.onlyofficeEditorBody #editor-drawer .uiIconNoVersions:before {
+   content: "\e79f";
+   color: #DEE4F2;
+   font-size: 60px;
+   line-height: 24px;
+}
+
+.onlyofficeEditorBody #editor-drawer .no-versions-icon {
+  text-align: center;
+  margin-top: 120px;
+}
+
+.onlyofficeEditorBody #editor-drawer .no-versions {
+  padding: 10px;
+  color: #999;
+  font-weight: 600;
+  font-size: 17px;
+}
+
 .onlyofficeEditorBody #editor-drawer .spaceAvatar {
   width: 33px;
   margin-right: 10px;

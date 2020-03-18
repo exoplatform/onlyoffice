@@ -732,6 +732,8 @@
 
     var updateVesionsList = false;
 
+    var versionsListHeight = ($(".content").height() - 220 ) < 0 ? 0 : Math.round(($(".content").height() - 220 ) / 91 );
+
     /**
      * Returns the html markup of the 'Edit Online' button.
      */
@@ -877,7 +879,7 @@
        * Update real time version list.
      */
     this.updateBar = function(changer, comment, workspace, docId) {
-      UI.loadVersions(workspace, docId, 3, 0);
+      UI.loadVersions(workspace, docId, versionsListHeight, 0);
       updateVesionsList = true ;
     };
 
@@ -956,7 +958,7 @@
       $titleElem.attr("data-original-title", message('TitleTooltip'));
 
       $("#editor-drawer").ready(function () {
-        UI.loadVersions(config.workspace, config.docId, 3, 0);
+        UI.loadVersions(config.workspace, config.docId, versionsListHeight, 0);
       });
 
       var $saveBtn = $bar.find("#save-btn .uiIconSave");
@@ -1008,8 +1010,9 @@
          $(".editors-comment-versions").tooltip();
          $(".created-date").tooltip();
          updateVesionsList = false;
-         // Disable load buton when no more versions
+         $("#load-more-btn").show();
 
+         // Disable load buton when no more versions
          if ((pageNum >= (data[0].versionPageNumber - 1))) {
          $("#load-more-btn").prop("disabled", true);
          } else {
@@ -1017,8 +1020,9 @@
          };
        },
        error: function (xhr, thrownError) {
+         $("#versions").html("<div class='no-versions-icon'><i class='uiIconNoVersions'></i><div class='no-versions'> " + message('NoVersions') + "</div> </div>" );
          log("Error fetching versions: " + xhr.responseText + "\n" + xhr.status + "\n" + thrownError, thrownError);
-         $("#load-more-btn").prop("disabled", true);
+         $("#load-more-btn").hide();
        }
       });
     };
