@@ -1013,6 +1013,9 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
     List<Version> versions = new ArrayList<>() ;
     Node currentNode = getDocumentById(workspace, docId);
     if(currentNode != null) {
+      if (itemParPage == 0) {
+        return versions;
+      };
       VersionNode rootVersion = new VersionNode(currentNode, currentNode.getSession());
 
       List<VersionNode> versionNodes = getNodeVersions(rootVersion.getChildren(), new ArrayList<>());
