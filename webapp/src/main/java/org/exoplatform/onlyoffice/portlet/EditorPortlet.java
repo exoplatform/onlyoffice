@@ -19,8 +19,8 @@
 package org.exoplatform.onlyoffice.portlet;
 
 import static org.exoplatform.onlyoffice.webui.OnlyofficeContext.callModule;
-import static org.exoplatform.onlyoffice.webui.OnlyofficeContext.showError;
 import static org.exoplatform.onlyoffice.webui.OnlyofficeContext.requireJS;
+import static org.exoplatform.onlyoffice.webui.OnlyofficeContext.showError;
 
 import java.io.IOException;
 import java.util.Locale;
@@ -35,18 +35,22 @@ import javax.portlet.RenderMode;
 import javax.portlet.RenderRequest;
 import javax.portlet.RenderResponse;
 
+import org.w3c.dom.Element;
+
 import org.exoplatform.container.ExoContainer;
 import org.exoplatform.container.ExoContainerContext;
 import org.exoplatform.onlyoffice.Config;
 import org.exoplatform.onlyoffice.OnlyofficeEditorException;
 import org.exoplatform.onlyoffice.OnlyofficeEditorService;
+import org.exoplatform.services.cms.documents.DocumentService;
 import org.exoplatform.services.log.ExoLogger;
 import org.exoplatform.services.log.Log;
 import org.exoplatform.services.resources.ResourceBundleService;
+import org.exoplatform.services.security.ConversationState;
 import org.exoplatform.webui.application.WebuiRequestContext;
 import org.exoplatform.ws.frameworks.json.impl.JsonException;
-import org.w3c.dom.Element;
 
+// TODO: Auto-generated Javadoc
 /**
  * The Class EditorPortlet.
  */
@@ -60,6 +64,9 @@ public class EditorPortlet extends GenericPortlet {
 
   /** The i 18 n service. */
   private ResourceBundleService   i18nService;
+  
+  /** The document service. */
+  private DocumentService documentService;
 
   /**
    * {@inheritDoc}
@@ -70,8 +77,15 @@ public class EditorPortlet extends GenericPortlet {
     ExoContainer container = ExoContainerContext.getCurrentContainer();
     this.onlyoffice = container.getComponentInstanceOfType(OnlyofficeEditorService.class);
     this.i18nService = container.getComponentInstanceOfType(ResourceBundleService.class);
+    this.documentService = container.getComponentInstanceOfType(DocumentService.class);
   }
 
+  /**
+   * Do headers.
+   *
+   * @param request the request
+   * @param response the response
+   */
   @Override
   protected void doHeaders(RenderRequest request, RenderResponse response) {
     super.doHeaders(request, response);
@@ -107,8 +121,9 @@ public class EditorPortlet extends GenericPortlet {
             request.getLocale());
 
     Config config = getConfig(request, response, i18n);
-
+    
     if(config != null) {
+      documentService.initDocumentEditorsModule();
       try {
         requireJS().require("SHARED/bts_tooltip");
         callModule("initEditor(" + config.toJSON() + ");");

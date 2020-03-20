@@ -16,6 +16,7 @@ import org.exoplatform.services.cms.documents.model.Document;
 import org.exoplatform.services.cms.documents.model.EditorProvider;
 import org.exoplatform.services.cms.drives.DriveData;
 
+
 /**
  * The Class DocumentServiceMock.
  */
@@ -156,6 +157,7 @@ public class DocumentServiceMock implements DocumentService {
     return null;
   }
 
+
   /**
    * Gets the registered editor plugins.
    *
@@ -186,7 +188,7 @@ public class DocumentServiceMock implements DocumentService {
    * @throws Exception the exception
    */
   @Override
-  public String getPreferedEditor(String userId, String uuid, String workspace) throws Exception {
+  public String getPreferedEditor(String userId, String uuid, String workspace) throws RepositoryException {
     return null;
   }
 
@@ -200,7 +202,7 @@ public class DocumentServiceMock implements DocumentService {
    * @throws Exception the exception
    */
   @Override
-  public void setPreferedEditor(String userId, String provider, String uuid, String workspace) throws Exception {
+  public void setPreferedEditor(String userId, String provider, String uuid, String workspace) throws RepositoryException {
     
   }
 
@@ -237,6 +239,19 @@ public class DocumentServiceMock implements DocumentService {
   public void updateEditorProvider(EditorProvider editorProvider) throws EditorProviderNotFoundException {
     
   }
+
+  @Override
+  public void setCurrentDocumentEditor(String uuid, String workspace, String provider) throws RepositoryException {
+    // TODO Auto-generated method stub
+    
+  }
+
+  @Override
+  public void initDocumentEditorsModule() {
+    // TODO Auto-generated method stub
+    
+  }
+
 
 
 }

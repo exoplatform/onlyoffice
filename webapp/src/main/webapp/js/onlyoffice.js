@@ -522,7 +522,6 @@
       log("Initialize editor for document: " + config.docId);
       window.document.title = config.document.title + " - " + window.document.title;
       UI.initEditor();
-
       create(config).done(function(localConfig) {
         if (localConfig) {
           currentConfig = localConfig;
@@ -558,11 +557,12 @@
             }
           });
 
+         
           // Establish a Comet/WebSocket channel from this point.
           // A new editor page will join the channel and notify when the doc will be saved
           // so we'll refresh this explorer view to reflect the edited content.
           subscribeDocument(currentConfig.docId);
-
+          editorbuttons.onEditorOpen(currentConfig.docId, currentConfig.workspace, "onlyoffice");
           // We are a editor oage here: publish that the doc was changed by current user
 
           window.addEventListener("beforeunload", function() {
@@ -580,6 +580,7 @@
                 "key" : currentConfig.document.key,
                 "changes" : currentUserChanges
               });
+              editorbuttons.onEditorClose(currentConfig.docId, currentConfig.workspace, "onlyoffice");
             }
           });
 
