@@ -106,7 +106,7 @@ public class OnlyofficeOpenManageComponent extends UIAbstractManagerComponent {
         }
         String editorLink = editorService.getEditorLink(node);
         if (editorLink != null && !editorLink.isEmpty()) {
-          return "javascript:window.open('" + editorLink(editorLink, "documents") + "');";
+          return "javascript:window.open('" + editorLink(editorLink, "drives") + "');";
         }
       } else {
         LOG.warn("Cannot find ancestor of type UIJCRExplorer in component " + this + ", parent: " + this.getParent());

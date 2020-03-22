@@ -27,6 +27,7 @@ import io.jsonwebtoken.security.Keys;
 
 @ConfiguredBy({ @ConfigurationUnit(scope = ContainerScope.ROOT, path = "conf/test-configuration.xml"),
     @ConfigurationUnit(scope = ContainerScope.PORTAL, path = "conf/portal/configuration.xml"),
+    @ConfigurationUnit(scope = ContainerScope.PORTAL, path = "conf/exo.portal.component.portal-configuration.xml"),
     @ConfigurationUnit(scope = ContainerScope.PORTAL, path = "conf/test/test-configuration.xml") })
 public class OnlyofficeEditorServiceTest extends BaseCommonsTestCase {
 
@@ -243,7 +244,7 @@ public class OnlyofficeEditorServiceTest extends BaseCommonsTestCase {
 
     // Then
     String docId = node.getUUID();
-    String editorURL = "http://127.0.0.1:8080/portal/intranet/oeditor?docId=" + docId;
+    String editorURL = "http://127.0.0.1:8080/portal/classic/oeditor?docId=" + docId;
     assertNotNull(config);
     assertTrue(node.getPath().startsWith("/Users"));
     assertTrue(config.getPath().endsWith("/Test Document.docx"));
@@ -300,7 +301,7 @@ public class OnlyofficeEditorServiceTest extends BaseCommonsTestCase {
 
     // Then
     String docId = node.getUUID();
-    String editorURL = "http://127.0.0.1:8080/portal/intranet/oeditor?docId=" + docId;
+    String editorURL = "http://127.0.0.1:8080/portal/classic/oeditor?docId=" + docId;
     assertNotNull(config);
 
     assertTrue(config.isCreated());
@@ -335,7 +336,7 @@ public class OnlyofficeEditorServiceTest extends BaseCommonsTestCase {
 
     String docId = node.getUUID();
     Config config = editorService.createEditor("http", "127.0.0.1", 8080, "john", null, docId);
-    String editorURL = "http://127.0.0.1:8080/portal/intranet/oeditor?docId=" + docId;
+    String editorURL = "http://127.0.0.1:8080/portal/classic/oeditor?docId=" + docId;
 
     assertNotNull(config);
 
@@ -572,7 +573,7 @@ public class OnlyofficeEditorServiceTest extends BaseCommonsTestCase {
     String editorLink = editorService.getEditorLink("http", "127.0.0.1", 8080, null, node.getUUID());
 
     // Then
-    String editorLinkTest = "http://127.0.0.1:8080/portal/intranet/oeditor?docId=" + node.getUUID();
+    String editorLinkTest = "http://127.0.0.1:8080/portal/classic/oeditor?docId=" + node.getUUID();
     assertNotNull(editorLink);
     assertEquals(editorLink, editorLinkTest);
     node.remove();

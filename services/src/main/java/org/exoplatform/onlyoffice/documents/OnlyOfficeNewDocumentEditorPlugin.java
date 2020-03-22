@@ -59,7 +59,7 @@ public class OnlyOfficeNewDocumentEditorPlugin extends BaseComponentPlugin imple
     LOG.debug("Opening editor page for document {}", document);
     String link = editorService.getEditorLink(document);
     if (link != null) {
-      link = "'" + editorLink(link, "documents") + "'";
+      link = "'" + editorLink(link, "drives") + "'";
     } else {
       link = "null";
     }
