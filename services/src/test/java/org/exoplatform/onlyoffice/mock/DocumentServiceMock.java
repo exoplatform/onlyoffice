@@ -221,8 +221,10 @@ public class DocumentServiceMock implements DocumentService {
     return null;
   }
 
-
-
-
+  @Override
+  public void addDocumentMetadataPlugin(ComponentPlugin plugin) {
+    // TODO Auto-generated method stub
+    
+  }
 
 }
