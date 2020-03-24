@@ -343,8 +343,6 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
   /** The document type plugin. */
   protected DocumentTypePlugin                                    documentTypePlugin;
 
-  public static final String COMMONS_RESOUCE_BUNDLE_NAME = "locale.navigation.portal.intranet";
-
   /**
    * Cloud Drive service with storage in JCR and with managed features.
    *
@@ -2740,9 +2738,9 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
           // Shared document
           if (!userId.equals(getUserId(node.getPath()))) {
             Node symlink = getSymlink(node, userId);
-            if (symlink != null) {
+            if (symlink != null && !StringUtils.equals(symlink.getPath(), node.getPath())) {
               return getDisplayPath(symlink, userId);
-            } else {
+            } else if (symlink == null) {
               parentFolder = HIDDEN_FOLDER;
             }
           }
