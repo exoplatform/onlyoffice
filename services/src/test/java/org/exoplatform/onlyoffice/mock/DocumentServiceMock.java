@@ -53,7 +53,8 @@ public class DocumentServiceMock implements DocumentService {
    */
   @Override
   public String getLinkInDocumentsApp(String nodePath) throws Exception {
-    return "/testlink";
+    // TODO Auto-generated method stub
+    return null;
   }
 
   /**
@@ -66,7 +67,8 @@ public class DocumentServiceMock implements DocumentService {
    */
   @Override
   public String getLinkInDocumentsApp(String nodePath, DriveData drive) throws Exception {
-    return "/testlink";
+    // TODO Auto-generated method stub
+    return null;
   }
 
   /**
@@ -78,12 +80,8 @@ public class DocumentServiceMock implements DocumentService {
    */
   @Override
   public DriveData getDriveOfNode(String nodePath) throws Exception {
-    DriveData driveData = new DriveData();
-    driveData.setLabel("label");
-    driveData.setName("nodeDrive");
-    driveData.setHomePath("/homePath");
-    driveData.setWorkspace("workspace");
-    return driveData;
+    // TODO Auto-generated method stub
+    return null;
   }
 
   /**
@@ -97,6 +95,7 @@ public class DocumentServiceMock implements DocumentService {
    */
   @Override
   public DriveData getDriveOfNode(String nodePath, String userId, List<String> memberships) throws Exception {
+    // TODO Auto-generated method stub
     return null;
   }
 
@@ -107,7 +106,8 @@ public class DocumentServiceMock implements DocumentService {
    */
   @Override
   public void addDocumentTemplatePlugin(ComponentPlugin plugin) {
-
+    // TODO Auto-generated method stub
+    
   }
 
   /**
@@ -117,31 +117,93 @@ public class DocumentServiceMock implements DocumentService {
    */
   @Override
   public void addDocumentEditorPlugin(ComponentPlugin plugin) {
-
+    // TODO Auto-generated method stub
+    
   }
 
+  /**
+   * Creates the document from template.
+   *
+   * @param currentNode the current node
+   * @param title the title
+   * @param template the template
+   * @return the node
+   * @throws Exception the exception
+   */
   @Override
   public Node createDocumentFromTemplate(Node currentNode, String title, NewDocumentTemplate template) throws Exception {
     // TODO Auto-generated method stub
     return null;
   }
 
+  /**
+   * Gets the new document template providers.
+   *
+   * @return the new document template providers
+   */
   @Override
   public List<NewDocumentTemplateProvider> getNewDocumentTemplateProviders() {
     // TODO Auto-generated method stub
     return null;
   }
 
+  /**
+   * Checks for document editor providers.
+   *
+   * @return true, if successful
+   */
   @Override
   public boolean hasDocumentEditorProviders() {
     // TODO Auto-generated method stub
     return false;
   }
 
+  /**
+   * Checks for document template providers.
+   *
+   * @return true, if successful
+   */
   @Override
   public boolean hasDocumentTemplateProviders() {
     // TODO Auto-generated method stub
     return false;
+  }
+
+  /**
+   * Adds the document metadata plugin.
+   *
+   * @param plugin the plugin
+   */
+  @Override
+  public void addDocumentMetadataPlugin(ComponentPlugin plugin) {
+    // TODO Auto-generated method stub
+    
+  }
+
+
+
+  /**
+   * Gets the document editor providers.
+   *
+   * @return the document editor providers
+   */
+  @Override
+  public List<DocumentEditorProvider> getDocumentEditorProviders() {
+    // TODO Auto-generated method stub
+    return null;
+  }
+
+  /**
+   * Gets the editor provider.
+   *
+   * @param provider the provider
+   * @return the editor provider
+   * @throws DocumentEditorProviderNotFoundException the document editor provider not found exception
+   */
+  @Override
+  public DocumentEditorProvider getEditorProvider(String provider) throws DocumentEditorProviderNotFoundException {
+    // TODO Auto-generated method stub
+    return null;
   }
 
   @Override
@@ -153,19 +215,28 @@ public class DocumentServiceMock implements DocumentService {
   @Override
   public void savePreferedEditor(String userId, String provider, String uuid, String workspace) throws Exception {
     // TODO Auto-generated method stub
-
+    
   }
 
   @Override
-  public List<DocumentEditorProvider> getDocumentEditorProviders() {
+  public void setCurrentDocumentProvider(String uuid, String workspace, String provider) throws RepositoryException {
+    // TODO Auto-generated method stub
+    
+  }
+
+  @Override
+  public String getCurrentDocumentProvider(String uuid, String workspace) throws RepositoryException {
     // TODO Auto-generated method stub
     return null;
   }
 
   @Override
-  public DocumentEditorProvider getEditorProvider(String provider) throws DocumentEditorProviderNotFoundException {
+  public void initDocumentEditorsModule(String provider, String workspace) {
     // TODO Auto-generated method stub
-    return null;
+    
   }
+
+
+
 
 }
