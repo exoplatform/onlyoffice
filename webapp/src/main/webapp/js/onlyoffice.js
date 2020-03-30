@@ -976,8 +976,7 @@
         url: "/portal/rest/onlyoffice/editor/versions/" + workspace + "/" + docId + "/" + itemParPage + "/" + pageNum ,
         success: function (data) {
          var html = "";
-         var limit = data.length < 3 ? data.length : 3;
-         for (var i=0; i < limit; i++) {
+         for (var i=0; i < data.length; i++) {
            html += "<table class='tableContentStyle'>" +
              "<tr class='tableHead'>" +
              "<th class='displayAvatarFullName'>" +
