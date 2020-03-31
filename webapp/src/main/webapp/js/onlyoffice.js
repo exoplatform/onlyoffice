@@ -584,7 +584,6 @@
                 "key" : currentConfig.document.key,
                 "changes" : currentUserChanges
               });
-              editorbuttons.onEditorClose(currentConfig.docId, currentConfig.workspace, "onlyoffice");
             }
           });
 
