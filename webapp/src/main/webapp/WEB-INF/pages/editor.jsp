@@ -16,6 +16,9 @@
 
     <div class="header">
       <a class="closebtn" rel="tooltip" data-placement="bottom" data-original-title="">×</a>
+      <a id="see-more-btn" class="seeMoreLink" rel="tooltip" data-placement="left" data-original-title="">
+        <i class="uiIconOpenLinkVersions"></i>
+      </a>
     </div>
 
     <div class="content">
@@ -39,7 +42,7 @@
       <div id="versions"></div>
     </div>
     <div class="footer">
-      <button id="see-more-btn" type="button" class="btn lineStyle"></button>
+      <button id="load-more-btn" type="button" class="btn lineStyle"></button>
     </div>
   </div>
   <div id="drawer-backdrop"></div>

@@ -432,14 +432,12 @@
           <description>Store the following resources into the db for the first launch</description>
           <value>locale.onlyoffice.Onlyoffice</value>
           <value>locale.onlyoffice.OnlyofficeClient</value>
-          <value>locale.navigation.portal.intranet</value>
         </values-param>
         <values-param>
           <name>portal.resource.names</name>
           <description>The properties files of the portal , those file will be merged into one ResoruceBundle properties</description>
           <value>locale.onlyoffice.Onlyoffice</value>
           <value>locale.onlyoffice.OnlyofficeClient</value>
-          <value>locale.navigation.portal.intranet</value>
         </values-param>
       </init-params>
     </component-plugin>
@@ -461,7 +459,7 @@
             <field name="patterns">
               <collection type="java.util.ArrayList" item-type="java.lang.String">
                 <value>
-                  <string>/intranet/oeditor.*</string>
+                  <string>.*/oeditor.*</string>
                 </value>
               </collection>
             </field>
@@ -483,10 +481,10 @@
             <field name="patterns">
               <collection type="java.util.ArrayList" item-type="java.lang.String">
                 <value>
-                  <string>/intranet/documents.*</string>
+                  <string>.*/documents.*</string>
                 </value>
                 <value>
-                  <string>/g/.*/documents.*</string>
+                  <string>.*/drives.*</string>
                 </value>
               </collection>
             </field>

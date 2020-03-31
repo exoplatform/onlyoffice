@@ -25,9 +25,11 @@ import java.util.List;
 
 import javax.jcr.Node;
 
+import org.exoplatform.commons.utils.CommonsUtils;
 import org.exoplatform.ecm.webui.component.explorer.UIJCRExplorer;
 import org.exoplatform.ecm.webui.component.explorer.control.listener.UIActionBarActionListener;
 import org.exoplatform.onlyoffice.OnlyofficeEditorService;
+import org.exoplatform.services.cms.link.LinkManager;
 import org.exoplatform.services.log.ExoLogger;
 import org.exoplatform.services.log.Log;
 import org.exoplatform.web.application.Parameter;
@@ -97,14 +99,14 @@ public class OnlyofficeOpenManageComponent extends UIAbstractManagerComponent {
         OnlyofficeEditorService editorService = this.getApplicationComponent(OnlyofficeEditorService.class);
         Node node = uiExplorer.getCurrentNode();
         node = editorService.getDocument(node.getSession().getWorkspace().getName(), node.getPath());
-        
-        Node symlink = (Node) uiExplorer.getSession().getItem(uiExplorer.getCurrentPath());
-        if(symlink.isNodeType("exo:symlink")) {
-          editorService.addFilePreferences(node, WebuiRequestContext.getCurrentInstance().getRemoteUser(), symlink.getPath());
+        LinkManager linkManager = CommonsUtils.getService(LinkManager.class);
+
+        if(linkManager.isFileOrParentALink(uiExplorer.getSession(), uiExplorer.getCurrentPath())) {
+          editorService.addFilePreferences(node, WebuiRequestContext.getCurrentInstance().getRemoteUser(), uiExplorer.getCurrentPath());
         }
         String editorLink = editorService.getEditorLink(node);
         if (editorLink != null && !editorLink.isEmpty()) {
-          return "javascript:window.open('" + editorLink(editorLink, "documents") + "');";
+          return "javascript:window.open('" + editorLink(editorLink, "drives") + "');";
         }
       } else {
         LOG.warn("Cannot find ancestor of type UIJCRExplorer in component " + this + ", parent: " + this.getParent());

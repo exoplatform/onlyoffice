@@ -191,6 +191,9 @@
     // The editor window is used while creating a new document.
     var editorWindow;
 
+    // The page index to load in the first iteration
+     var pageToLoad = 1 ;
+
     // Redux store for dispatching document updates inside the app
     var store = redux.createStore(function(state, action) {
       if (dispatchableEvents.includes(action.type)) {
@@ -385,6 +388,7 @@
         });
       }
       $bar.find("#save-btn").on("click", function() {
+        pageToLoad = 1;
         var comment = $bar.find("#comment-box").val();
         if (comment.length > 510){
            UI.errorSave();
@@ -612,6 +616,10 @@
          window.open(config.explorerUrl);
        });
 
+       $("#load-more-btn").on('click', function() {
+         UI.loadVersions(currentConfig.workspace, currentConfig.docId, 3, pageToLoad);
+         pageToLoad++;
+       });
     };
 
     /**
@@ -652,6 +660,7 @@
         }, 100);
         subscribeDocument(docId);
       });
+
       if(editorLink != null) {
         editorbuttons.addCreateButtonFn("onlyoffice", function() {
           return UI.createEditorButton(editorLink);
@@ -731,6 +740,10 @@
 
     var notification;
 
+    var updateVesionsList = false;
+
+    var versionsListHeight = ($(".content").height() - 220 ) < 0 ? 0 : Math.round(($(".content").height() - 220 ) / 91 );
+
     /**
      * Returns the html markup of the 'Edit Online' button.
      */
@@ -750,47 +763,6 @@
     var getRefreshBanner = function() {
       return "<div class='documentRefreshBanner'><div class='refreshBannerContent'>" + message("UpdateBannerTitle")
           + "<span class='refreshBannerLink'>" + message("ReloadButtonTitle") + "</span></div></div>";
-    };
-
-    /**
-     * Adds the 'Edit Online' button to No-preview screen (from the activity stream) when it's loaded.
-     */
-    var tryAddEditorButtonNoPreview = function(editorLink, attempts, delay) {
-      var $elem = $("#documentPreviewContainer .navigationContainer.noPreview");
-      if ($elem.length == 0 || !$elem.is(":visible")) {
-        if (attempts > 0) {
-          setTimeout(function() {
-            tryAddEditorButtonNoPreview(editorLink, attempts - 1, delay);
-          }, delay);
-        } else {
-          log("Cannot find .noPreview element");
-        }
-      } else if ($elem.find("a.editOnlineBtn").length == 0) {
-        var $detailContainer = $elem.find(".detailContainer");
-        var $downloadBtn = $detailContainer.find(".uiIconDownload").closest("a.btn");
-        if ($downloadBtn.length != 0) {
-          $downloadBtn.after(getNoPreviewEditorButton(editorLink));
-        } else {
-          $detailContainer.append(getNoPreviewEditorButton(editorLink));
-        }
-      }
-    };
-    /**
-     * Adds the 'Edit Online' button to a preview (from the activity stream) when it's loaded.
-     */
-    var tryAddEditorButtonToPreview = function(editorLink, attempts, delay) {
-      var $elem = $("#uiDocumentPreview .previewBtn");
-      if ($elem.length == 0 || !$elem.is(":visible")) {
-        if (attempts > 0) {
-          setTimeout(function() {
-            tryAddEditorButtonToPreview(editorLink, attempts - 1, delay);
-          }, delay);
-        } else {
-          log("Cannot find element " + $elem);
-        }
-      } else {
-        $elem.append("<div class='onlyOfficeEditBtn'>" + getEditorButton(editorLink) + "</div>");
-      }
     };
 
     // Use this in on-close window handler.
@@ -913,9 +885,12 @@
       }, 3000);
     };
 
-
+    /**
+       * Update real time version list.
+     */
     this.updateBar = function(changer, comment, workspace, docId) {
-      UI.loadVersions(workspace, docId);
+      UI.loadVersions(workspace, docId, versionsListHeight, 0);
+      updateVesionsList = true ;
     };
 
     //Function for remove accents
@@ -972,11 +947,12 @@
         $tooltipSpaceElem.attr("data-original-title", config.editorConfig.user.name);
         $(".spaceAvatar img").tooltip();
       }
-      $(".header").append(message('SaveVersionLavel'));
+      $(".header").append(message('SaveVersionLabel'));
       $("#alert-saved").append(message('AlertSave'));
       $("#alert-error").append(message('ErrorSave'));
       $("#save-btn").append(message('SaveButton'));
-      $("#see-more-btn").append(message('SeeMoreButton'));
+      $("#see-more-btn").attr("data-original-title",message('SeeMoreButton'));
+      $("#load-more-btn").append(message('LoadMoreButton'));
       $("#open-drawer-btn").attr("data-original-title", message('OpenDrawerBtn'));
       $(".closebtn").attr("data-original-title", message('CloseButton'));
       $(".versionSummaryField").attr("placeholder", message('PlaceHolderTextarea'));
@@ -997,7 +973,7 @@
       $titleElem.attr("data-original-title", message('TitleTooltip'));
 
       $("#editor-drawer").ready(function () {
-        UI.loadVersions(config.workspace, config.docId);
+        UI.loadVersions(config.workspace, config.docId, versionsListHeight, 0);
       });
 
       var $saveBtn = $bar.find("#save-btn .uiIconSave");
@@ -1010,13 +986,12 @@
       return $bar;
     };
 
-    this.loadVersions = function(workspace, docId) {
+    this.loadVersions = function(workspace, docId, itemParPage, pageNum) {
       $.ajax({
-        url: "/portal/rest/onlyoffice/editor/versions/" + workspace + "/" + docId,
+        url: "/portal/rest/onlyoffice/editor/versions/" + workspace + "/" + docId + "/" + itemParPage + "/" + pageNum ,
         success: function (data) {
          var html = "";
-         var limit = data.length < 3 ? data.length : 3;
-         for (var i=0; i < limit; i++) {
+         for (var i=0; i < data.length; i++) {
            html += "<table class='tableContentStyle'>" +
              "<tr class='tableHead'>" +
              "<th class='displayAvatarFullName'>" +
@@ -1039,12 +1014,29 @@
              "</table>";
          };
 
-         $("#versions").html(html);
+         //Test update DOM versions list or load more versions
+          if(updateVesionsList) {
+           $("#versions").html(html);
+          }
+          else{
+           $("#versions").append(html);
+          };
          $(".editors-comment-versions").tooltip();
          $(".created-date").tooltip();
+         updateVesionsList = false;
+         $("#load-more-btn").show();
+
+         // Disable load buton when no more versions
+         if ((pageNum >= (data[0].versionPageNumber - 1))) {
+         $("#load-more-btn").prop("disabled", true);
+         } else {
+         $("#load-more-btn").prop("disabled", false);
+         };
        },
        error: function (xhr, thrownError) {
+         $("#versions").html("<div class='no-versions-icon'><i class='uiIconNoVersions'></i><div class='no-versions'> " + message('NoVersions') + "</div> </div>" );
          log("Error fetching versions: " + xhr.responseText + "\n" + xhr.status + "\n" + thrownError, thrownError);
+         $("#load-more-btn").hide();
        }
       });
     };
@@ -1171,20 +1163,6 @@
     this.addEditorButtonToActivity = function(editorLink, activityId) {
       $("#activityContainer" + activityId).find("div[id^='ActivityContextBox'] > .actionBar .statusAction.pull-left").append(
           getEditorButton(editorLink));
-    };
-
-    /**
-     * Ads the 'Edit Online' button to a preview (opened from the activity stream).
-     */
-    this.addEditorButtonToPreview = function(editorLink, clickSelector) {
-      $(clickSelector).click(function() {
-        // We set timeout here to avoid the case when the element is rendered but is going to be updated soon
-        setTimeout(function() {
-          tryAddEditorButtonToPreview(editorLink, 100, 100);
-          // We need wait for about 2min when doc cannot generate its preview
-          tryAddEditorButtonNoPreview(editorLink, 600, 250);
-        }, 100);
-      });
     };
 
     /**

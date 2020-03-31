@@ -89,14 +89,12 @@
     right: 1px;
 }
 
-.onlyofficeEditorBody #editor-drawer #see-more-btn {
+.onlyofficeEditorBody #editor-drawer #load-more-btn {
   display: inline-block;
   cursor: pointer;
-  width: 100px;
+  width: 100%;
   padding: 6px;
-  margin-left: 285px;
-  margin-top: 18px;
-  height: 35px;
+  height: 40px;
   color: black;
   font-size: 15px;
 }
@@ -125,10 +123,6 @@
   font-size: 12px;
 }
 
-.onlyofficeEditorBody #editor-drawer .content {
-  position: initial!important;
-}
-
 div#open-drawer-btn {
   width: 20px;
   height: 40px;
@@ -152,6 +146,9 @@ a.icon-place {
 
 .onlyofficeEditorBody #editor-drawer .header .closebtn {
   cursor: pointer;
+  font-size: 35px!important;
+  line-height: 22px!important;
+  font-weight: 500;
 }
 
 .onlyofficeEditorBody #editor-drawer .contentDisplay {
@@ -205,6 +202,38 @@ a.icon-place {
   height: 35px;
 }
 
+.onlyofficeEditorBody #editor-drawer .seeMoreLink{
+  float: right;
+  margin-right: 10px;
+  cursor: pointer;
+}
+
+.onlyofficeEditorBody #editor-drawer .uiIconOpenLinkVersions:before {
+   content: "\e966";
+   color: #DEE4F2;
+   font-size: 24px;
+   line-height: 24px;
+}
+
+.onlyofficeEditorBody #editor-drawer .uiIconNoVersions:before {
+   content: "\e79f";
+   color: #DEE4F2;
+   font-size: 60px;
+   line-height: 24px;
+}
+
+.onlyofficeEditorBody #editor-drawer .no-versions-icon {
+  text-align: center;
+  margin-top: 120px;
+}
+
+.onlyofficeEditorBody #editor-drawer .no-versions {
+  padding: 10px;
+  color: #999;
+  font-weight: 600;
+  font-size: 17px;
+}
+
 .onlyofficeEditorBody #editor-drawer .spaceAvatar {
   width: 33px;
   margin-right: 10px;
@@ -228,7 +257,6 @@ a.icon-place {
 
 .onlyofficeEditorBody #editor-drawer .tableContentStyle {
   margin-top: 10px;
-  width: -webkit-fill-available;
 }
 
 .onlyofficeEditorBody #editor-drawer .tableContent {

@@ -239,7 +239,7 @@ public class OnlyofficeContext {
       // getApplicationComponent(SpaceService.class).getSpaceById(getOwnerIdentity().getRemoteId());
       // Context space:
       // XXX context space will be null for space doc links in form:
-      // /portal/intranet/documents?path=.spaces.test_onlyoffice%2FGroups%2Fspaces%2Ftest_onlyoffice%2FDocuments%2FSimple+Document.docx
+      // /${PORTAL_CONTEXT}/${CURRENT_PORTAL_SITE}/drives?path=.spaces.test_onlyoffice%2FGroups%2Fspaces%2Ftest_onlyoffice%2FDocuments%2FSimple+Document.docx
       Space space = SpaceUtils.getSpaceByContext();
       if (space != null) {
         linkBuilder.append("&space=").append(space.getPrettyName());
