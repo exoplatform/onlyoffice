@@ -145,28 +145,7 @@ public class DocumentServiceMock implements DocumentService {
     return null;
   }
 
-  /**
-   * Checks for document editor providers.
-   *
-   * @return true, if successful
-   */
-  @Override
-  public boolean hasDocumentEditorProviders() {
-    // TODO Auto-generated method stub
-    return false;
-  }
-
-  /**
-   * Checks for document template providers.
-   *
-   * @return true, if successful
-   */
-  @Override
-  public boolean hasDocumentTemplateProviders() {
-    // TODO Auto-generated method stub
-    return false;
-  }
-
+  
   /**
    * Gets the prefered editor.
    *
@@ -177,7 +156,7 @@ public class DocumentServiceMock implements DocumentService {
    * @throws Exception the exception
    */
   @Override
-  public String getPreferedEditor(String userId, String uuid, String workspace) throws Exception {
+  public String getPreferedEditor(String userId, String uuid, String workspace) throws RepositoryException {
     // TODO Auto-generated method stub
     return null;
   }
@@ -192,7 +171,7 @@ public class DocumentServiceMock implements DocumentService {
    * @throws Exception the exception
    */
   @Override
-  public void savePreferedEditor(String userId, String provider, String uuid, String workspace) throws Exception {
+  public void savePreferedEditor(String userId, String provider, String uuid, String workspace) throws RepositoryException {
     // TODO Auto-generated method stub
     
   }
