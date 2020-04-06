@@ -50,6 +50,9 @@ public class OnlyOfficeDocumentEditorPlugin extends BaseComponentPlugin implemen
   protected static final Log              LOG                          =
                                               ExoLogger.getLogger(OnlyOfficeDocumentEditorPlugin.class);
 
+  /** The Constant STREAM. */
+  protected static final String           STREAM                       = "stream";
+
   /** The editor service. */
   protected final OnlyofficeEditorService editorService;
 
@@ -121,16 +124,15 @@ public class OnlyOfficeDocumentEditorPlugin extends BaseComponentPlugin implemen
    * @param uuid the uuid
    * @param workspace the workspace
    * @param activityId the activity id
-   * @param context the context
    * @throws Exception the exception
    */
   @Override
-  public void initActivity(String uuid, String workspace, String activityId, String context) throws Exception {
+  public void initActivity(String uuid, String workspace, String activityId) throws Exception {
     Node symlink = editorService.getDocumentById(workspace, uuid);
     Node node = editorService.getDocument(symlink.getSession().getWorkspace().getName(), symlink.getPath());
     if (node != null) {
       String fileId = editorService.initDocument(node);
-      String link = contextEditorLink(node, context);
+      String link = contextEditorLink(node, STREAM);
       callModule("initActivity('" + fileId + "', " + link + ", '" + activityId + "');");
     }
   }
