@@ -1,3 +1,21 @@
+/*
+ * Copyright (C) 2003-2020 eXo Platform SAS.
+ *
+ * This is free software; you can redistribute it and/or modify it
+ * under the terms of the GNU Lesser General Public License as
+ * published by the Free Software Foundation; either version 2.1 of
+ * the License, or (at your option) any later version.
+ *
+ * This software is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this software; if not, write to the Free
+ * Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
+ * 02110-1301 USA, or see the FSF site: http://www.fsf.org.
+ */
 package org.exoplatform.onlyoffice.mock;
 
 import java.util.List;
@@ -20,14 +38,28 @@ import org.exoplatform.services.cms.drives.DriveData;
 public class DocumentServiceMock implements DocumentService {
 
   /**
-   * Find doc by id.
-   *
-   * @param id the id
-   * @return the document
-   * @throws RepositoryException the repository exception
+   * {@inheritDoc}
    */
   @Override
   public Document findDocById(String id) throws RepositoryException {
+    return null;
+  }
+
+  /**
+   * {@inheritDoc}
+   */
+  @Override
+  public List<DocumentEditorProvider> getDocumentEditorProviders() {
+    // TODO Auto-generated method stub
+    return null;
+  }
+
+  /**
+   * {@inheritDoc}
+   */
+  @Override
+  public DocumentEditorProvider getEditorProvider(String provider) throws DocumentEditorProviderNotFoundException {
+    // TODO Auto-generated method stub
     return null;
   }
 
@@ -145,15 +177,8 @@ public class DocumentServiceMock implements DocumentService {
     return null;
   }
 
-  
   /**
-   * Gets the prefered editor.
-   *
-   * @param userId the user id
-   * @param uuid the uuid
-   * @param workspace the workspace
-   * @return the prefered editor
-   * @throws Exception the exception
+   * {@inheritDoc}
    */
   @Override
   public String getPreferedEditor(String userId, String uuid, String workspace) throws RepositoryException {
@@ -162,48 +187,16 @@ public class DocumentServiceMock implements DocumentService {
   }
 
   /**
-   * Save prefered editor.
-   *
-   * @param userId the user id
-   * @param provider the provider
-   * @param uuid the uuid
-   * @param workspace the workspace
-   * @throws Exception the exception
+   * {@inheritDoc}
    */
   @Override
   public void savePreferedEditor(String userId, String provider, String uuid, String workspace) throws RepositoryException {
     // TODO Auto-generated method stub
-    
-  }
-
-  /**
-   * Gets the document editor providers.
-   *
-   * @return the document editor providers
-   */
-  @Override
-  public List<DocumentEditorProvider> getDocumentEditorProviders() {
-    // TODO Auto-generated method stub
-    return null;
-  }
-
-  /**
-   * Gets the editor provider.
-   *
-   * @param provider the provider
-   * @return the editor provider
-   * @throws DocumentEditorProviderNotFoundException the document editor provider not found exception
-   */
-  @Override
-  public DocumentEditorProvider getEditorProvider(String provider) throws DocumentEditorProviderNotFoundException {
-    // TODO Auto-generated method stub
-    return null;
   }
 
   @Override
   public void addDocumentMetadataPlugin(ComponentPlugin plugin) {
     // TODO Auto-generated method stub
-    
-  }
 
+  }
 }
