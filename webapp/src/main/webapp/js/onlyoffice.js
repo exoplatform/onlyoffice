@@ -1288,8 +1288,4 @@
     }
   });
   return editor;
-<<<<<<< HEAD
 })($, cCometD, Redux, editorbuttons);
-=======
-})($, cCometD, Redux);
->>>>>>> develop
