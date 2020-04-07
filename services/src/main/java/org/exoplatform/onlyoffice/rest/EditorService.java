@@ -496,14 +496,16 @@ public class EditorService implements ResourceContainer {
    * @param request the request
    * @param workspace the document workspace
    * @param key the document key
+   * @param itemParPage the versions par page
+   * @param pageNum the page number to load
    * @return {@link Response}
    */
   @GET
-  @Path("/versions/{workspace}/{key}")
+  @Path("/versions/{workspace}/{key}/{itemParPage}/{pageNum}")
   @RolesAllowed("users")
   @Produces(MediaType.APPLICATION_JSON)
   public Response getVersions(@Context UriInfo uriInfo, @Context HttpServletRequest request, @PathParam("workspace") String workspace,
-                              @PathParam("key") String key) {
+                              @PathParam("key") String key, @PathParam("itemParPage") int itemParPage, @PathParam("pageNum") int pageNum) {
     if (LOG.isDebugEnabled()) {
       LOG.debug("> get versions of doc " + key + " in workspace " + workspace);
     }
@@ -514,8 +516,10 @@ public class EditorService implements ResourceContainer {
       if (StringUtils.isBlank(key)) {
          return Response.status(Response.Status.BAD_REQUEST).build();
       }
+      itemParPage = itemParPage < 0 ? 0 : itemParPage;
+      pageNum = pageNum < 0 ? 0 : pageNum;
 
-      List<Version> versions = editors.getVersions(workspace, key);
+      List<Version> versions = editors.getVersions(workspace, key, itemParPage, pageNum);
       if (versions != null) {
          return Response.ok(versions).build();
       } else {

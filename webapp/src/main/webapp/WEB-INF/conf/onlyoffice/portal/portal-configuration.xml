@@ -31,10 +31,6 @@
       <type>org.exoplatform.portal.config.NewPortalConfigListener</type>
       <description>this listener init the portal configuration</description>
       <init-params>
-        <value-param>
-          <name>override</name>
-          <value>true</value>
-        </value-param>
         <object-param>
           <name>portal.configuration</name>
           <description>Onlyoffice add-on application</description>
@@ -42,7 +38,7 @@
             <field name="predefinedOwner">
               <collection type="java.util.HashSet">
                 <value>
-                  <string>intranet</string>
+                  <string>global</string>
                 </value>
               </collection>
             </field>
@@ -52,9 +48,12 @@
             <field name="templateLocation">
               <string>war:/conf/onlyoffice</string>
             </field>
-            <!-- field name="importMode">
-              <string>${intranet.portalConfig.metadata.importmode:merge}</string>
-            </field -->
+            <field name="override">
+              <boolean>${exo.onlyoffice.portalConfig.metadata.override:true}</boolean>
+            </field>
+            <field name="importMode">
+              <string>${exo.onlyoffice.portalConfig.metadata.importmode:insert}</string>
+            </field>
           </object>
         </object-param>
       </init-params>

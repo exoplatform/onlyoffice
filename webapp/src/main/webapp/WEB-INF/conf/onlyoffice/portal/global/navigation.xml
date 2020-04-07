@@ -27,9 +27,9 @@
     <node>
       <uri>oeditor</uri>
       <name>oeditor</name>
-      <label>#{portal.intranet.oeditor}</label>
+      <label>#{portal.global.oeditor}</label>
       <visibility>SYSTEM</visibility>
-      <page-reference>portal::intranet::oeditor</page-reference>
+      <page-reference>portal::global::oeditor</page-reference>
     </node>
   </page-nodes>
 </node-navigation>

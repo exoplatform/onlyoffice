@@ -228,10 +228,12 @@ public interface OnlyofficeEditorService {
    *
    * @param  workspace the workspace
    * @param docId the document id
+   * @param itemParPage the versions par page
+   * @param pageNum the page number to load
    * @return list of versions for node
    * @throws Exception the exception
    */
-  List<Version> getVersions(String workspace, String docId) throws Exception ;
+  List<Version> getVersions(String workspace, String docId, int itemParPage, int pageNum) throws Exception ;
 
   /**
    * Checks if the node isn't locked and can be edited by the current user.

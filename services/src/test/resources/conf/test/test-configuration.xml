@@ -81,11 +81,6 @@
     </init-params>
   </component>
 
-  <component>
-    <key>org.exoplatform.commons.chromattic.ChromatticManager</key>
-    <type>org.exoplatform.commons.chromattic.ChromatticManager</type>
-  </component>
-
   <component><!-- Overrides 'commons-component-common-x.x.x.jar!/conf/portal/configuration.xml' -->
     <key>org.exoplatform.commons.api.persistence.DataInitializer</key>
     <type>org.exoplatform.onlyoffice.test.StandaloneLiquibaseDataInitializer</type>

@@ -82,7 +82,7 @@ public class OnlyofficeDocumentsLifecycle extends AbstractOnlyofficeLifecycle {
             if (editorLink == null || editorLink.isEmpty()) {
               editorLink = "null".intern();
             } else {
-              editorLink = new StringBuilder().append('\'').append(editorLink(editorLink, "documents")).append('\'').toString();
+              editorLink = new StringBuilder().append('\'').append(editorLink(editorLink, "drives")).append('\'').toString();
             }
             // This will init explorer even for docs that cannot be edited
             // by the user (locked or lack of permissions)
