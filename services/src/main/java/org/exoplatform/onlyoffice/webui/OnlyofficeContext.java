@@ -240,10 +240,11 @@ public class OnlyofficeContext {
       // Context space:
       // XXX context space will be null for space doc links in form:
       // /${PORTAL_CONTEXT}/${CURRENT_PORTAL_SITE}/drives?path=.spaces.test_onlyoffice%2FGroups%2Fspaces%2Ftest_onlyoffice%2FDocuments%2FSimple+Document.docx
-      Space space = SpaceUtils.getSpaceByContext();
+      // XXX it will throw an exeption if PortalRequestContext is null
+      /*Space space = SpaceUtils.getSpaceByContext();
       if (space != null) {
         linkBuilder.append("&space=").append(space.getPrettyName());
-      }
+      }*/
       return linkBuilder.toString();
     }
     return null;

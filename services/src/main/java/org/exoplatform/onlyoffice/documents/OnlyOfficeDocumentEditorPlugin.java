@@ -19,6 +19,7 @@ package org.exoplatform.onlyoffice.documents;
 import static org.exoplatform.onlyoffice.webui.OnlyofficeContext.callModule;
 import static org.exoplatform.onlyoffice.webui.OnlyofficeContext.editorLink;
 
+import java.net.URI;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -33,7 +34,7 @@ import org.exoplatform.services.cms.documents.NewDocumentTemplate;
 import org.exoplatform.services.log.ExoLogger;
 import org.exoplatform.services.log.Log;
 import org.exoplatform.services.resources.ResourceBundleService;
-import org.exoplatform.webui.application.WebuiRequestContext;
+import org.exoplatform.services.security.ConversationState;
 
 /**
  * The Class OnlyOfficeNewDocumentEditorPlugin.
@@ -52,6 +53,9 @@ public class OnlyOfficeDocumentEditorPlugin extends BaseComponentPlugin implemen
 
   /** The Constant STREAM. */
   protected static final String           STREAM                       = "stream";
+
+  /** The Constant PREVIEW. */
+  protected static final String           PREVIEW                      = "peview";
 
   /** The editor service. */
   protected final OnlyofficeEditorService editorService;
@@ -132,7 +136,7 @@ public class OnlyOfficeDocumentEditorPlugin extends BaseComponentPlugin implemen
     Node node = editorService.getDocument(symlink.getSession().getWorkspace().getName(), symlink.getPath());
     if (node != null) {
       String fileId = editorService.initDocument(node);
-      String link = contextEditorLink(node, STREAM);
+      String link = contextEditorLink(node, null, STREAM);
       callModule("initActivity('" + fileId + "', " + link + ", '" + activityId + "');");
     }
   }
@@ -140,36 +144,46 @@ public class OnlyOfficeDocumentEditorPlugin extends BaseComponentPlugin implemen
   /**
    * Inits the preview.
    *
-   * @param uuid the uuid
+   * @param fileId the uuid
    * @param workspace the workspace
-   * @param activityId the activity id
-   * @param context the context
-   * @param index the index
-   * @throws Exception the exception
+   * @param requestUri the requestUri
+   * @return editor settings
    */
   @Override
-  public void initPreview(String uuid, String workspace, String activityId, String context, int index) throws Exception {
-    Node symlink = editorService.getDocumentById(workspace, uuid);
-    Node node = editorService.getDocument(symlink.getSession().getWorkspace().getName(), symlink.getPath());
-    if (node != null) {
-      if (symlink.isNodeType("exo:symlink")) {
-        String userId = WebuiRequestContext.getCurrentInstance().getRemoteUser();
-        editorService.addFilePreferences(node, userId, symlink.getPath());
+  public Object initPreview(String fileId, String workspace, URI requestUri) {
+    try {
+      Node symlink = editorService.getDocumentById(workspace, fileId);
+      Node node = editorService.getDocument(symlink.getSession().getWorkspace().getName(), symlink.getPath());
+      if (node != null) {
+        if (symlink.isNodeType("exo:symlink")) {
+          String userId = ConversationState.getCurrent().getIdentity().getUserId();
+          editorService.addFilePreferences(node, userId, symlink.getPath());
+        }
+        String documentId = editorService.initDocument(node);
+        String link = contextEditorLink(node, requestUri, PREVIEW);
+        return new EditorSetting(documentId, link);
       }
-      String fileId = editorService.initDocument(node);
-      String link = contextEditorLink(node, context);
-      callModule("initPreview('" + fileId + "', " + link + ", '" + activityId + "', '" + index + "');");
+    } catch (OnlyofficeEditorException e) {
+      LOG.error("Cannot initialize preview for fileId: {}, workspace: {}. {}", fileId, workspace, e.getMessage());
+    } catch (RepositoryException e) {
+      LOG.error("Cannot initialize preview", e);
     }
+    return null;
+
   }
 
   /**
    * Gets the editor link.
    *
    * @param docNode the doc node
+   * @param requestURI the requestURI
    * @return the editor link
    */
-  protected String getEditorLink(Node docNode) {
+  protected String getEditorLink(Node docNode, URI requestURI) {
     try {
+      if (requestURI != null) {
+        return editorService.getEditorLink(docNode, requestURI);
+      }
       return editorService.getEditorLink(docNode);
     } catch (OnlyofficeEditorException | RepositoryException e) {
       LOG.error(e);
@@ -181,15 +195,58 @@ public class OnlyOfficeDocumentEditorPlugin extends BaseComponentPlugin implemen
    * Context editor link.
    *
    * @param node the node
+   * @param requestURI the requestURI
    * @param context the context
-   * @return the string
+   * @return the link
    */
-  private String contextEditorLink(Node node, String context) {
-    String link = editorLinks.computeIfAbsent(node, n -> getEditorLink(n));
+  private String contextEditorLink(Node node, URI requestURI, String context) {
+    String link = editorLinks.computeIfAbsent(node, n -> getEditorLink(n, requestURI));
     if (link != null && !link.isEmpty()) {
       return new StringBuilder().append("'").append(editorLink(link, context)).append("'").toString();
     }
     return "null".intern();
+  }
+
+  /**
+   * The Class EditorSetting.
+   */
+  protected static class EditorSetting {
+
+    /** The file id. */
+    private final String fileId;
+
+    /** The link. */
+    private final String link;
+
+    /**
+     * Instantiates a new editor setting.
+     *
+     * @param fileId the file id
+     * @param link the link
+     */
+    public EditorSetting(String fileId, String link) {
+      this.fileId = fileId;
+      this.link = link;
+    }
+
+    /**
+     * Gets the file id.
+     *
+     * @return the file id
+     */
+    public String getFileId() {
+      return fileId;
+    }
+
+    /**
+     * Gets the link.
+     *
+     * @return the link
+     */
+    public String getLink() {
+      return link;
+    }
+
   }
 
 }

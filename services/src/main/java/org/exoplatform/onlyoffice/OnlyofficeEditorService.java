@@ -25,6 +25,7 @@ import org.exoplatform.container.component.ComponentPlugin;
 import org.exoplatform.onlyoffice.Config.Editor;
 import org.exoplatform.services.organization.User;
 
+import java.net.URI;
 import java.util.List;
 
 /**
@@ -146,6 +147,17 @@ public interface OnlyofficeEditorService {
    */
   String getEditorLink(Node node) throws OnlyofficeEditorException, RepositoryException;
 
+  /**
+   * Gets the editor page URL for opening at Platform server relatively to the request URI.
+   *
+   * @param node the node
+   * @param requestUri the requestUri
+   * @return the editor link
+   * @throws OnlyofficeEditorException the onlyoffice editor exception
+   * @throws RepositoryException the repository exception
+   */
+  String getEditorLink(Node node, URI requestUri) throws RepositoryException, OnlyofficeEditorException;
+  
   /**
    * Gets the editor page URL for opening at Platform server.
    *

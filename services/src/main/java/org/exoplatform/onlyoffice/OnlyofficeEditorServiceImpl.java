@@ -497,10 +497,7 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
           Config another = configs.values().iterator().next();
           User user = getUser(userId); // and use this user language
           if (user != null) {
-            config = another.forUser(user.getUserName(),
-                                     user.getDisplayName(),
-                                     getUserLang(userId),
-                                     documentserverSecret);
+            config = another.forUser(user.getUserName(), user.getDisplayName(), getUserLang(userId), documentserverSecret);
             Config existing = configs.putIfAbsent(userId, config);
             if (existing == null) {
               // need update the configs in the cache (for replicated cache)
@@ -957,24 +954,19 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
    */
   @Override
   public String getEditorLink(Node node) throws RepositoryException, OnlyofficeEditorException {
-    if (canEditDocument(node)) {
-      String workspace = node.getSession().getWorkspace().getName();
-      String docId = initDocument(node);
-      PortletRequestContext pcontext = (PortletRequestContext) WebuiRequestContext.getCurrentInstance();
-      String link = getEditorLink(pcontext.getRequest().getScheme(),
-                                  pcontext.getRequest().getServerName(),
-                                  pcontext.getRequest().getServerPort(),
-                                  workspace,
-                                  docId);
-      if (LOG.isDebugEnabled()) {
-        LOG.debug("Editor link {}: {}", node.getPath(), link);
-      }
-      return link;
-    }
-    if (LOG.isDebugEnabled()) {
-      LOG.debug("Editor link NOT FOUND for {}", node.getPath());
-    }
-    return null;
+    PortletRequestContext pcontext = (PortletRequestContext) WebuiRequestContext.getCurrentInstance();
+    return getEditorLink(node,
+                         pcontext.getRequest().getScheme(),
+                         pcontext.getRequest().getServerName(),
+                         pcontext.getRequest().getServerPort());
+  }
+
+  /**
+   * {@inheritDoc}
+   */
+  @Override
+  public String getEditorLink(Node node, URI uri) throws RepositoryException, OnlyofficeEditorException {
+    return getEditorLink(node, uri.getScheme(), uri.getHost(), uri.getPort());
   }
 
   /**
@@ -1008,17 +1000,18 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
    */
   @Override
   public List<Version> getVersions(String workspace, String docId, int itemParPage, int pageNum) throws Exception {
-    List<Version> versions = new ArrayList<>() ;
+    List<Version> versions = new ArrayList<>();
     Node currentNode = getDocumentById(workspace, docId);
-    if(currentNode != null) {
+    if (currentNode != null) {
       if (itemParPage == 0) {
         return versions;
-      };
+      }
+      ;
       VersionNode rootVersion = new VersionNode(currentNode, currentNode.getSession());
 
       List<VersionNode> versionNodes = getNodeVersions(rootVersion.getChildren(), new ArrayList<>());
-      int pageNbrs = (int) Math.ceil((double)versionNodes.size() / (double)itemParPage);
-      for (int i = 0 ; i < versionNodes.size() ; i++) {
+      int pageNbrs = (int) Math.ceil((double) versionNodes.size() / (double) itemParPage);
+      for (int i = 0; i < versionNodes.size(); i++) {
         VersionNode versionNode = versionNodes.get(i);
         Version version = new Version();
         version.setAuthor(versionNode.getAuthor());
@@ -1031,16 +1024,16 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
         versions.add(version);
       }
     }
-    return  getPages(versions, itemParPage, pageNum);
+    return getPages(versions, itemParPage, pageNum);
   }
 
-  private  <T> List<T> getPages(List<T> c, Integer pageSize, int nb) {
+  private <T> List<T> getPages(List<T> c, Integer pageSize, int nb) {
     if (c == null)
       return Collections.emptyList();
     List<T> list = new ArrayList<T>(c);
     if (pageSize == null || pageSize <= 0 || pageSize > list.size())
       pageSize = list.size();
-    int numPages = (int) Math.ceil((double)list.size() / (double)pageSize);
+    int numPages = (int) Math.ceil((double) list.size() / (double) pageSize);
     List<List<T>> pages = new ArrayList<List<T>>(numPages);
     for (int pageNum = 0; pageNum < numPages;)
       pages.add(list.subList(pageNum * pageSize, Math.min(++pageNum * pageSize, list.size())));
@@ -1048,11 +1041,11 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
   }
 
   private List<VersionNode> getNodeVersions(List<VersionNode> children, List<VersionNode> versionNodes) throws Exception {
-    for(int i = 0; i < children.size(); i ++){
+    for (int i = 0; i < children.size(); i++) {
       versionNodes.add(children.get(i));
-      List<VersionNode> child = children.get(i).getChildren() ;
-      if(!child.isEmpty()) {
-        getNodeVersions(child, versionNodes) ;
+      List<VersionNode> child = children.get(i).getChildren();
+      if (!child.isEmpty()) {
+        getNodeVersions(child, versionNodes);
       }
     }
     versionNodes.sort((v1, v2) -> {
@@ -1297,8 +1290,7 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
 
       try (OutputStream outputStream = connection.getOutputStream()) {
         outputStream.write(postDataBytes);
-      }
-      catch(Exception e) {
+      } catch (Exception e) {
         LOG.error("Error occured while sending request to Document Server: ", e);
       }
       // read the response
@@ -1377,7 +1369,8 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
         systemNode.save();
       }
 
-      String destPath = parentNode.getPath().equals("/") ? parentNode.getPath() + newTitle : parentNode.getPath() + "/" + newTitle;
+      String destPath =
+                      parentNode.getPath().equals("/") ? parentNode.getPath() + newTitle : parentNode.getPath() + "/" + newTitle;
       parentNode.getSession().move(node.getPath(), destPath);
       node.setProperty("exo:lastModifier", userId);
       node.setProperty("exo:name", newTitle);
@@ -1992,6 +1985,34 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
     } finally {
       restoreConvoState(contextState, contextProvider);
     }
+  }
+
+  /**
+   * Gets the editor link.
+   *
+   * @param node the node
+   * @param scheme the scheme
+   * @param host the host
+   * @param port the port
+   * @return the editor link
+   * @throws RepositoryException the repository exception
+   * @throws OnlyofficeEditorException the onlyoffice editor exception
+   */
+  protected String getEditorLink(Node node, String scheme, String host, int port) throws RepositoryException,
+                                                                                  OnlyofficeEditorException {
+    if (canEditDocument(node)) {
+      String workspace = node.getSession().getWorkspace().getName();
+      String docId = initDocument(node);
+      String link = getEditorLink(scheme, host, port, workspace, docId);
+      if (LOG.isDebugEnabled()) {
+        LOG.debug("Editor link {}: {}", node.getPath(), link);
+      }
+      return link;
+    }
+    if (LOG.isDebugEnabled()) {
+      LOG.debug("Editor link NOT FOUND for {}", node.getPath());
+    }
+    return null;
   }
 
   /**
@@ -2764,8 +2785,7 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
             LOG.warn("Cannot find group by id {}", groupId);
             drive = groupId;
           }
-        }
-        else {
+        } else {
           drive = driveData.getName();
         }
       }
