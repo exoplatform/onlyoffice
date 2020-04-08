@@ -50,7 +50,6 @@ public class DocumentServiceMock implements DocumentService {
    */
   @Override
   public List<DocumentEditorProvider> getDocumentEditorProviders() {
-    // TODO Auto-generated method stub
     return null;
   }
 
@@ -59,7 +58,6 @@ public class DocumentServiceMock implements DocumentService {
    */
   @Override
   public DocumentEditorProvider getEditorProvider(String provider) throws DocumentEditorProviderNotFoundException {
-    // TODO Auto-generated method stub
     return null;
   }
 
@@ -173,7 +171,6 @@ public class DocumentServiceMock implements DocumentService {
    */
   @Override
   public List<NewDocumentTemplateProvider> getNewDocumentTemplateProviders() {
-    // TODO Auto-generated method stub
     return null;
   }
 
@@ -182,7 +179,6 @@ public class DocumentServiceMock implements DocumentService {
    */
   @Override
   public String getPreferedEditor(String userId, String uuid, String workspace) throws RepositoryException {
-    // TODO Auto-generated method stub
     return null;
   }
 
@@ -191,12 +187,12 @@ public class DocumentServiceMock implements DocumentService {
    */
   @Override
   public void savePreferedEditor(String userId, String provider, String uuid, String workspace) throws RepositoryException {
-    // TODO Auto-generated method stub
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public void addDocumentMetadataPlugin(ComponentPlugin plugin) {
-    // TODO Auto-generated method stub
-
   }
 }
