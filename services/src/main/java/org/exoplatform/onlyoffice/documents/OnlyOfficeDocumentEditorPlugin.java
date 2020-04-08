@@ -63,7 +63,7 @@ public class OnlyOfficeDocumentEditorPlugin extends BaseComponentPlugin implemen
   protected final Map<Node, String>       editorLinks                  = new ConcurrentHashMap<>();
 
   /**
-   * Instantiates a new only office new document editor plugin.
+   * Instantiates a new OnlyOffice new document editor plugin.
    *
    * @param editorService the editor service
    * @param i18nService the i18nService
