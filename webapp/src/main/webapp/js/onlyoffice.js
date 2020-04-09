@@ -26,7 +26,8 @@
   };
 
   /**
-   * Universal client ID for use in logging, services connectivity and related cases.
+   * Universal client ID for use in logging, services connectivity and related
+   * cases.
    */
   var clientId = "" + getRandomArbitrary(100000, 999998);
 
@@ -123,11 +124,11 @@
     var yyyy = date.getFullYear();
     var dd = date.getDate();
     var mm = (date.getMonth() + 1);
-    
+
     if (dd < 10)
-        dd = "0" + dd;
+      dd = "0" + dd;
     if (mm < 10)
-        mm = "0" + mm;
+      mm = "0" + mm;
 
     var cur_day = dd + "." + mm + "." + yyyy;
 
@@ -135,10 +136,10 @@
     var minutes = date.getMinutes()
 
     if (hours < 10)
-        hours = "0" + hours;
+      hours = "0" + hours;
 
     if (minutes < 10)
-        minutes = "0" + minutes;
+      minutes = "0" + minutes;
 
     return cur_day + " " + hours + ":" + minutes;
   }
@@ -170,7 +171,8 @@
     // Current config (actual for editor page only)
     var currentConfig;
 
-    // Indicate current changes are collected by the document server (only for editor page)
+    // Indicate current changes are collected by the document server (only for
+    // editor page)
     var changesSaved = true;
 
     // Indicates the last change is made by current user or another one.
@@ -185,14 +187,15 @@
     // Used to setup changesTimer on the editor page
     var changesTimer;
 
-    // A time to issue document version save if no changes were done, but editor is open
+    // A time to issue document version save if no changes were done, but editor
+    // is open
     var autosaveTimer;
 
     // The editor window is used while creating a new document.
     var editorWindow;
 
     // The page index to load in the first iteration
-     var pageToLoad = 1 ;
+    var pageToLoad = 1;
 
     // Redux store for dispatching document updates inside the app
     var store = redux.createStore(function(state, action) {
@@ -209,7 +212,8 @@
     var subscribedDocuments = {};
 
     /**
-     * Subscribes on a document updates using cometd. Dispatches events to the redux store.
+     * Subscribes on a document updates using cometd. Dispatches events to the
+     * redux store.
      */
     var subscribeDocument = function(docId) {
       // Use only one channel for one document
@@ -324,7 +328,8 @@
             }, 600000); // 10min for autosave
           }, 20000); // 20 sec to save the download link
 
-          // We are a editor page here: publish that the doc was changed by current user
+          // We are a editor page here: publish that the doc was changed by
+          // current user
           publishDocument(currentConfig.docId, {
             "type" : DOCUMENT_CHANGED,
             "userId" : currentUserId,
@@ -366,7 +371,7 @@
     var initBar = function(config) {
       var $bar = UI.initBar(config);
       // Edit title
-      if(config.editorPage.renameAllowed) {
+      if (config.editorPage.renameAllowed) {
         $bar.find(".editable-title").editable({
           onChange : function(event) {
             var newTitle = event.newValue;
@@ -390,9 +395,9 @@
       $bar.find("#save-btn").on("click", function() {
         pageToLoad = 1;
         var comment = $bar.find("#comment-box").val();
-        if (comment.length > 510){
-           UI.errorSave();
-           return;
+        if (comment.length > 510) {
+          UI.errorSave();
+          return;
         }
         publishDocument(currentConfig.docId, {
           "type" : DOCUMENT_USERSAVED,
@@ -421,6 +426,33 @@
         window.close();
       });
 
+    };
+
+    var init = function(userId, cometdConf, userMessages) {
+      if (userId == currentUserId) {
+        log("Already initialized user: " + userId);
+      } else if (userId) {
+        currentUserId = userId;
+        log("Initialize user: " + userId);
+        if (userMessages) {
+          messages = userMessages;
+        }
+        if (cometdConf) {
+          cCometD.configure({
+            "url" : prefixUrl + cometdConf.path,
+            "exoId" : userId,
+            "exoToken" : cometdConf.token,
+            "maxNetworkDelay" : 30000,
+            "connectTimeout" : 60000
+          });
+          cometdContext = {
+            "exoContainerName" : cometdConf.containerName
+          };
+          cometd = cCometD;
+        }
+      } else {
+        log("Cannot initialize user: " + userId);
+      }
     };
 
     /**
@@ -478,7 +510,7 @@
 
         log("ONLYOFFICE editor config: " + JSON.stringify(config));
 
-        if((typeof DocsAPI === "undefined") || (typeof DocsAPI.DocEditor === "undefined")) {
+        if ((typeof DocsAPI === "undefined") || (typeof DocsAPI.DocEditor === "undefined")) {
           log("ERROR: ONLYOFFICE script load timeout: " + config.documentserverJsUrl);
           process.reject("ONLYOFFICE script load timeout. Ensure Document Server is running and accessible.");
         } else {
@@ -491,32 +523,7 @@
     };
     this.create = create;
 
-    this.init = function(userId, cometdConf, userMessages) {
-      if (userId == currentUserId) {
-        log("Already initialized user: " + userId);
-      } else if (userId) {
-        currentUserId = userId;
-        log("Initialize user: " + userId);
-        if (userMessages) {
-          messages = userMessages;
-        }
-        if (cometdConf) {
-          cCometD.configure({
-            "url" : prefixUrl + cometdConf.path,
-            "exoId" : userId,
-            "exoToken" : cometdConf.token,
-            "maxNetworkDelay" : 30000,
-            "connectTimeout" : 60000
-          });
-          cometdContext = {
-            "exoContainerName" : cometdConf.containerName
-          };
-          cometd = cCometD;
-        }
-      } else {
-        log("Cannot initialize user: " + userId);
-      }
-    };
+    this.init = init;
 
     /**
      * Initialize an editor page in current browser window.
@@ -536,16 +543,16 @@
             if (state.type === DOCUMENT_DELETED) {
               UI.showError(message("ErrorTitle"), message("ErrorFileDeletedEditor"));
             }
-            if(state.type === DOCUMENT_SAVED) {
+            if (state.type === DOCUMENT_SAVED) {
               UI.updateBar(state.displayName, state.comment, currentConfig.workspace, currentConfig.docId);
-              if(state.comment){
+              if (state.comment) {
                 currentConfig.editorPage.comment = state.comment;
               }
-              if(state.userId === currentUserId){
+              if (state.userId === currentUserId) {
                 currentUserChanges = false;
               }
             }
-            if(state.type === DOCUMENT_TITLE_UPDATED) {
+            if (state.type === DOCUMENT_TITLE_UPDATED) {
               console.log("Title updated");
               var oldTitle = currentConfig.document.title;
               currentConfig.document.title = state.title;
@@ -563,11 +570,13 @@
           });
 
           // Establish a Comet/WebSocket channel from this point.
-          // A new editor page will join the channel and notify when the doc will be saved
+          // A new editor page will join the channel and notify when the doc
+          // will be saved
           // so we'll refresh this explorer view to reflect the edited content.
           subscribeDocument(currentConfig.docId);
 
-          // We are a editor oage here: publish that the doc was changed by current user
+          // We are a editor oage here: publish that the doc was changed by
+          // current user
 
           window.addEventListener("beforeunload", function() {
             UI.closeEditor(); // try this first, then in unload
@@ -604,21 +613,21 @@
       });
 
       $("#open-drawer-btn").on('click', function() {
-         return UI.openDrawer();
+        return UI.openDrawer();
       });
 
       $("#editor-drawer .header .closebtn").on('click', function() {
-         return UI.closeDrawer();
-       });
+        return UI.closeDrawer();
+      });
 
-       $("#see-more-btn").on('click', function() {
-         window.open(config.explorerUrl);
-       });
+      $("#see-more-btn").on('click', function() {
+        window.open(config.explorerUrl);
+      });
 
-       $("#load-more-btn").on('click', function() {
-         UI.loadVersions(currentConfig.workspace, currentConfig.docId, 3, pageToLoad);
-         pageToLoad++;
-       });
+      $("#load-more-btn").on('click', function() {
+        UI.loadVersions(currentConfig.workspace, currentConfig.docId, 3, pageToLoad);
+        pageToLoad++;
+      });
     };
 
     /**
@@ -634,7 +643,7 @@
         }
       });
       subscribeDocument(docId);
-      if(editorLink != null) {
+      if (editorLink != null) {
         editorbuttons.addCreateButtonFn("onlyoffice", function() {
           return UI.createEditorButton(editorLink);
         });
@@ -642,27 +651,25 @@
     };
 
     /**
-     * Initializes a document preview (from the activity stream).
+     * Initializes a document preview.
      */
-    this.initPreview = function(docId, editorLink, activityId, index) {
-      var clickSelector = "#Preview" + activityId + "-" + index;
-      $(clickSelector).click(function() {
-        log("Initialize preview " + clickSelector + " of document: " + docId);
-        // We set timeout here to avoid the case when the element is rendered but is going to be updated soon
-        setTimeout(function() {
-          store.subscribe(function() {
-            var state = store.getState();
-            if (state.type === DOCUMENT_SAVED && state.docId === docId) {
-              UI.addRefreshBannerPDF();
-            }
-          });
-        }, 100);
-        subscribeDocument(docId);
-      });
-
-      if(editorLink != null) {
+    this.initPreview = function(settings) {
+      init(settings.userId, settings.cometdConf, settings.messages);
+      log("Initialize preview of document: " + settings.fileId);
+      // We set timeout here to avoid the case when the element is rendered but
+      // is going to be updated soon
+      setTimeout(function() {
+        store.subscribe(function() {
+          var state = store.getState();
+          if (state.type === DOCUMENT_SAVED && state.docId === settings.fileId) {
+            UI.addRefreshBannerPDF();
+          }
+        });
+      }, 100);
+      // subscribeDocument(settings.fileId);
+      if (settings.link != null) {
         editorbuttons.addCreateButtonFn("onlyoffice", function() {
-          return UI.createEditorButton(editorLink);
+          return UI.createEditorButton(settings.link);
         });
       }
     };
@@ -699,15 +706,17 @@
     };
 
     /**
-     * Opens a new window for the editor. We open the empty tab and then init editor there.
-     * It's used to provide better UX (no delay between click on the button and openning window with the editor)
+     * Opens a new window for the editor. We open the empty tab and then init
+     * editor there. It's used to provide better UX (no delay between click on
+     * the button and openning window with the editor)
      */
     this.initNewDocument = function() {
       editorWindow = window.open();
     };
 
     /**
-     * Initializes the editor in the editorWindow. (used in creating a new document)
+     * Initializes the editor in the editorWindow. (used in creating a new
+     * document)
      */
     this.initEditorPage = function(link) {
       if (editorWindow != null) {
@@ -741,7 +750,7 @@
 
     var updateVesionsList = false;
 
-    var versionsListHeight = ($(".content").height() - 220 ) < 0 ? 0 : Math.round(($(".content").height() - 220 ) / 91 );
+    var versionsListHeight = ($(".content").height() - 220) < 0 ? 0 : Math.round(($(".content").height() - 220) / 91);
 
     /**
      * Returns the html markup of the 'Edit Online' button.
@@ -838,7 +847,8 @@
         var viewerSrc = $vieverScript.attr("src");
         $vieverScript.remove();
         $(".document-preview-content-file").append("<script src='" + viewerSrc + "'></script>");
-      }, 250); // XXX we need wait for office preview server generate a new preview
+      }, 250); // XXX we need wait for office preview server generate a new
+      // preview
     };
 
     this.refreshPDFPreview = refreshPDFPreview;
@@ -885,16 +895,16 @@
     };
 
     /**
-       * Update real time version list.
+     * Update real time version list.
      */
     this.updateBar = function(changer, comment, workspace, docId) {
       UI.loadVersions(workspace, docId, versionsListHeight, 0);
-      updateVesionsList = true ;
+      updateVesionsList = true;
     };
 
-    //Function for remove accents
-    this.removeAccents = function (str){
-      var accents    = 'ÀÁÂÃÄÅàáâãäåÒÓÔÕÕÖØòóôõöøÈÉÊËèéêëðÇçÐÌÍÎÏìíîïÙÚÛÜùúûüÑñŠšŸÿýŽž';
+    // Function for remove accents
+    this.removeAccents = function(str) {
+      var accents = 'ÀÁÂÃÄÅàáâãäåÒÓÔÕÕÖØòóôõöøÈÉÊËèéêëðÇçÐÌÍÎÏìíîïÙÚÛÜùúûüÑñŠšŸÿýŽž';
       var accentsOut = "AAAAAAaaaaaaOOOOOOOooooooEEEEeeeeeCcDIIIIiiiiUUUUuuuuNnSsYyyZz";
       str = str.split('');
       var strLen = str.length;
@@ -906,18 +916,19 @@
       }
       return str.join('');
     };
-    
+
     this.createEditorButton = function(editorLink) {
       return $("<li class='hidden-tabletL'><a href='" + editorLink + "' target='_blank'>"
-          + "<i class='uiIconEcmsOfficeOnlineOpen uiIconEcmsLightGray uiIconEdit'></i>" + message("EditButtonTitle") + "</a></li>");   
+          + "<i class='uiIconEcmsOfficeOnlineOpen uiIconEcmsLightGray uiIconEdit'></i>" + message("EditButtonTitle")
+          + "</a></li>");
     };
 
     this.initBar = function(config) {
-      config.editorPage.displayPath= decodeURI(config.editorPage.displayPath);
+      config.editorPage.displayPath = decodeURI(config.editorPage.displayPath);
       config.path = decodeURI(config.path);
-      var drive = config.editorPage.displayPath.split(':')[0].replace(/\  /g , ' ');
+      var drive = config.editorPage.displayPath.split(':')[0].replace(/\  /g, ' ');
       var $bar = $("#editor-drawer");
-      if(drive.startsWith('spaces/')) {
+      if (drive.startsWith('spaces/')) {
         var folders = config.editorPage.displayPath.split(':')[1].split('/');
         var title = folders.pop();
         var titleWithoutAccent = this.removeAccents(title);
@@ -925,7 +936,7 @@
         var spaceNameWithoutAccent = this.removeAccents(spaceName);
         var newDrivePath = spaceNameWithoutAccent.replace(/\ /g, '_').toLowerCase();
         var pathDocument = config.path.split(newDrivePath + '/')[1].split("/" + titleWithoutAccent)[0];
-        var pathDocumentWithIcon = pathDocument.replace(/\//g , function() {
+        var pathDocumentWithIcon = pathDocument.replace(/\//g, function() {
           return "<i class='uiIconArrowRight'></i>";
         });
         var $avatarSpaceElem = $bar.find(".spaceAvatar img");
@@ -937,9 +948,9 @@
         var folders = config.editorPage.displayPath.split(':')[1].split('/');
         var title = folders.pop();
         var path = config.editorPage.displayPath.split('/')[0];
-        var pathDocumentWithIcon = path.replace(/\//g , function() {
+        var pathDocumentWithIcon = path.replace(/\//g, function() {
           return "<i class='uiIconArrowRight'></i>";
-        } );
+        });
         var $avatarSpaceElem = $bar.find(".spaceAvatar img");
         $avatarSpaceElem.attr("src", "/rest/v1/social/users/" + config.editorConfig.user.id + "/avatar");
         var $tooltipSpaceElem = $bar.find(".spaceAvatar img");
@@ -950,18 +961,18 @@
       $("#alert-saved").append(message('AlertSave'));
       $("#alert-error").append(message('ErrorSave'));
       $("#save-btn").append(message('SaveButton'));
-      $("#see-more-btn").attr("data-original-title",message('SeeMoreButton'));
+      $("#see-more-btn").attr("data-original-title", message('SeeMoreButton'));
       $("#load-more-btn").append(message('LoadMoreButton'));
       $("#open-drawer-btn").attr("data-original-title", message('OpenDrawerBtn'));
       $(".closebtn").attr("data-original-title", message('CloseButton'));
       $(".versionSummaryField").attr("placeholder", message('PlaceHolderTextarea'));
       $("#open-drawer-btn").tooltip();
-      if(config.editorPage.renameAllowed){
+      if (config.editorPage.renameAllowed) {
         $bar.find("a[rel=tooltip]").tooltip();
       } else {
         $bar.find("a[rel=tooltip]").not(".document-title a[rel=tooltip]").tooltip();
       }
-      if(!config.activity) {
+      if (!config.activity) {
         $bar.find("#comment-box").prop("disabled", true);
       }
       var $pathElem = $bar.find(".document-path");
@@ -971,14 +982,14 @@
       $titleElem.append("<span class='editable-title'>" + title + " " + "<i class='uiIconPencilEdit'></i> </span>");
       $titleElem.attr("data-original-title", message('TitleTooltip'));
 
-      $("#editor-drawer").ready(function () {
+      $("#editor-drawer").ready(function() {
         UI.loadVersions(config.workspace, config.docId, versionsListHeight, 0);
       });
 
       var $saveBtn = $bar.find("#save-btn .uiIconSave");
-      $saveBtn.on("click", function(){
+      $saveBtn.on("click", function() {
         $saveBtn.css("color", "gray");
-        setTimeout(function(){
+        setTimeout(function() {
           $saveBtn.css("color", "")
         }, 300)
       });
@@ -987,56 +998,59 @@
 
     this.loadVersions = function(workspace, docId, itemParPage, pageNum) {
       $.ajax({
-        url: "/portal/rest/onlyoffice/editor/versions/" + workspace + "/" + docId + "/" + itemParPage + "/" + pageNum ,
-        success: function (data) {
-         var html = "";
-         for (var i=0; i < data.length; i++) {
-           html += "<table class='tableContentStyle'>" +
-             "<tr class='tableHead'>" +
-             "<th class='displayAvatarFullName'>" +
-             "<div class='avatarCircle'>" +
-             "<img src='/rest/v1/social/users/" + data[i].author + "/avatar'>" +
-             "</div>" +
-             "<div class='user-edit'>" + data[i].fullName + "</div>" +
-             "<div class='created-date' rel='tooltip' data-placement='bottom'  data-original-title='" + UI.getAbsoluteTime(data[i].createdTime) + "'>" +
-             UI.getRelativeTime(data[i].createdTime) +
-             "</div>" +
-             "</th>" +
-             "</tr>" +
-             "<tr class='tableContent'>" +
-             "<th>" +
-             "<div class='editors-comment-versions b' rel='tooltip' data-placement='bottom'  data-original-title='" + data[i].versionLabels + "'>" +
-             data[i].versionLabels +
-             "</div>" +
-             "</th>" +
-             "</tr>" +
-             "</table>";
-         };
-
-         //Test update DOM versions list or load more versions
-          if(updateVesionsList) {
-           $("#versions").html(html);
+        url : "/portal/rest/onlyoffice/editor/versions/" + workspace + "/" + docId + "/" + itemParPage + "/" + pageNum,
+        success : function(data) {
+          var html = "";
+          for (var i = 0; i < data.length; i++) {
+            html += "<table class='tableContentStyle'>" + "<tr class='tableHead'>" + "<th class='displayAvatarFullName'>"
+                + "<div class='avatarCircle'>" + "<img src='/rest/v1/social/users/"
+                + data[i].author
+                + "/avatar'>"
+                + "</div>"
+                + "<div class='user-edit'>"
+                + data[i].fullName
+                + "</div>"
+                + "<div class='created-date' rel='tooltip' data-placement='bottom'  data-original-title='"
+                + UI.getAbsoluteTime(data[i].createdTime)
+                + "'>"
+                + UI.getRelativeTime(data[i].createdTime)
+                + "</div>"
+                + "</th>"
+                + "</tr>"
+                + "<tr class='tableContent'>"
+                + "<th>"
+                + "<div class='editors-comment-versions b' rel='tooltip' data-placement='bottom'  data-original-title='"
+                + data[i].versionLabels + "'>" + data[i].versionLabels + "</div>" + "</th>" + "</tr>" + "</table>";
           }
-          else{
-           $("#versions").append(html);
-          };
-         $(".editors-comment-versions").tooltip();
-         $(".created-date").tooltip();
-         updateVesionsList = false;
-         $("#load-more-btn").show();
+          ;
 
-         // Disable load buton when no more versions
-         if ((pageNum >= (data[0].versionPageNumber - 1))) {
-         $("#load-more-btn").prop("disabled", true);
-         } else {
-         $("#load-more-btn").prop("disabled", false);
-         };
-       },
-       error: function (xhr, thrownError) {
-         $("#versions").html("<div class='no-versions-icon'><i class='uiIconNoVersions'></i><div class='no-versions'> " + message('NoVersions') + "</div> </div>" );
-         log("Error fetching versions: " + xhr.responseText + "\n" + xhr.status + "\n" + thrownError, thrownError);
-         $("#load-more-btn").hide();
-       }
+          // Test update DOM versions list or load more versions
+          if (updateVesionsList) {
+            $("#versions").html(html);
+          } else {
+            $("#versions").append(html);
+          }
+          ;
+          $(".editors-comment-versions").tooltip();
+          $(".created-date").tooltip();
+          updateVesionsList = false;
+          $("#load-more-btn").show();
+
+          // Disable load buton when no more versions
+          if ((pageNum >= (data[0].versionPageNumber - 1))) {
+            $("#load-more-btn").prop("disabled", true);
+          } else {
+            $("#load-more-btn").prop("disabled", false);
+          }
+          ;
+        },
+        error : function(xhr, thrownError) {
+          $("#versions").html(
+              "<div class='no-versions-icon'><i class='uiIconNoVersions'></i><div class='no-versions'> " + message('NoVersions')
+                  + "</div> </div>");
+          log("Error fetching versions: " + xhr.responseText + "\n" + xhr.status + "\n" + thrownError, thrownError);
+          $("#load-more-btn").hide();
+        }
       });
     };
 
@@ -1094,8 +1108,8 @@
      * Open the drawer
      */
     this.openDrawer = function() {
-     $("#editor-drawer").addClass("open");
-     $("#drawer-backdrop").addClass("drawer-backdrop");
+      $("#editor-drawer").addClass("open");
+      $("#drawer-backdrop").addClass("drawer-backdrop");
     };
 
     /**
@@ -1120,10 +1134,12 @@
       var $editorPage = $("#OnlyofficeEditorPage");
       if ($editorPage.length > 0) {
         if (!docEditor) {
-          // show loading while upload to editor - it is already added by WebUI side
+          // show loading while upload to editor - it is already added by WebUI
+          // side
           var $container = $editorPage.find(".onlyofficeContainer");
 
-          // create and start editor (this also will re-use an existing editor config from the server)
+          // create and start editor (this also will re-use an existing editor
+          // config from the server)
           docEditor = new DocsAPI.DocEditor("onlyoffice", localConfig);
           // show editor
           $container.find("#editor-drawer").show();
@@ -1138,7 +1154,8 @@
     };
 
     /**
-     * Ads the 'Edit Online' button to the JCRExplorer when a document is displayed.
+     * Ads the 'Edit Online' button to the JCRExplorer when a document is
+     * displayed.
      */
     this.addEditorButtonToExplorer = function(editorLink) {
       var $button = $("#UIJCRExplorer #uiActionsBarContainer i.uiIconEcmsOnlyofficeOpen");
@@ -1200,7 +1217,8 @@
     };
 
     /**
-     * Show notice to user. Options support "icon" class, "hide", "closer" and "nonblock" features.
+     * Show notice to user. Options support "icon" class, "hide", "closer" and
+     * "nonblock" features.
      */
     this.showNotice = function(type, title, text, options) {
       var noticeOptions = {
@@ -1273,7 +1291,8 @@
 
   $(function() {
     try {
-      // load jquery-ui required stylesheets in js since only 1 stylesheet can be loaded for a given portlet in gatein-resources.xml
+      // load jquery-ui required stylesheets in js since only 1 stylesheet can
+      // be loaded for a given portlet in gatein-resources.xml
       loadStyle("/onlyoffice/skin/jquery-ui.css");
       loadStyle("/onlyoffice/skin/jquery.pnotify.default.css");
       loadStyle("/onlyoffice/skin/jquery.pnotify.default.icons.css");

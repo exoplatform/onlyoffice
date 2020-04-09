@@ -20,15 +20,22 @@ import static org.exoplatform.onlyoffice.webui.OnlyofficeContext.callModule;
 import static org.exoplatform.onlyoffice.webui.OnlyofficeContext.editorLink;
 
 import java.net.URI;
+import java.util.Enumeration;
+import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
+import java.util.ResourceBundle;
 import java.util.concurrent.ConcurrentHashMap;
 
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 
+import org.exoplatform.container.PortalContainer;
 import org.exoplatform.container.component.BaseComponentPlugin;
 import org.exoplatform.onlyoffice.OnlyofficeEditorException;
 import org.exoplatform.onlyoffice.OnlyofficeEditorService;
+import org.exoplatform.onlyoffice.cometd.CometdConfig;
+import org.exoplatform.onlyoffice.cometd.CometdOnlyofficeService;
 import org.exoplatform.services.cms.documents.DocumentEditor;
 import org.exoplatform.services.cms.documents.NewDocumentTemplate;
 import org.exoplatform.services.log.ExoLogger;
@@ -57,11 +64,17 @@ public class OnlyOfficeDocumentEditorPlugin extends BaseComponentPlugin implemen
   /** The Constant PREVIEW. */
   protected static final String           PREVIEW                      = "peview";
 
+  /** The Constant CLIENT_RESOURCE_PREFIX. */
+  protected static final String           CLIENT_RESOURCE_PREFIX       = "OnlyofficeEditorClient.";
+
   /** The editor service. */
   protected final OnlyofficeEditorService editorService;
 
   /** The i 18 n service. */
   protected final ResourceBundleService   i18nService;
+
+  /** The cometd service. */
+  protected final CometdOnlyofficeService cometdService;
 
   /** The editor links. */
   protected final Map<Node, String>       editorLinks                  = new ConcurrentHashMap<>();
@@ -71,10 +84,14 @@ public class OnlyOfficeDocumentEditorPlugin extends BaseComponentPlugin implemen
    *
    * @param editorService the editor service
    * @param i18nService the i18nService
+   * @param cometdService the cometdService
    */
-  public OnlyOfficeDocumentEditorPlugin(OnlyofficeEditorService editorService, ResourceBundleService i18nService) {
+  public OnlyOfficeDocumentEditorPlugin(OnlyofficeEditorService editorService,
+                                        ResourceBundleService i18nService,
+                                        CometdOnlyofficeService cometdService) {
     this.editorService = editorService;
     this.i18nService = i18nService;
+    this.cometdService = cometdService;
   }
 
   /**
@@ -137,6 +154,11 @@ public class OnlyOfficeDocumentEditorPlugin extends BaseComponentPlugin implemen
     if (node != null) {
       String fileId = editorService.initDocument(node);
       String link = contextEditorLink(node, null, STREAM);
+      if (link != null) {
+        link = new StringBuilder("'").append(link).append("'").toString();
+      } else {
+        link = "null";
+      }
       callModule("initActivity('" + fileId + "', " + link + ", '" + activityId + "');");
     }
   }
@@ -147,21 +169,27 @@ public class OnlyOfficeDocumentEditorPlugin extends BaseComponentPlugin implemen
    * @param fileId the uuid
    * @param workspace the workspace
    * @param requestUri the requestUri
+   * @param locale the locale
    * @return editor settings
    */
+  @SuppressWarnings("unchecked")
   @Override
-  public Object initPreview(String fileId, String workspace, URI requestUri) {
+  public <T> T initPreview(String fileId, String workspace, URI requestUri, Locale locale) {
     try {
+      String userId = ConversationState.getCurrent().getIdentity().getUserId();
       Node symlink = editorService.getDocumentById(workspace, fileId);
       Node node = editorService.getDocument(symlink.getSession().getWorkspace().getName(), symlink.getPath());
       if (node != null) {
         if (symlink.isNodeType("exo:symlink")) {
-          String userId = ConversationState.getCurrent().getIdentity().getUserId();
           editorService.addFilePreferences(node, userId, symlink.getPath());
         }
         String documentId = editorService.initDocument(node);
         String link = contextEditorLink(node, requestUri, PREVIEW);
-        return new EditorSetting(documentId, link);
+        Map<String, String> messages = initMessages(locale);
+        CometdConfig cometdConf = new CometdConfig(cometdService.getCometdServerPath(),
+                                                   cometdService.getUserToken(userId),
+                                                   PortalContainer.getCurrentPortalContainerName());
+        return (T) new EditorSetting(documentId, link, userId, cometdConf, messages);
       }
     } catch (OnlyofficeEditorException e) {
       LOG.error("Cannot initialize preview for fileId: {}, workspace: {}. {}", fileId, workspace, e.getMessage());
@@ -202,9 +230,31 @@ public class OnlyOfficeDocumentEditorPlugin extends BaseComponentPlugin implemen
   private String contextEditorLink(Node node, URI requestURI, String context) {
     String link = editorLinks.computeIfAbsent(node, n -> getEditorLink(n, requestURI));
     if (link != null && !link.isEmpty()) {
-      return new StringBuilder().append("'").append(editorLink(link, context)).append("'").toString();
+      return editorLink(link, context);
     }
-    return "null".intern();
+    return null;
+  }
+
+  /**
+   * Inits the messages.
+   *
+   * @param locale the locale
+   * @return the map
+   */
+  private Map<String, String> initMessages(Locale locale) {
+    ResourceBundle res = i18nService.getResourceBundle("locale.onlyoffice.OnlyofficeClient", locale);
+    Map<String, String> messages = new HashMap<String, String>();
+    for (Enumeration<String> keys = res.getKeys(); keys.hasMoreElements();) {
+      String key = keys.nextElement();
+      String bundleKey;
+      if (key.startsWith(CLIENT_RESOURCE_PREFIX)) {
+        bundleKey = key.substring(CLIENT_RESOURCE_PREFIX.length());
+      } else {
+        bundleKey = key;
+      }
+      messages.put(bundleKey, res.getString(key));
+    }
+    return messages;
   }
 
   /**
@@ -213,20 +263,35 @@ public class OnlyOfficeDocumentEditorPlugin extends BaseComponentPlugin implemen
   protected static class EditorSetting {
 
     /** The file id. */
-    private final String fileId;
+    private final String              fileId;
 
     /** The link. */
-    private final String link;
+    private final String              link;
+
+    /** The user id. */
+    private final String              userId;
+
+    /** The cometd conf. */
+    private final CometdConfig        cometdConf;
+
+    /** The messages. */
+    private final Map<String, String> messages;
 
     /**
      * Instantiates a new editor setting.
      *
      * @param fileId the file id
      * @param link the link
+     * @param userId the user id
+     * @param cometdConf the cometd conf
+     * @param messages the messages
      */
-    public EditorSetting(String fileId, String link) {
+    public EditorSetting(String fileId, String link, String userId, CometdConfig cometdConf, Map<String, String> messages) {
       this.fileId = fileId;
       this.link = link;
+      this.userId = userId;
+      this.cometdConf = cometdConf;
+      this.messages = messages;
     }
 
     /**
@@ -247,6 +312,32 @@ public class OnlyOfficeDocumentEditorPlugin extends BaseComponentPlugin implemen
       return link;
     }
 
+    /**
+     * Gets the user id.
+     *
+     * @return the user id
+     */
+    public String getUserId() {
+      return userId;
+    }
+
+    /**
+     * Gets the cometd conf.
+     *
+     * @return the cometd conf
+     */
+    public CometdConfig getCometdConf() {
+      return cometdConf;
+    }
+
+    /**
+     * Gets the messages.
+     *
+     * @return the messages
+     */
+    public Map<String, String> getMessages() {
+      return messages;
+    }
   }
 
 }
