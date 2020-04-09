@@ -64,7 +64,7 @@
             <field name="templates">
               <collection type="java.util.ArrayList">
                 <value>
-                  <object type="org.exoplatform.services.cms.documents.DocumentTemplate">
+                  <object type="org.exoplatform.services.cms.documents.NewDocumentTemplateConfig">
                     <field name="extension">
                       <string>.docx</string>
                     </field>
@@ -80,7 +80,7 @@
                   </object>
                 </value>
                 <value>
-                  <object type="org.exoplatform.services.cms.documents.DocumentTemplate">
+                  <object type="org.exoplatform.services.cms.documents.NewDocumentTemplateConfig">
                     <field name="extension">
                       <string>.xlsx</string>
                     </field>
@@ -96,7 +96,7 @@
                   </object>
                 </value>
                 <value>
-                  <object type="org.exoplatform.services.cms.documents.DocumentTemplate">
+                  <object type="org.exoplatform.services.cms.documents.NewDocumentTemplateConfig">
                     <field name="extension">
                       <string>.pptx</string>
                     </field>
@@ -119,13 +119,13 @@
     </component-plugin>
   </external-component-plugins>
   
-    <!-- NewDocumentEditorPlugin for DocumentService-->
+  <!-- DocumentEditorPlugin for DocumentService-->
   <external-component-plugins>
     <target-component>org.exoplatform.services.cms.documents.DocumentService</target-component>
     <component-plugin>
       <name>onlyofficeEditorPlugin</name>
       <set-method>addDocumentEditorPlugin</set-method>
-      <type>org.exoplatform.onlyoffice.documents.OnlyOfficeNewDocumentEditorPlugin</type>
+      <type>org.exoplatform.onlyoffice.documents.OnlyOfficeDocumentEditorPlugin</type>
       <description>The document editor plugin</description>
     </component-plugin>
   </external-component-plugins>
@@ -261,40 +261,6 @@
       <set-method>registerUIExtensionPlugin</set-method>
       <type>org.exoplatform.webui.ext.UIExtensionPlugin</type>
       <init-params>
-        <object-param>
-          <name>File Activity</name>
-          <object type="org.exoplatform.social.webui.activity.UIActivityExtension">
-            <field name="type">
-              <string>org.exoplatform.social.webui.activity.BaseUIActivity</string>
-            </field>
-            <field name="name">
-              <string>files:spaces</string>
-            </field>
-            <field name="component">
-              <string>org.exoplatform.onlyoffice.webui.FileUIActivity</string>
-            </field>
-            <field name="activityBuiderClass">
-              <string>org.exoplatform.wcm.ext.component.activity.FileUIActivityBuilder</string>
-            </field>
-          </object>
-        </object-param>
-        <object-param>
-          <name>Share File Activity</name>
-          <object type="org.exoplatform.social.webui.activity.UIActivityExtension">
-            <field name="type">
-              <string>org.exoplatform.social.webui.activity.BaseUIActivity</string>
-            </field>
-            <field name="name">
-              <string>sharefiles:spaces</string>
-            </field>
-            <field name="component">
-              <string>org.exoplatform.onlyoffice.webui.FileUIActivity</string>
-            </field>
-            <field name="activityBuiderClass">
-              <string>org.exoplatform.wcm.ext.component.activity.UISharedFileBuilder</string>
-            </field>
-          </object>
-        </object-param>
         <object-param>
           <name>OnlyofficeOpen</name>
           <object type="org.exoplatform.webui.ext.UIExtension">
@@ -466,12 +432,16 @@
           <description>Store the following resources into the db for the first launch</description>
           <value>locale.onlyoffice.Onlyoffice</value>
           <value>locale.onlyoffice.OnlyofficeClient</value>
+          <value>locale.onlyoffice.EditorsAdmin</value>
+          <value>locale.navigation.portal.intranet</value>
         </values-param>
         <values-param>
           <name>portal.resource.names</name>
           <description>The properties files of the portal , those file will be merged into one ResoruceBundle properties</description>
           <value>locale.onlyoffice.Onlyoffice</value>
           <value>locale.onlyoffice.OnlyofficeClient</value>
+          <value>locale.onlyoffice.EditorsAdmin</value>
+          <value>locale.navigation.portal.intranet</value>
         </values-param>
       </init-params>
     </component-plugin>

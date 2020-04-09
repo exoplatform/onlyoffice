@@ -2,7 +2,8 @@
 <bundle>
   <!-- For client UI -->
   <OnlyofficeEditorClient>
-    <EditButtonTitle>Edit Online</EditButtonTitle>
+
+    <EditButtonTitle>Edit in OnlyOffice</EditButtonTitle>
     <SaveVersionLabel>Save version</SaveVersionLabel>
     <SeeMoreButton>Go to full version history</SeeMoreButton>
     <LoadMoreButton>Load more</LoadMoreButton>

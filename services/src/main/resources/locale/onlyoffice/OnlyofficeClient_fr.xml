@@ -2,7 +2,7 @@
 <bundle>
   <!-- For client UI -->
   <OnlyofficeEditorClient>
-    <EditButtonTitle>Modifier en ligne</EditButtonTitle>
+    <EditButtonTitle>Modifier dans OnlyOffice</EditButtonTitle>
     <UpdateBannerTitle>Le document a été mis à jour.</UpdateBannerTitle>
     <ReloadButtonTitle>Recharger</ReloadButtonTitle>
     <SaveVersionLabel> Enregistrer la version</SaveVersionLabel>

@@ -3,13 +3,13 @@
   <!-- For menu caption in Action Bar -->
   <UIActionBar>
     <tooltip>
-      <OnlyofficeOpen>Edit Online</OnlyofficeOpen>
+      <OnlyofficeOpen>Edit in OnlyOffice</OnlyofficeOpen>
     </tooltip>
   </UIActionBar>
   <!-- Used in Administration-Content-Explorer in Views settings a popup with actions list -->
   <UITabForm>
     <label>
-      <onlyofficeOpen>Edit Online</onlyofficeOpen>
+      <onlyofficeOpen>Edit in OnlyOffice</onlyofficeOpen>
     </label>
   </UITabForm>
   
@@ -27,7 +27,7 @@
   <!-- Messages -->
   <OnlyofficeEditor>
     <message>
-      <ViewerNotFound>Online document editor not found</ViewerNotFound>
+      <ViewerNotFound>OnlyOffice document editor not found</ViewerNotFound>
     </message>
     <error>
       <EditorCannotBeCreated>Editor cannot be created. Please retry.</EditorCannotBeCreated>

@@ -1,17 +1,34 @@
+/*
+ * Copyright (C) 2003-2020 eXo Platform SAS.
+ *
+ * This is free software; you can redistribute it and/or modify it
+ * under the terms of the GNU Lesser General Public License as
+ * published by the Free Software Foundation; either version 2.1 of
+ * the License, or (at your option) any later version.
+ *
+ * This software is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this software; if not, write to the Free
+ * Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
+ * 02110-1301 USA, or see the FSF site: http://www.fsf.org.
+ */
 package org.exoplatform.onlyoffice.mock;
 
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
 
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 
 import org.exoplatform.container.component.ComponentPlugin;
+import org.exoplatform.services.cms.documents.DocumentEditorProvider;
 import org.exoplatform.services.cms.documents.DocumentService;
-import org.exoplatform.services.cms.documents.DocumentTemplate;
-import org.exoplatform.services.cms.documents.NewDocumentEditorPlugin;
-import org.exoplatform.services.cms.documents.NewDocumentTemplatePlugin;
+import org.exoplatform.services.cms.documents.NewDocumentTemplate;
+import org.exoplatform.services.cms.documents.NewDocumentTemplateProvider;
+import org.exoplatform.services.cms.documents.exception.DocumentEditorProviderNotFoundException;
 import org.exoplatform.services.cms.documents.model.Document;
 import org.exoplatform.services.cms.drives.DriveData;
 
@@ -21,14 +38,26 @@ import org.exoplatform.services.cms.drives.DriveData;
 public class DocumentServiceMock implements DocumentService {
 
   /**
-   * Find doc by id.
-   *
-   * @param id the id
-   * @return the document
-   * @throws RepositoryException the repository exception
+   * {@inheritDoc}
    */
   @Override
   public Document findDocById(String id) throws RepositoryException {
+    return null;
+  }
+
+  /**
+   * {@inheritDoc}
+   */
+  @Override
+  public List<DocumentEditorProvider> getDocumentEditorProviders() {
+    return null;
+  }
+
+  /**
+   * {@inheritDoc}
+   */
+  @Override
+  public DocumentEditorProvider getEditorProvider(String provider) throws DocumentEditorProviderNotFoundException {
     return null;
   }
 
@@ -131,40 +160,39 @@ public class DocumentServiceMock implements DocumentService {
    * @throws Exception the exception
    */
   @Override
-  public Node createDocumentFromTemplate(Node currentNode, String title, DocumentTemplate template) throws Exception {
+  public Node createDocumentFromTemplate(Node currentNode, String title, NewDocumentTemplate template) throws Exception {
     return null;
   }
 
   /**
-   * Checks for document template plugins.
+   * Gets the new document template providers.
    *
-   * @return true, if successful
+   * @return the new document template providers
    */
   @Override
-  public boolean hasDocumentTemplatePlugins() {
-    return false;
-  }
-
-  /**
-   * Gets the registered template plugins.
-   *
-   * @return the registered template plugins
-   */
-  @Override
-  public Set<NewDocumentTemplatePlugin> getRegisteredTemplatePlugins() {
-    // TODO Auto-generated method stub
+  public List<NewDocumentTemplateProvider> getNewDocumentTemplateProviders() {
     return null;
   }
 
   /**
-   * Gets the registered editor plugins.
-   *
-   * @return the registered editor plugins
+   * {@inheritDoc}
    */
   @Override
-  public Set<NewDocumentEditorPlugin> getRegisteredEditorPlugins() {
-    // TODO Auto-generated method stub
+  public String getPreferedEditor(String userId, String uuid, String workspace) throws RepositoryException {
     return null;
   }
 
+  /**
+   * {@inheritDoc}
+   */
+  @Override
+  public void savePreferedEditor(String userId, String provider, String uuid, String workspace) throws RepositoryException {
+  }
+
+  /**
+   * {@inheritDoc}
+   */
+  @Override
+  public void addDocumentMetadataPlugin(ComponentPlugin plugin) {
+  }
 }

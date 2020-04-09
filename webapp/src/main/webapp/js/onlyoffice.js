@@ -1,7 +1,7 @@
 /**
  * Onlyoffice Editor client.
  */
-(function($, cCometD, redux) {
+(function($, cCometD, redux, editorbuttons) {
   "use strict";
   // ******** polyfills ********
   if (!String.prototype.endsWith) {
@@ -625,7 +625,7 @@
      * Initializes a file activity in the activity stream.
      */
     this.initActivity = function(docId, editorLink, activityId) {
-      log("Initialize activity " + activityId + " with document: " + docId);
+      log("Initialize activity with document: " + docId);
       // Listen to document updates
       store.subscribe(function() {
         var state = store.getState();
@@ -634,15 +634,18 @@
         }
       });
       subscribeDocument(docId);
-      if (editorLink) {
-        UI.addEditorButtonToActivity(editorLink, activityId);
+      if(editorLink != null) {
+        editorbuttons.addCreateButtonFn("onlyoffice", function() {
+          return UI.createEditorButton(editorLink);
+        });
       }
     };
 
     /**
      * Initializes a document preview (from the activity stream).
      */
-    this.initPreview = function(docId, editorLink, clickSelector) {
+    this.initPreview = function(docId, editorLink, activityId, index) {
+      var clickSelector = "#Preview" + activityId + "-" + index;
       $(clickSelector).click(function() {
         log("Initialize preview " + clickSelector + " of document: " + docId);
         // We set timeout here to avoid the case when the element is rendered but is going to be updated soon
@@ -656,6 +659,12 @@
         }, 100);
         subscribeDocument(docId);
       });
+
+      if(editorLink != null) {
+        editorbuttons.addCreateButtonFn("onlyoffice", function() {
+          return UI.createEditorButton(editorLink);
+        });
+      }
     };
 
     /**
@@ -896,6 +905,11 @@
         }
       }
       return str.join('');
+    };
+    
+    this.createEditorButton = function(editorLink) {
+      return $("<li class='hidden-tabletL'><a href='" + editorLink + "' target='_blank'>"
+          + "<i class='uiIconEcmsOfficeOnlineOpen uiIconEcmsLightGray uiIconEdit'></i>" + message("EditButtonTitle") + "</a></li>");   
     };
 
     this.initBar = function(config) {
@@ -1274,4 +1288,4 @@
     }
   });
   return editor;
-})($, cCometD, Redux);
+})($, cCometD, Redux, editorbuttons);
