@@ -3,7 +3,7 @@
   <!-- For menu caption in Action Bar -->
   <UIActionBar>
     <tooltip>
-      <OnlyofficeOpen>Edit online in OnlyOffice</OnlyofficeOpen>
+      <OnlyofficeOpen>Edit in OnlyOffice</OnlyofficeOpen>
     </tooltip>
   </UIActionBar>
   <!-- Used in Administration-Content-Explorer in Views settings a popup with actions list -->
