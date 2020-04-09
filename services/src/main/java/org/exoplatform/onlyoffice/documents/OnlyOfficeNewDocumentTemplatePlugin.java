@@ -35,7 +35,7 @@ public class OnlyOfficeNewDocumentTemplatePlugin extends BaseComponentPlugin imp
   protected final DocumentService     documentService;
 
   /**
-   * Instantiates a new only office new document template plugin.
+   * Instantiates a new OnlyOffice new document template plugin.
    *
    * @param documentService the new document service
    * @param initParams the init params
