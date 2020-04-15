@@ -122,6 +122,7 @@ public class OnlyOfficeDocumentEditorPlugin extends BaseComponentPlugin implemen
       link = "'" + editorLink(link, "documents") + "'";
     } else {
       link = "null".intern();
+      LOG.error("Cannot get editor link for document: {}, workspace: {}", path, workspace);
     }
     callModule("initEditorPage(" + link + ");");
   }
