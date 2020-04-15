@@ -234,16 +234,6 @@ public class OnlyofficeContext {
   public static String editorLink(String link, String source) {
     if (link != null && source != null) {
       StringBuilder linkBuilder = new StringBuilder(link).append("&source=").append(source);
-      // Owner space (actual in FileUIActivity):
-      // Space space =
-      // getApplicationComponent(SpaceService.class).getSpaceById(getOwnerIdentity().getRemoteId());
-      // Context space:
-      // XXX context space will be null for space doc links in form:
-      // /${PORTAL_CONTEXT}/${CURRENT_PORTAL_SITE}/drives?path=.spaces.test_onlyoffice%2FGroups%2Fspaces%2Ftest_onlyoffice%2FDocuments%2FSimple+Document.docx
-      Space space = SpaceUtils.getSpaceByContext();
-      if (space != null) {
-        linkBuilder.append("&space=").append(space.getPrettyName());
-      }
       return linkBuilder.toString();
     }
     return null;
