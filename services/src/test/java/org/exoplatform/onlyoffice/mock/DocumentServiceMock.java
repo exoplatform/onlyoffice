@@ -195,4 +195,22 @@ public class DocumentServiceMock implements DocumentService {
   @Override
   public void addDocumentMetadataPlugin(ComponentPlugin plugin) {
   }
+
+  @Override
+  public void setCurrentDocumentProvider(String uuid, String workspace, String provider) throws RepositoryException {
+    // TODO Auto-generated method stub
+    
+  }
+
+  @Override
+  public String getCurrentDocumentProvider(String uuid, String workspace) throws RepositoryException {
+    // TODO Auto-generated method stub
+    return null;
+  }
+
+  @Override
+  public void initDocumentEditorsModule(String provider, String workspace) {
+    // TODO Auto-generated method stub
+    
+  }
 }

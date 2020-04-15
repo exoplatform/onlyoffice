@@ -574,7 +574,7 @@
           // will be saved
           // so we'll refresh this explorer view to reflect the edited content.
           subscribeDocument(currentConfig.docId);
-
+          editorbuttons.onEditorOpen(currentConfig.docId, currentConfig.workspace, "onlyoffice");
           // We are a editor oage here: publish that the doc was changed by
           // current user
 
