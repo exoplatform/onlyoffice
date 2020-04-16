@@ -723,7 +723,7 @@
         if (link != null) {
           editorWindow.location = link;
         } else {
-          editorWindow.close();
+          UI.showError(message("ErrorTitle"), message("ErrorLinkNotFound"));
           editorWindow = null;
         }
       }

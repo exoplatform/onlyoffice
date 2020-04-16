@@ -122,6 +122,7 @@ public class OnlyOfficeDocumentEditorPlugin extends BaseComponentPlugin implemen
       link = "'" + editorLink(link, "documents") + "'";
     } else {
       link = "null".intern();
+      LOG.error("Cannot get editor link for document: {}, workspace: {}", path, workspace);
     }
     callModule("initEditorPage(" + link + ");");
   }
@@ -174,7 +175,7 @@ public class OnlyOfficeDocumentEditorPlugin extends BaseComponentPlugin implemen
    */
   @SuppressWarnings("unchecked")
   @Override
-  public <T> T initPreview(String fileId, String workspace, URI requestUri, Locale locale) {
+  public EditorSetting initPreview(String fileId, String workspace, URI requestUri, Locale locale) {
     try {
       String userId = ConversationState.getCurrent().getIdentity().getUserId();
       Node symlink = editorService.getDocumentById(workspace, fileId);
@@ -189,7 +190,7 @@ public class OnlyOfficeDocumentEditorPlugin extends BaseComponentPlugin implemen
         CometdConfig cometdConf = new CometdConfig(cometdService.getCometdServerPath(),
                                                    cometdService.getUserToken(userId),
                                                    PortalContainer.getCurrentPortalContainerName());
-        return (T) new EditorSetting(documentId, link, userId, cometdConf, messages);
+        return new EditorSetting(documentId, link, userId, cometdConf, messages);
       }
     } catch (OnlyofficeEditorException e) {
       LOG.error("Cannot initialize preview for fileId: {}, workspace: {}. {}", fileId, workspace, e.getMessage());
