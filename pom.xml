@@ -29,7 +29,7 @@
 
   <artifactId>exo-onlyoffice-editor-parent</artifactId>
   <groupId>org.exoplatform.addons.onlyoffice</groupId>
-  <version>1.5.2-spaces-groups-binding-SNAPSHOT</version>
+  <version>1.5.2-spaces-groups-binding-01</version>
   <packaging>pom</packaging>
   <name>eXo Add-on:: OnlyOffice Editor</name>
   <description>eXo OnlyOffice Editor for Documents extension</description>
@@ -37,7 +37,7 @@
   <scm>
     <connection>scm:git:git://github.com/exo-addons/onlyoffice.git</connection>
     <developerConnection>scm:git:git@github.com:exo-addons/onlyoffice.git</developerConnection>
-    <tag>1.5.2</tag>
+    <tag>1.5.2-spaces-groups-binding-01</tag>
     <url>https://github.com/exo-addons/onlyoffice</url>
   </scm>
 
