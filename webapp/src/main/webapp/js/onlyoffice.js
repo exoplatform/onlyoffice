@@ -1,7 +1,7 @@
 /**
  * Onlyoffice Editor client.
  */
-(function($, cCometD, redux, editorbuttons) {
+(function($, cCometD, redux, editorbuttons, editorsupport) {
   "use strict";
   // ******** polyfills ********
   if (!String.prototype.endsWith) {
@@ -574,7 +574,7 @@
           // will be saved
           // so we'll refresh this explorer view to reflect the edited content.
           subscribeDocument(currentConfig.docId);
-          editorbuttons.onEditorOpen(currentConfig.docId, currentConfig.workspace, "onlyoffice");
+          editorsupport.onEditorOpen(currentConfig.docId, currentConfig.workspace, "onlyoffice");
           // We are a editor oage here: publish that the doc was changed by
           // current user
 
@@ -1307,4 +1307,4 @@
     }
   });
   return editor;
-})($, cCometD, Redux, editorbuttons);
+})($, cCometD, Redux, editorbuttons, editorsupport);

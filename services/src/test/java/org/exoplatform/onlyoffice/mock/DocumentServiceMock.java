@@ -209,7 +209,7 @@ public class DocumentServiceMock implements DocumentService {
   }
 
   @Override
-  public void initDocumentEditorsModule(String provider, String workspace) {
+  public void initEditorSupportModule(String provider, String workspace) {
     // TODO Auto-generated method stub
     
   }

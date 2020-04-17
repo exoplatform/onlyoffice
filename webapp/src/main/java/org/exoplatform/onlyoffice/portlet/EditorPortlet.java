@@ -128,7 +128,7 @@ public class EditorPortlet extends GenericPortlet {
       try {
         String currentEditor = documentService.getCurrentDocumentProvider(config.getDocId(), config.getWorkspace());
         if(currentEditor == null || currentEditor.equals(PROVIDER_NAME)) {
-          documentService.initDocumentEditorsModule(PROVIDER_NAME, config.getWorkspace());
+          documentService.initEditorSupportModule(PROVIDER_NAME, config.getWorkspace());
           requireJS().require("SHARED/bts_tooltip");
           callModule("initEditor(" + config.toJSON() + ");");
         } else {
