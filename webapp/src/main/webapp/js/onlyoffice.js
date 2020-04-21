@@ -701,8 +701,6 @@
         subscribeDocument(docId);
         explorerDocId = docId;
       }
-      UI.addEditorButtonToExplorer(editorLink);
-
     };
 
     /**
@@ -1151,34 +1149,6 @@
       } else {
         log("WARN: Editor element not found");
       }
-    };
-
-    /**
-     * Ads the 'Edit Online' button to the JCRExplorer when a document is
-     * displayed.
-     */
-    this.addEditorButtonToExplorer = function(editorLink) {
-      var $button = $("#UIJCRExplorer #uiActionsBarContainer i.uiIconEcmsOnlyofficeOpen");
-      $button.addClass("uiIconEdit");
-      $button.closest("li").addClass("hidden-tabletL");
-      var $noPreviewContainer = $("#UIJCRExplorer .navigationContainer.noPreview");
-      if (editorLink != null && $noPreviewContainer.length != 0) {
-        var $detailContainer = $noPreviewContainer.find(".detailContainer");
-        var $downloadBtn = $detailContainer.find(".uiIconDownload").closest("a.btn");
-        if ($downloadBtn.length != 0) {
-          $downloadBtn.after(getNoPreviewEditorButton(editorLink));
-        } else {
-          $detailContainer.append(getNoPreviewEditorButton(editorLink));
-        }
-      }
-    };
-
-    /**
-     * Ads the 'Edit Online' button to an activity in the activity stream.
-     */
-    this.addEditorButtonToActivity = function(editorLink, activityId) {
-      $("#activityContainer" + activityId).find("div[id^='ActivityContextBox'] > .actionBar .statusAction.pull-left").append(
-          getEditorButton(editorLink));
     };
 
     /**
