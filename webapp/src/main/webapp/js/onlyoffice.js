@@ -701,7 +701,6 @@
         subscribeDocument(docId);
         explorerDocId = docId;
       }
-      UI.addEditorButtonToExplorer(editorLink);
 
     };
 
@@ -751,19 +750,6 @@
     var updateVesionsList = false;
 
     var versionsListHeight = ($(".content").height() - 220) < 0 ? 0 : Math.round(($(".content").height() - 220) / 91);
-
-    /**
-     * Returns the html markup of the 'Edit Online' button.
-     */
-    var getEditorButton = function(editorLink) {
-      return "<li class='hidden-tabletL'><a href='" + editorLink + "' target='_blank'>"
-          + "<i class='uiIconEcmsOnlyofficeOpen uiIconEcmsLightGray uiIconEdit'></i>" + message("EditButtonTitle") + "</a></li>";
-    };
-
-    var getNoPreviewEditorButton = function(editorLink) {
-      return "<a class='btn editOnlineBtn hidden-tabletL' href='#' onclick='javascript:window.open(\"" + editorLink + "\");'>"
-          + "<i class='uiIconEcmsOnlyofficeOpen uiIconEcmsLightGray uiIconEdit'></i>" + message("EditButtonTitle") + "</a>";
-    };
 
     /**
      * Returns the html markup of the refresh banner;
@@ -1151,34 +1137,6 @@
       } else {
         log("WARN: Editor element not found");
       }
-    };
-
-    /**
-     * Ads the 'Edit Online' button to the JCRExplorer when a document is
-     * displayed.
-     */
-    this.addEditorButtonToExplorer = function(editorLink) {
-      var $button = $("#UIJCRExplorer #uiActionsBarContainer i.uiIconEcmsOnlyofficeOpen");
-      $button.addClass("uiIconEdit");
-      $button.closest("li").addClass("hidden-tabletL");
-      var $noPreviewContainer = $("#UIJCRExplorer .navigationContainer.noPreview");
-      if (editorLink != null && $noPreviewContainer.length != 0) {
-        var $detailContainer = $noPreviewContainer.find(".detailContainer");
-        var $downloadBtn = $detailContainer.find(".uiIconDownload").closest("a.btn");
-        if ($downloadBtn.length != 0) {
-          $downloadBtn.after(getNoPreviewEditorButton(editorLink));
-        } else {
-          $detailContainer.append(getNoPreviewEditorButton(editorLink));
-        }
-      }
-    };
-
-    /**
-     * Ads the 'Edit Online' button to an activity in the activity stream.
-     */
-    this.addEditorButtonToActivity = function(editorLink, activityId) {
-      $("#activityContainer" + activityId).find("div[id^='ActivityContextBox'] > .actionBar .statusAction.pull-left").append(
-          getEditorButton(editorLink));
     };
 
     /**
