@@ -677,8 +677,9 @@
     /**
      * Initializes JCRExplorer when a document is displayed.
      */
-    this.initExplorer = function(docId, editorLink) {
-      log("Initialize explorer with document: " + docId);
+    this.initExplorer = function(settings) {
+      init(settings.userId, settings.cometdConf, settings.messages);
+      log("Initialize explorer with document: " + settings.fileId);
       // Listen document updated
       store.subscribe(function() {
         var state = store.getState();
@@ -693,13 +694,19 @@
           UI.showError(message("ErrorTitle"), message("ErrorFileDeletedECMS"));
         }
       });
-      if (docId != explorerDocId) {
+      if (settings.docId != explorerDocId) {
         // We need unsubscribe from previous doc
         if (explorerDocId) {
           unsubscribeDocument(explorerDocId);
         }
-        subscribeDocument(docId);
-        explorerDocId = docId;
+        subscribeDocument(settings.docId);
+        explorerDocId = settings.docId;
+      }
+      // subscribeDocument(settings.fileId);
+      if (settings.link != null) {
+        editorbuttons.addCreateButtonFn("onlyoffice", function() {
+          return UI.createEditorButton(settings.link);
+        });
       }
     };
 

@@ -32,16 +32,19 @@ import javax.jcr.RepositoryException;
 
 import org.exoplatform.container.PortalContainer;
 import org.exoplatform.container.component.BaseComponentPlugin;
+import org.exoplatform.ecm.webui.component.explorer.UIJCRExplorer;
 import org.exoplatform.onlyoffice.OnlyofficeEditorException;
 import org.exoplatform.onlyoffice.OnlyofficeEditorService;
 import org.exoplatform.onlyoffice.cometd.CometdConfig;
 import org.exoplatform.onlyoffice.cometd.CometdOnlyofficeService;
 import org.exoplatform.services.cms.documents.DocumentEditor;
 import org.exoplatform.services.cms.documents.NewDocumentTemplate;
+import org.exoplatform.services.cms.link.LinkManager;
 import org.exoplatform.services.log.ExoLogger;
 import org.exoplatform.services.log.Log;
 import org.exoplatform.services.resources.ResourceBundleService;
 import org.exoplatform.services.security.ConversationState;
+import org.exoplatform.webui.application.WebuiRequestContext;
 
 /**
  * The Class OnlyOfficeNewDocumentEditorPlugin.
@@ -76,6 +79,9 @@ public class OnlyOfficeDocumentEditorPlugin extends BaseComponentPlugin implemen
   /** The cometd service. */
   protected final CometdOnlyofficeService cometdService;
 
+  /** The link manager. */
+  protected final LinkManager             linkManager;
+
   /** The editor links. */
   protected final Map<Node, String>       editorLinks                  = new ConcurrentHashMap<>();
 
@@ -85,13 +91,16 @@ public class OnlyOfficeDocumentEditorPlugin extends BaseComponentPlugin implemen
    * @param editorService the editor service
    * @param i18nService the i18nService
    * @param cometdService the cometdService
+   * @param linkManager the link manager
    */
   public OnlyOfficeDocumentEditorPlugin(OnlyofficeEditorService editorService,
                                         ResourceBundleService i18nService,
-                                        CometdOnlyofficeService cometdService) {
+                                        CometdOnlyofficeService cometdService,
+                                        LinkManager linkManager) {
     this.editorService = editorService;
     this.i18nService = i18nService;
     this.cometdService = cometdService;
+    this.linkManager = linkManager;
   }
 
   /**
@@ -198,7 +207,64 @@ public class OnlyOfficeDocumentEditorPlugin extends BaseComponentPlugin implemen
       LOG.error("Cannot initialize preview", e);
     }
     return null;
+  }
 
+  /**
+   * Inits the explorer.
+   *
+   * @param fileId the file id
+   * @param workspace the workspace
+   * @param context the context
+   * @return the editor setting
+   */
+  @SuppressWarnings("unchecked")
+  @Override
+  public EditorSetting initExplorer(String fileId, String workspace, WebuiRequestContext context) {
+    try {
+      String userId = context.getRemoteUser();
+      Node node = editorService.getDocumentById(workspace, fileId);
+      if (editorService.isDocumentMimeSupported(node)) {
+        if (LOG.isDebugEnabled()) {
+          LOG.debug("Init documents explorer for node: {}:{}", workspace, fileId);
+        }
+        // Handling symlinks
+        UIJCRExplorer uiExplorer = context.getUIApplication().findFirstComponentOfType(UIJCRExplorer.class);
+        if (linkManager.isFileOrParentALink(uiExplorer.getSession(), uiExplorer.getCurrentPath())) {
+          editorService.addFilePreferences(node, userId, uiExplorer.getCurrentPath());
+        }
+        editorService.addFilePreferences(node, userId, uiExplorer.getCurrentPath());
+        String editorLink = editorService.getEditorLink(node);
+        if (editorLink != null && !editorLink.isEmpty()) {
+          editorLink = editorLink(editorLink, "drives");
+        }
+        Map<String, String> messages = initMessages(context.getLocale());
+        CometdConfig cometdConf = new CometdConfig(cometdService.getCometdServerPath(),
+                                                   cometdService.getUserToken(userId),
+                                                   PortalContainer.getCurrentPortalContainerName());
+        return new EditorSetting(fileId, editorLink, userId, cometdConf, messages);
+      }
+    } catch (Exception e) {
+      LOG.error("Cannot initialize explorer for fileId: " + fileId + ", workspace: " + workspace, e);
+    }
+    return null;
+  }
+
+  /**
+   * Checks if is document supported.
+   *
+   * @param fileId the file id
+   * @param workspace the workspace
+   * @return true, if is document supported
+   */
+  @Override
+  public boolean isDocumentSupported(String fileId, String workspace) {
+    try {
+      Node node = editorService.getDocumentById(workspace, fileId);
+      return editorService.canEditDocument(node);
+    } catch (RepositoryException e) {
+      LOG.error("Cannot check if the file is supported", e);
+    }
+    return false;
   }
 
   /**
