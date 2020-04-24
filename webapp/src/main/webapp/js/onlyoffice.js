@@ -702,7 +702,6 @@
         subscribeDocument(settings.docId);
         explorerDocId = settings.docId;
       }
-      // subscribeDocument(settings.fileId);
       if (settings.link != null) {
         editorbuttons.addCreateButtonFn("onlyoffice", function() {
           return UI.createEditorButton(settings.link);
