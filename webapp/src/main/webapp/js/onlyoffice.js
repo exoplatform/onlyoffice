@@ -666,7 +666,7 @@
           }
         });
       }, 100);
-      // subscribeDocument(settings.fileId);
+      subscribeDocument(settings.fileId);
       if (settings.link != null) {
         editorbuttons.addCreateButtonFn("onlyoffice", function() {
           return UI.createEditorButton(settings.link);
@@ -756,19 +756,6 @@
     var updateVesionsList = false;
 
     var versionsListHeight = ($(".content").height() - 220) < 0 ? 0 : Math.round(($(".content").height() - 220) / 91);
-
-    /**
-     * Returns the html markup of the 'Edit Online' button.
-     */
-    var getEditorButton = function(editorLink) {
-      return "<li class='hidden-tabletL'><a href='" + editorLink + "' target='_blank'>"
-          + "<i class='uiIconEcmsOnlyofficeOpen uiIconEcmsLightGray uiIconEdit'></i>" + message("EditButtonTitle") + "</a></li>";
-    };
-
-    var getNoPreviewEditorButton = function(editorLink) {
-      return "<a class='btn editOnlineBtn hidden-tabletL' href='#' onclick='javascript:window.open(\"" + editorLink + "\");'>"
-          + "<i class='uiIconEcmsOnlyofficeOpen uiIconEcmsLightGray uiIconEdit'></i>" + message("EditButtonTitle") + "</a>";
-    };
 
     /**
      * Returns the html markup of the refresh banner;
