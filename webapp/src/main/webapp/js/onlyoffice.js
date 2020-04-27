@@ -727,8 +727,9 @@
         if (link != null) {
           editorWindow.location = link;
         } else {
-          UI.showError(message("ErrorTitle"), message("ErrorLinkNotFound"));
+          editorWindow.close();
           editorWindow = null;
+          UI.showError(message("ErrorTitle"), message("ErrorLinkNotFound"));
         }
       }
     };
