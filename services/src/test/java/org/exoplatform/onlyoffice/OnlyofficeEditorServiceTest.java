@@ -570,7 +570,7 @@ public class OnlyofficeEditorServiceTest extends BaseCommonsTestCase {
     Node node = createDocument("Test Document.docx", "nt:file", "testContent", true);
 
     // When
-    String editorLink = editorService.getEditorLink("http", "127.0.0.1", 8080, null, node.getUUID());
+    String editorLink = editorService.getEditorLink(node, "http", "127.0.0.1", 8080);
 
     // Then
     String editorLinkTest = "http://127.0.0.1:8080/portal/classic/oeditor?docId=" + node.getUUID();

@@ -1,4 +1,4 @@
- 
+
 /*
  * Copyright (C) 2003-2019 eXo Platform SAS.
  *
@@ -127,12 +127,14 @@ public class EditorPortlet extends GenericPortlet {
     if (config != null) {
       try {
         String currentEditor = documentService.getCurrentDocumentProvider(config.getDocId(), config.getWorkspace());
-        if(currentEditor == null || currentEditor.equals(PROVIDER_NAME)) {
+        if (currentEditor == null || currentEditor.equals(PROVIDER_NAME)) {
           documentService.initEditorSupportModule(PROVIDER_NAME, config.getWorkspace());
           requireJS().require("SHARED/bts_tooltip");
           callModule("initEditor(" + config.toJSON() + ");");
         } else {
-          LOG.warn("Cannot open editor for fileId: {} The file is open in another editor provider: {}", config.getDocId(), currentEditor);
+          LOG.warn("Cannot open editor for fileId: {} The file is open in another editor provider: {}",
+                   config.getDocId(),
+                   currentEditor);
           showError(i18n.getString("OnlyofficeEditorClient.ErrorTitle"),
                     i18n.getString("OnlyofficeEditor.error.AnotherEditorIsOpen"));
         }

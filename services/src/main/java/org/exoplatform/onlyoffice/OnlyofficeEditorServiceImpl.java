@@ -18,18 +18,49 @@
  */
 package org.exoplatform.onlyoffice;
 
-import java.io.*;
-import java.net.*;
+import java.io.BufferedInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
+import java.net.URI;
+import java.net.URL;
+import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Calendar;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 import java.util.Map.Entry;
-import java.util.concurrent.*;
+import java.util.NoSuchElementException;
+import java.util.Random;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-import javax.jcr.*;
+import javax.jcr.AccessDeniedException;
+import javax.jcr.Item;
+import javax.jcr.ItemNotFoundException;
+import javax.jcr.Node;
+import javax.jcr.PathNotFoundException;
+import javax.jcr.Property;
+import javax.jcr.RepositoryException;
+import javax.jcr.Session;
+import javax.jcr.Value;
+import javax.jcr.ValueFormatException;
 import javax.jcr.lock.Lock;
 
 import org.apache.commons.io.IOUtils;
@@ -54,7 +85,10 @@ import org.exoplatform.onlyoffice.Config.Editor;
 import org.exoplatform.onlyoffice.jcr.NodeFinder;
 import org.exoplatform.portal.Constants;
 import org.exoplatform.portal.webui.util.Util;
-import org.exoplatform.services.cache.*;
+import org.exoplatform.services.cache.CacheListener;
+import org.exoplatform.services.cache.CacheListenerContext;
+import org.exoplatform.services.cache.CacheService;
+import org.exoplatform.services.cache.ExoCache;
 import org.exoplatform.services.cms.BasePath;
 import org.exoplatform.services.cms.documents.DocumentService;
 import org.exoplatform.services.cms.documents.TrashService;
@@ -73,9 +107,15 @@ import org.exoplatform.services.jcr.impl.core.NodeImpl;
 import org.exoplatform.services.listener.ListenerService;
 import org.exoplatform.services.log.ExoLogger;
 import org.exoplatform.services.log.Log;
-import org.exoplatform.services.organization.*;
-import org.exoplatform.services.security.*;
+import org.exoplatform.services.organization.Group;
+import org.exoplatform.services.organization.OrganizationService;
+import org.exoplatform.services.organization.User;
+import org.exoplatform.services.organization.UserProfile;
+import org.exoplatform.services.organization.UserProfileHandler;
 import org.exoplatform.services.security.Authenticator;
+import org.exoplatform.services.security.ConversationState;
+import org.exoplatform.services.security.Identity;
+import org.exoplatform.services.security.IdentityRegistry;
 import org.exoplatform.services.wcm.core.NodetypeConstant;
 import org.exoplatform.services.wcm.utils.WCMCoreUtils;
 import org.exoplatform.social.core.activity.model.ExoSocialActivity;
@@ -86,10 +126,10 @@ import org.exoplatform.social.core.manager.ActivityManager;
 import org.exoplatform.social.core.manager.IdentityManager;
 import org.exoplatform.social.core.space.model.Space;
 import org.exoplatform.social.core.space.spi.SpaceService;
-import org.exoplatform.webui.application.WebuiRequestContext;
-import org.exoplatform.webui.application.portlet.PortletRequestContext;
 
-import io.jsonwebtoken.*;
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.Jws;
+import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 
 /**
@@ -918,7 +958,7 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
    * {@inheritDoc}
    */
   @Override
-  public String initDocument(Node node) throws OnlyofficeEditorException, RepositoryException {
+  public String initDocument(Node node) throws RepositoryException {
     if (node.getPrimaryNodeType().getName().equals("exo:symlink")) {
       node = (Node) finder.findItem(node.getSession(), node.getPath());
     }
@@ -937,6 +977,24 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
     Node node = node(workspace, path);
     return initDocument(node);
   }
+  
+  /**
+   * {@inheritDoc}
+   */
+  public String getEditorLink(Node node, String scheme, String host, int port) throws RepositoryException,
+                                                                                  EditorLinkNotFoundException {
+    if (canEditDocument(node)) {
+      String docId = initDocument(node);
+      String link = platformUrl(scheme, host, port).append(editorURLPath(docId)).toString();
+      if (LOG.isDebugEnabled()) {
+        LOG.debug("Editor link {}: {}", node.getPath(), link);
+      }
+      return link;
+    } else {
+      LOG.debug("Editor link not found for {}", node.getPath());
+      throw new EditorLinkNotFoundException("Editor link not found for node: " + node.getPath());
+    }
+  }
 
   /**
    * {@inheritDoc}
@@ -949,33 +1007,6 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
     return null;
   }
 
-  /**
-   * {@inheritDoc}
-   */
-  @Override
-  public String getEditorLink(Node node) throws RepositoryException, OnlyofficeEditorException {
-    PortletRequestContext pcontext = (PortletRequestContext) WebuiRequestContext.getCurrentInstance();
-    return getEditorLink(node,
-                         pcontext.getRequest().getScheme(),
-                         pcontext.getRequest().getServerName(),
-                         pcontext.getRequest().getServerPort());
-  }
-
-  /**
-   * {@inheritDoc}
-   */
-  @Override
-  public String getEditorLink(Node node, URI uri) throws RepositoryException, OnlyofficeEditorException {
-    return getEditorLink(node, uri.getScheme(), uri.getHost(), uri.getPort());
-  }
-
-  /**
-   * {@inheritDoc}
-   */
-  @Override
-  public String getEditorLink(String schema, String host, int port, String workspace, String docId) {
-    return platformUrl(schema, host, port).append(editorURLPath(docId)).toString();
-  }
 
   /**
    * {@inheritDoc}
@@ -1985,34 +2016,6 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
     } finally {
       restoreConvoState(contextState, contextProvider);
     }
-  }
-
-  /**
-   * Gets the editor link.
-   *
-   * @param node the node
-   * @param scheme the scheme
-   * @param host the host
-   * @param port the port
-   * @return the editor link
-   * @throws RepositoryException the repository exception
-   * @throws OnlyofficeEditorException the onlyoffice editor exception
-   */
-  protected String getEditorLink(Node node, String scheme, String host, int port) throws RepositoryException,
-                                                                                  OnlyofficeEditorException {
-    if (canEditDocument(node)) {
-      String workspace = node.getSession().getWorkspace().getName();
-      String docId = initDocument(node);
-      String link = getEditorLink(scheme, host, port, workspace, docId);
-      if (LOG.isDebugEnabled()) {
-        LOG.debug("Editor link {}: {}", node.getPath(), link);
-      }
-      return link;
-    }
-    if (LOG.isDebugEnabled()) {
-      LOG.debug("Editor link NOT FOUND for {}", node.getPath());
-    }
-    return null;
   }
 
   /**

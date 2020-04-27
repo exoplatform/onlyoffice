@@ -17,7 +17,6 @@
 package org.exoplatform.onlyoffice.documents;
 
 import static org.exoplatform.onlyoffice.webui.OnlyofficeContext.callModule;
-import static org.exoplatform.onlyoffice.webui.OnlyofficeContext.editorLink;
 
 import java.net.URI;
 import java.util.Enumeration;
@@ -33,6 +32,7 @@ import javax.jcr.RepositoryException;
 import org.exoplatform.container.PortalContainer;
 import org.exoplatform.container.component.BaseComponentPlugin;
 import org.exoplatform.ecm.webui.component.explorer.UIJCRExplorer;
+import org.exoplatform.onlyoffice.EditorLinkNotFoundException;
 import org.exoplatform.onlyoffice.OnlyofficeEditorException;
 import org.exoplatform.onlyoffice.OnlyofficeEditorService;
 import org.exoplatform.onlyoffice.cometd.CometdConfig;
@@ -45,6 +45,7 @@ import org.exoplatform.services.log.Log;
 import org.exoplatform.services.resources.ResourceBundleService;
 import org.exoplatform.services.security.ConversationState;
 import org.exoplatform.webui.application.WebuiRequestContext;
+import org.exoplatform.webui.application.portlet.PortletRequestContext;
 
 /**
  * The Class OnlyOfficeNewDocumentEditorPlugin.
@@ -66,6 +67,9 @@ public class OnlyOfficeDocumentEditorPlugin extends BaseComponentPlugin implemen
 
   /** The Constant PREVIEW. */
   protected static final String           PREVIEW                      = "peview";
+
+  /** The Constant DRIVES. */
+  protected static final String           DRIVES                       = "drives";
 
   /** The Constant CLIENT_RESOURCE_PREFIX. */
   protected static final String           CLIENT_RESOURCE_PREFIX       = "OnlyofficeEditorClient.";
@@ -126,13 +130,7 @@ public class OnlyOfficeDocumentEditorPlugin extends BaseComponentPlugin implemen
     if (LOG.isDebugEnabled()) {
       LOG.debug("Opening editor page for document {}", document);
     }
-    String link = editorService.getEditorLink(document);
-    if (link != null) {
-      link = "'" + editorLink(link, "documents") + "'";
-    } else {
-      link = "null".intern();
-      LOG.error("Cannot get editor link for document: {}, workspace: {}", path, workspace);
-    }
+    String link = "'" + contextEditorLink(document, DRIVES, null) + "'";
     callModule("initEditorPage(" + link + ");");
   }
 
@@ -163,11 +161,12 @@ public class OnlyOfficeDocumentEditorPlugin extends BaseComponentPlugin implemen
     Node node = editorService.getDocument(symlink.getSession().getWorkspace().getName(), symlink.getPath());
     if (node != null) {
       String fileId = editorService.initDocument(node);
-      String link = contextEditorLink(node, null, STREAM);
-      if (link != null) {
+      String link = "null";
+      try {
+        link = contextEditorLink(node, STREAM, null);
         link = new StringBuilder("'").append(link).append("'").toString();
-      } else {
-        link = "null";
+      } catch (OnlyofficeEditorException e) {
+        LOG.error("Cannot get editor link for activity: ", e);
       }
       callModule("initActivity('" + fileId + "', " + link + ", '" + activityId + "');");
     }
@@ -194,7 +193,12 @@ public class OnlyOfficeDocumentEditorPlugin extends BaseComponentPlugin implemen
           editorService.addFilePreferences(node, userId, symlink.getPath());
         }
         String documentId = editorService.initDocument(node);
-        String link = contextEditorLink(node, requestUri, PREVIEW);
+        String link = null;
+        try {
+          link = contextEditorLink(node, PREVIEW, requestUri);
+        } catch (OnlyofficeEditorException e) {
+          LOG.error("Cannot get editor link for preview: ", e);
+        }
         Map<String, String> messages = initMessages(locale);
         CometdConfig cometdConf = new CometdConfig(cometdService.getCometdServerPath(),
                                                    cometdService.getUserToken(userId),
@@ -229,19 +233,24 @@ public class OnlyOfficeDocumentEditorPlugin extends BaseComponentPlugin implemen
         }
         // Handling symlinks
         UIJCRExplorer uiExplorer = context.getUIApplication().findFirstComponentOfType(UIJCRExplorer.class);
-        if (linkManager.isFileOrParentALink(uiExplorer.getSession(), uiExplorer.getCurrentPath())) {
-          editorService.addFilePreferences(node, userId, uiExplorer.getCurrentPath());
+        if (uiExplorer != null) {
+          if (linkManager.isFileOrParentALink(uiExplorer.getSession(), uiExplorer.getCurrentPath())) {
+            editorService.addFilePreferences(node, userId, uiExplorer.getCurrentPath());
+          }
+        } else {
+          LOG.warn("Cannot check for symlink node {}:{} - UIJCRExplorer is null", fileId, workspace);
         }
-        editorService.addFilePreferences(node, userId, uiExplorer.getCurrentPath());
-        String editorLink = editorService.getEditorLink(node);
-        if (editorLink != null && !editorLink.isEmpty()) {
-          editorLink = editorLink(editorLink, "drives");
+        String link = null;
+        try {
+          link = contextEditorLink(node, DRIVES, null);
+        } catch (OnlyofficeEditorException e) {
+          LOG.error("Cannot get editor link for explorer: ", e);
         }
         Map<String, String> messages = initMessages(context.getLocale());
         CometdConfig cometdConf = new CometdConfig(cometdService.getCometdServerPath(),
                                                    cometdService.getUserToken(userId),
                                                    PortalContainer.getCurrentPortalContainerName());
-        return new EditorSetting(fileId, editorLink, userId, cometdConf, messages);
+        return new EditorSetting(fileId, link, userId, cometdConf, messages);
       }
     } catch (Exception e) {
       LOG.error("Cannot initialize explorer for fileId: " + fileId + ", workspace: " + workspace, e);
@@ -268,38 +277,47 @@ public class OnlyOfficeDocumentEditorPlugin extends BaseComponentPlugin implemen
   }
 
   /**
-   * Gets the editor link.
-   *
-   * @param docNode the doc node
-   * @param requestURI the requestURI
-   * @return the editor link
-   */
-  protected String getEditorLink(Node docNode, URI requestURI) {
-    try {
-      if (requestURI != null) {
-        return editorService.getEditorLink(docNode, requestURI);
-      }
-      return editorService.getEditorLink(docNode);
-    } catch (OnlyofficeEditorException | RepositoryException e) {
-      LOG.error(e);
-      return null;
-    }
-  }
-
-  /**
    * Context editor link.
    *
    * @param node the node
-   * @param requestURI the requestURI
    * @param context the context
-   * @return the link
+   * @param requestURI the request URI
+   * @return the string
+   * @throws OnlyofficeEditorException the onlyoffice editor exception
+   * @throws RepositoryException the repository exception
    */
-  private String contextEditorLink(Node node, URI requestURI, String context) {
-    String link = editorLinks.computeIfAbsent(node, n -> getEditorLink(n, requestURI));
-    if (link != null && !link.isEmpty()) {
-      return editorLink(link, context);
+  private String contextEditorLink(Node node, String context, URI requestURI) throws OnlyofficeEditorException,
+                                                                              RepositoryException {
+    String link;
+    if (requestURI != null) {
+      link = editorService.getEditorLink(node, requestURI.getScheme(), requestURI.getHost(), requestURI.getPort());
+    } else {
+      PortletRequestContext pcontext = (PortletRequestContext) WebuiRequestContext.getCurrentInstance();
+      if (pcontext != null) {
+        link = editorService.getEditorLink(node,
+                                           pcontext.getRequest().getScheme(),
+                                           pcontext.getRequest().getServerName(),
+                                           pcontext.getRequest().getServerPort());
+      } else {
+        throw new OnlyofficeEditorException("Cannot get editor link - request URI and PortletRequestContext are null");
+      }
     }
-    return null;
+    editorLinks.putIfAbsent(node, link);
+    return editorLink(link, context);
+  }
+
+  /**
+   * Generate Editor link with context information: source app (e.g. stream or
+   * drives), space name etc.
+   *
+   * @param link the link obtained from
+   *          {@link OnlyofficeEditorService#getEditorLink(Node, String, String, int)}
+   * @param source the source name, can be any text value
+   * @return the string with link URL
+   */
+  private String editorLink(String link, String source) {
+    StringBuilder linkBuilder = new StringBuilder(link).append("&source=").append(source);
+    return linkBuilder.toString();
   }
 
   /**

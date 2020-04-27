@@ -112,7 +112,9 @@ public class OnlyofficeContext {
 
       String userId = convo.getIdentity().getUserId();
 
-      CometdConfig cometdConf = new CometdConfig(cometdService.getCometdServerPath(), cometdService.getUserToken(userId), PortalContainer.getCurrentPortalContainerName());
+      CometdConfig cometdConf = new CometdConfig(cometdService.getCometdServerPath(),
+                                                 cometdService.getUserToken(userId),
+                                                 PortalContainer.getCurrentPortalContainerName());
 
       callOnModule("init('" + userId + "', " + cometdConf.toJSON() + ", " + messagesJson + ");");
     } else {
@@ -218,23 +220,6 @@ public class OnlyofficeContext {
     } catch (Exception e) {
       LOG.error("Error initializing context", e);
     }
-  }
-
-  /**
-   * Generate Editor link with context information: source app (e.g. stream or
-   * documents), space name etc.
-   *
-   * @param link the link obtained from
-   *          {@link OnlyofficeEditorService#getEditorLink(javax.jcr.Node)}
-   * @param source the source name, can be any text value
-   * @return the string with link URL
-   */
-  public static String editorLink(String link, String source) {
-    if (link != null && source != null) {
-      StringBuilder linkBuilder = new StringBuilder(link).append("&source=").append(source);
-      return linkBuilder.toString();
-    }
-    return null;
   }
 
 }

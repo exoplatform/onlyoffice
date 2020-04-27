@@ -153,15 +153,15 @@
   function Editor() {
 
     // Constants:
-    var DOCUMENT_SAVED = "DOCUMENT_SAVED";
-    var DOCUMENT_CHANGED = "DOCUMENT_CHANGED";
-    var DOCUMENT_DELETED = "DOCUMENT_DELETED";
-    var DOCUMENT_VERSION = "DOCUMENT_VERSION";
-    var DOCUMENT_USERSAVED = "DOCUMENT_USERSAVED";
-    var DOCUMENT_TITLE_UPDATED = "DOCUMENT_TITLE_UPDATED";
-    var DOCUMENT_LINK = "DOCUMENT_LINK";
-    var EDITOR_CLOSED = "EDITOR_CLOSED";
-
+    const DOCUMENT_SAVED = "DOCUMENT_SAVED";
+    const DOCUMENT_CHANGED = "DOCUMENT_CHANGED";
+    const DOCUMENT_DELETED = "DOCUMENT_DELETED";
+    const DOCUMENT_VERSION = "DOCUMENT_VERSION";
+    const DOCUMENT_USERSAVED = "DOCUMENT_USERSAVED";
+    const DOCUMENT_TITLE_UPDATED = "DOCUMENT_TITLE_UPDATED";
+    const DOCUMENT_LINK = "DOCUMENT_LINK";
+    const EDITOR_CLOSED = "EDITOR_CLOSED";
+    const ONLYOFFICE = "onlyoffice";
     // Events that are dispatched to redux as actions
     var dispatchableEvents = [ DOCUMENT_SAVED, DOCUMENT_CHANGED, DOCUMENT_DELETED, DOCUMENT_VERSION, DOCUMENT_TITLE_UPDATED ];
 
@@ -574,7 +574,7 @@
           // will be saved
           // so we'll refresh this explorer view to reflect the edited content.
           subscribeDocument(currentConfig.docId);
-          editorsupport.onEditorOpen(currentConfig.docId, currentConfig.workspace, "onlyoffice");
+          editorsupport.onEditorOpen(currentConfig.docId, currentConfig.workspace, ONLYOFFICE);
           // We are a editor oage here: publish that the doc was changed by
           // current user
 
@@ -644,7 +644,7 @@
       });
       subscribeDocument(docId);
       if (editorLink != null) {
-        editorbuttons.addCreateButtonFn("onlyoffice", function() {
+        editorbuttons.addCreateButtonFn(ONLYOFFICE, function() {
           return UI.createEditorButton(editorLink);
         });
       }
@@ -668,7 +668,7 @@
       }, 100);
       subscribeDocument(settings.fileId);
       if (settings.link != null) {
-        editorbuttons.addCreateButtonFn("onlyoffice", function() {
+        editorbuttons.addCreateButtonFn(ONLYOFFICE, function() {
           return UI.createEditorButton(settings.link);
         });
       }
@@ -703,7 +703,7 @@
         explorerDocId = settings.docId;
       }
       if (settings.link != null) {
-        editorbuttons.addCreateButtonFn("onlyoffice", function() {
+        editorbuttons.addCreateButtonFn(ONLYOFFICE, function() {
           return UI.createEditorButton(settings.link);
         });
       }
