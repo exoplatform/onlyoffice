@@ -26,6 +26,7 @@
     <ErrorCreateConfig>Failed to create editor configuration</ErrorCreateConfig>
     <ErrorFileDeletedECMS>The file has been deleted. You can try to restore it from Trash</ErrorFileDeletedECMS>
     <ErrorFileDeletedEditor>The file has been deleted. You can save it using File -> Save</ErrorFileDeletedEditor>
+    <ErrorAnotherEditorIsOpen>Cannot create editor. The document is being edited in another editor (provider)</ErrorAnotherEditorIsOpen>
     <TimeConvert>
       <Less_Than_A_Minute>less than a minute ago</Less_Than_A_Minute>
       <About_A_Minute>about a minute ago</About_A_Minute>

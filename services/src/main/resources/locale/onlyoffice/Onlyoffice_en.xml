@@ -30,7 +30,6 @@
       <ViewerNotFound>OnlyOffice document editor not found</ViewerNotFound>
     </message>
     <error>
-      <AnotherEditorIsOpen>Cannot create editor. The document is being edited in another editor (provider)</AnotherEditorIsOpen>
       <EditorCannotBeCreated>Editor cannot be created. Please retry.</EditorCannotBeCreated>
       <CannotReadDocument>Cannot read the document. Please retry.</CannotReadDocument>
       <CannotCreateEditor>Cannot create editor. Please retry.</CannotCreateEditor>

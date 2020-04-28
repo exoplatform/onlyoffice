@@ -529,104 +529,107 @@
      * Initialize an editor page in current browser window.
      */
     this.initEditor = function(config) {
-      initBar(config);
-      log("Initialize editor for document: " + config.docId);
-      window.document.title = config.document.title + " - " + window.document.title;
-      UI.initEditor();
+      editorsupport.onEditorOpen(config.docId, config.workspace, ONLYOFFICE).done(function(){
+        initBar(config);
+        log("Initialize editor for document: " + config.docId);
+        window.document.title = config.document.title + " - " + window.document.title;
+        UI.initEditor();
 
-      create(config).done(function(localConfig) {
-        if (localConfig) {
-          currentConfig = localConfig;
+        create(config).done(function(localConfig) {
+          if (localConfig) {
+            currentConfig = localConfig;
 
-          store.subscribe(function() {
-            var state = store.getState();
-            if (state.type === DOCUMENT_DELETED) {
-              UI.showError(message("ErrorTitle"), message("ErrorFileDeletedEditor"));
-            }
-            if (state.type === DOCUMENT_SAVED) {
-              UI.updateBar(state.displayName, state.comment, currentConfig.workspace, currentConfig.docId);
-              if (state.comment) {
-                currentConfig.editorPage.comment = state.comment;
+            store.subscribe(function() {
+              var state = store.getState();
+              if (state.type === DOCUMENT_DELETED) {
+                UI.showError(message("ErrorTitle"), message("ErrorFileDeletedEditor"));
               }
-              if (state.userId === currentUserId) {
-                currentUserChanges = false;
+              if (state.type === DOCUMENT_SAVED) {
+                UI.updateBar(state.displayName, state.comment, currentConfig.workspace, currentConfig.docId);
+                if (state.comment) {
+                  currentConfig.editorPage.comment = state.comment;
+                }
+                if (state.userId === currentUserId) {
+                  currentUserChanges = false;
+                }
               }
-            }
-            if (state.type === DOCUMENT_TITLE_UPDATED) {
-              console.log("Title updated");
-              var oldTitle = currentConfig.document.title;
-              currentConfig.document.title = state.title;
-              window.document.title = window.document.title.replace(oldTitle, state.title);
-              $("#editor-drawer").find(".editable-title").text(state.title).append("<i class='uiIconPencilEdit'></i>");
-              var documentOldTitle = config.explorerUrl.substr(config.explorerUrl.lastIndexOf("/"));
-              var url = config.explorerUrl.split(documentOldTitle)[0];
-              var documentNewPath = url + "/" + state.title;
-              config.explorerUrl = documentNewPath;
-              $("#see-more-btn").prop("disabled", true);
-              setTimeout(function() {
-                $("#see-more-btn").prop("disabled", false);
-              }, 5000);
-            }
-          });
+              if (state.type === DOCUMENT_TITLE_UPDATED) {
+                console.log("Title updated");
+                var oldTitle = currentConfig.document.title;
+                currentConfig.document.title = state.title;
+                window.document.title = window.document.title.replace(oldTitle, state.title);
+                $("#editor-drawer").find(".editable-title").text(state.title).append("<i class='uiIconPencilEdit'></i>");
+                var documentOldTitle = config.explorerUrl.substr(config.explorerUrl.lastIndexOf("/"));
+                var url = config.explorerUrl.split(documentOldTitle)[0];
+                var documentNewPath = url + "/" + state.title;
+                config.explorerUrl = documentNewPath;
+                $("#see-more-btn").prop("disabled", true);
+                setTimeout(function() {
+                  $("#see-more-btn").prop("disabled", false);
+                }, 5000);
+              }
+            });
 
-          // Establish a Comet/WebSocket channel from this point.
-          // A new editor page will join the channel and notify when the doc
-          // will be saved
-          // so we'll refresh this explorer view to reflect the edited content.
-          subscribeDocument(currentConfig.docId);
-          editorsupport.onEditorOpen(currentConfig.docId, currentConfig.workspace, ONLYOFFICE);
-          // We are a editor oage here: publish that the doc was changed by
-          // current user
+            // Establish a Comet/WebSocket channel from this point.
+            // A new editor page will join the channel and notify when the doc
+            // will be saved
+            // so we'll refresh this explorer view to reflect the edited content.
+            subscribeDocument(currentConfig.docId);
+            // We are a editor oage here: publish that the doc was changed by
+            // current user
 
-          window.addEventListener("beforeunload", function() {
-            UI.closeEditor(); // try this first, then in unload
-          });
+            window.addEventListener("beforeunload", function() {
+              UI.closeEditor(); // try this first, then in unload
+            });
 
-          window.addEventListener("unload", function() {
-            UI.closeEditor();
-            // We need to save current changes when user closes the editor
-            if (currentConfig) {
-              publishDocument(currentConfig.docId, {
-                "type" : EDITOR_CLOSED,
-                "userId" : currentUserId,
-                "explorerUrl" : config.explorerUrl,
-                "key" : currentConfig.document.key,
-                "changes" : currentUserChanges
-              });
-            }
-          });
+            window.addEventListener("unload", function() {
+              UI.closeEditor();
+              // We need to save current changes when user closes the editor
+              if (currentConfig) {
+                publishDocument(currentConfig.docId, {
+                  "type" : EDITOR_CLOSED,
+                  "userId" : currentUserId,
+                  "explorerUrl" : config.explorerUrl,
+                  "key" : currentConfig.document.key,
+                  "changes" : currentUserChanges
+                });
+              }
+            });
 
-          $(function() {
-            try {
-              UI.create(currentConfig);
-            } catch (e) {
-              log("Error initializing Onlyoffice client UI " + e, e);
-            }
-          });
-        } else {
-          log("ERROR: editor config not defined: " + localConfig);
-          UI.showError(message("ErrorTitle"), message("ErrorConfigNotDefined"));
-        }
-      }).fail(function(error) {
-        log("ERROR: editor config creation failed : " + error);
-        UI.showError(message("ErrorTitle"), message("ErrorCreateConfig"));
-      });
+            $(function() {
+              try {
+                UI.create(currentConfig);
+              } catch (e) {
+                log("Error initializing Onlyoffice client UI " + e, e);
+              }
+            });
+          } else {
+            log("ERROR: editor config not defined: " + localConfig);
+            UI.showError(message("ErrorTitle"), message("ErrorConfigNotDefined"));
+          }
+        }).fail(function(error) {
+          log("ERROR: editor config creation failed : " + error);
+          UI.showError(message("ErrorTitle"), message("ErrorCreateConfig"));
+        });
 
-      $("#open-drawer-btn").on('click', function() {
-        return UI.openDrawer();
-      });
+        $("#open-drawer-btn").on('click', function() {
+          return UI.openDrawer();
+        });
 
-      $("#editor-drawer .header .closebtn").on('click', function() {
-        return UI.closeDrawer();
-      });
+        $("#editor-drawer .header .closebtn").on('click', function() {
+          return UI.closeDrawer();
+        });
 
-      $("#see-more-btn").on('click', function() {
-        window.open(config.explorerUrl);
-      });
+        $("#see-more-btn").on('click', function() {
+          window.open(config.explorerUrl);
+        });
 
-      $("#load-more-btn").on('click', function() {
-        UI.loadVersions(currentConfig.workspace, currentConfig.docId, 3, pageToLoad);
-        pageToLoad++;
+        $("#load-more-btn").on('click', function() {
+          UI.loadVersions(currentConfig.workspace, currentConfig.docId, 3, pageToLoad);
+          pageToLoad++;
+        }); 
+      }).fail(function() {
+        UI.showError(message("ErrorTitle"), message("AnotherEditorIsOpen"));
       });
     };
 

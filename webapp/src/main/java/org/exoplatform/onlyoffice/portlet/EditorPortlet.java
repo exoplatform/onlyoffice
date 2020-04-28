@@ -126,7 +126,6 @@ public class EditorPortlet extends GenericPortlet {
 
     if (config != null) {
       try {
-        documentService.initEditorSupportModule(PROVIDER_NAME, config.getWorkspace());
         requireJS().require("SHARED/bts_tooltip");
         callModule("initEditor(" + config.toJSON() + ");");
       } catch (JsonException e) {

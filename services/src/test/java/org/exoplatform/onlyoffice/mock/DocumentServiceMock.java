@@ -205,7 +205,4 @@ public class DocumentServiceMock implements DocumentService {
     return null;
   }
 
-  @Override
-  public void initEditorSupportModule(String provider, String workspace) {
-  }
 }
