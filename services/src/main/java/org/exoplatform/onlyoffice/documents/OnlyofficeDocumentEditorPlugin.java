@@ -37,6 +37,8 @@ import org.exoplatform.onlyoffice.OnlyofficeEditorException;
 import org.exoplatform.onlyoffice.OnlyofficeEditorService;
 import org.exoplatform.onlyoffice.cometd.CometdConfig;
 import org.exoplatform.onlyoffice.cometd.CometdOnlyofficeService;
+import org.exoplatform.portal.application.PortalRequestContext;
+import org.exoplatform.portal.webui.util.Util;
 import org.exoplatform.services.cms.documents.DocumentEditor;
 import org.exoplatform.services.cms.documents.NewDocumentTemplate;
 import org.exoplatform.services.cms.link.LinkManager;
@@ -45,7 +47,6 @@ import org.exoplatform.services.log.Log;
 import org.exoplatform.services.resources.ResourceBundleService;
 import org.exoplatform.services.security.ConversationState;
 import org.exoplatform.webui.application.WebuiRequestContext;
-import org.exoplatform.webui.application.portlet.PortletRequestContext;
 
 /**
  * The Class OnlyOfficeNewDocumentEditorPlugin.
@@ -292,7 +293,7 @@ public class OnlyofficeDocumentEditorPlugin extends BaseComponentPlugin implemen
     if (requestURI != null) {
       link = editorService.getEditorLink(node, requestURI.getScheme(), requestURI.getHost(), requestURI.getPort());
     } else {
-      PortletRequestContext pcontext = (PortletRequestContext) WebuiRequestContext.getCurrentInstance();
+      PortalRequestContext pcontext = Util.getPortalRequestContext();
       if (pcontext != null) {
         link = editorService.getEditorLink(node,
                                            pcontext.getRequest().getScheme(),
