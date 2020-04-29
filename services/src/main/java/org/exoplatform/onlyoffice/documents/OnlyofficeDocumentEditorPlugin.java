@@ -300,7 +300,7 @@ public class OnlyofficeDocumentEditorPlugin extends BaseComponentPlugin implemen
                                            pcontext.getRequest().getServerName(),
                                            pcontext.getRequest().getServerPort());
       } else {
-        throw new OnlyofficeEditorException("Cannot get editor link - request URI and PortletRequestContext are null");
+        throw new OnlyofficeEditorException("Cannot get editor link - request URI and PortalRequestContext are null");
       }
     }
     editorLinks.putIfAbsent(node, link);
