@@ -516,13 +516,14 @@ public class OnlyofficeEditorServiceTest extends BaseCommonsTestCase {
     // Given
     startSessionAs("john");
     Node node = createDocument("Test Document.docx", "nt:file", "testContent", true);
-
-    // When
-    Node nodeDocument = editorService.getDocumentById(null, "john");
-
-    // Then
-    assertNull(nodeDocument);
-    node.remove();
+    try {
+      editorService.getDocumentById(null, "john");
+      fail();
+    } catch (DocumentNotFoundException e) {
+      assertTrue(e instanceof DocumentNotFoundException);
+    } finally {
+      node.remove();
+    }
   }
 
   /**
