@@ -240,11 +240,11 @@ public interface OnlyofficeEditorService {
    * @param node the node
    * @return the document ID or <code>null</code>
    * @throws OnlyofficeEditorException the onlyoffice editor exception
-   * @throws RepositoryException the repository exception
+   * @throws DocumentNotFoundException the document not found exception
    * @see #initDocument(String, String)
    * @see #canEditDocument(Node)
    */
-  String getDocumentId(Node node) throws OnlyofficeEditorException, RepositoryException;
+  String getDocumentId(Node node) throws DocumentNotFoundException, RepositoryException;
 
   /**
    * Checks if the node has compatible mime-types.
@@ -262,9 +262,10 @@ public interface OnlyofficeEditorService {
    *          one will be used
    * @param uuid the id of a document
    * @return the document or <code>null</code> if nothing found
+   * @throws DocumentNotFoundException the document not found exception
    * @throws RepositoryException the repository exception
    */
-  Node getDocumentById(String workspace, String uuid) throws RepositoryException;
+  Node getDocumentById(String workspace, String uuid) throws RepositoryException, DocumentNotFoundException;
 
 
   /**

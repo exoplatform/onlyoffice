@@ -32,7 +32,7 @@ import javax.jcr.RepositoryException;
 import org.exoplatform.container.PortalContainer;
 import org.exoplatform.container.component.BaseComponentPlugin;
 import org.exoplatform.ecm.webui.component.explorer.UIJCRExplorer;
-import org.exoplatform.onlyoffice.EditorLinkNotFoundException;
+import org.exoplatform.onlyoffice.DocumentNotFoundException;
 import org.exoplatform.onlyoffice.OnlyofficeEditorException;
 import org.exoplatform.onlyoffice.OnlyofficeEditorService;
 import org.exoplatform.onlyoffice.cometd.CometdConfig;
@@ -50,7 +50,7 @@ import org.exoplatform.webui.application.portlet.PortletRequestContext;
 /**
  * The Class OnlyOfficeNewDocumentEditorPlugin.
  */
-public class OnlyOfficeDocumentEditorPlugin extends BaseComponentPlugin implements DocumentEditor {
+public class OnlyofficeDocumentEditorPlugin extends BaseComponentPlugin implements DocumentEditor {
 
   /** The Constant PROVIDER_NAME. */
   protected static final String           PROVIDER_NAME                = "onlyoffice";
@@ -60,7 +60,7 @@ public class OnlyOfficeDocumentEditorPlugin extends BaseComponentPlugin implemen
 
   /** The Constant LOG. */
   protected static final Log              LOG                          =
-                                              ExoLogger.getLogger(OnlyOfficeDocumentEditorPlugin.class);
+                                              ExoLogger.getLogger(OnlyofficeDocumentEditorPlugin.class);
 
   /** The Constant STREAM. */
   protected static final String           STREAM                       = "stream";
@@ -97,7 +97,7 @@ public class OnlyOfficeDocumentEditorPlugin extends BaseComponentPlugin implemen
    * @param cometdService the cometdService
    * @param linkManager the link manager
    */
-  public OnlyOfficeDocumentEditorPlugin(OnlyofficeEditorService editorService,
+  public OnlyofficeDocumentEditorPlugin(OnlyofficeEditorService editorService,
                                         ResourceBundleService i18nService,
                                         CometdOnlyofficeService cometdService,
                                         LinkManager linkManager) {
@@ -270,7 +270,7 @@ public class OnlyOfficeDocumentEditorPlugin extends BaseComponentPlugin implemen
     try {
       Node node = editorService.getDocumentById(workspace, fileId);
       return editorService.canEditDocument(node);
-    } catch (RepositoryException e) {
+    } catch (DocumentNotFoundException | RepositoryException e) {
       LOG.error("Cannot check if the file is supported", e);
     }
     return false;

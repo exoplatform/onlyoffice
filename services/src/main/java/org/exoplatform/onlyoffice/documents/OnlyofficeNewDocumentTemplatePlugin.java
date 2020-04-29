@@ -17,13 +17,13 @@ import org.exoplatform.services.log.ExoLogger;
 import org.exoplatform.services.log.Log;
 
 /**
- * The Class OnlyOfficeNewDocumentTemplatePlugin.
+ * The Class OnlyofficeNewDocumentTemplatePlugin.
  */
-public class OnlyOfficeNewDocumentTemplatePlugin extends BaseComponentPlugin implements NewDocumentTemplatePlugin {
+public class OnlyofficeNewDocumentTemplatePlugin extends BaseComponentPlugin implements NewDocumentTemplatePlugin {
 
   /** The Constant LOG. */
   protected static final Log          LOG                              =
-                                          ExoLogger.getLogger(OnlyOfficeNewDocumentTemplatePlugin.class);
+                                          ExoLogger.getLogger(OnlyofficeNewDocumentTemplatePlugin.class);
 
   /**   The DOCUMENT_TYPES_CONFIGURATION param. */
   private static final String         DOCUMENT_TEMPLATES_CONFIGURATION = "document-templates-configuration";
@@ -35,12 +35,12 @@ public class OnlyOfficeNewDocumentTemplatePlugin extends BaseComponentPlugin imp
   protected final DocumentService     documentService;
 
   /**
-   * Instantiates a new OnlyOffice new document template plugin.
+   * Instantiates a new Onlyoffice new document template plugin.
    *
    * @param documentService the new document service
    * @param initParams the init params
    */
-  public OnlyOfficeNewDocumentTemplatePlugin(DocumentService documentService, InitParams initParams) {
+  public OnlyofficeNewDocumentTemplatePlugin(DocumentService documentService, InitParams initParams) {
     ObjectParameter typesParam = initParams.getObjectParam(DOCUMENT_TEMPLATES_CONFIGURATION);
     if (typesParam != null) {
       Object obj = typesParam.getObject();
@@ -88,7 +88,7 @@ public class OnlyOfficeNewDocumentTemplatePlugin extends BaseComponentPlugin imp
 
   @Override
   public Class<? extends DocumentEditor> getEditorClass() {
-    return OnlyOfficeDocumentEditorPlugin.class;
+    return OnlyofficeDocumentEditorPlugin.class;
   }
 
 }

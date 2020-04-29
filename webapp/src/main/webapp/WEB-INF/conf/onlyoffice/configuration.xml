@@ -55,7 +55,7 @@
     <component-plugin>
       <name>onlyofficeTemplatePlugin</name>
       <set-method>addDocumentTemplatePlugin</set-method>
-      <type>org.exoplatform.onlyoffice.documents.OnlyOfficeNewDocumentTemplatePlugin</type>
+      <type>org.exoplatform.onlyoffice.documents.OnlyofficeNewDocumentTemplatePlugin</type>
       <description>The document templates plugin contains a list of avaliable templates</description>
       <init-params>
         <object-param>
@@ -125,7 +125,7 @@
     <component-plugin>
       <name>onlyofficeEditorPlugin</name>
       <set-method>addDocumentEditorPlugin</set-method>
-      <type>org.exoplatform.onlyoffice.documents.OnlyOfficeDocumentEditorPlugin</type>
+      <type>org.exoplatform.onlyoffice.documents.OnlyofficeDocumentEditorPlugin</type>
       <description>The document editor plugin</description>
     </component-plugin>
   </external-component-plugins>

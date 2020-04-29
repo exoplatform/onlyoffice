@@ -590,9 +590,6 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
       docId = initDocument(workspace, docId);
     }
     Node node = getDocumentById(workspace, docId);
-    if (node == null) {
-      throw new DocumentNotFoundException("The document is not found. docId: " + docId + ", workspace: " + workspace);
-    }
     String path = node.getPath();
 
     // only nt:file are supported for online edition
@@ -991,7 +988,7 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
       }
       return link;
     } else {
-      LOG.debug("Editor link not found for {}", node.getPath());
+      LOG.warn("Editor link not found for {}", node.getPath());
       throw new EditorLinkNotFoundException("Editor link not found for node: " + node.getPath());
     }
   }
@@ -1000,11 +997,11 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
    * {@inheritDoc}
    */
   @Override
-  public String getDocumentId(Node node) throws OnlyofficeEditorException, RepositoryException {
+  public String getDocumentId(Node node) throws DocumentNotFoundException, RepositoryException {
     if (node.isNodeType("mix:referenceable")) {
       return node.getUUID();
     }
-    return null;
+    throw new DocumentNotFoundException("The document not found with path: " + node.getPath());
   }
 
 
@@ -1012,7 +1009,7 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
    * {@inheritDoc}
    */
   @Override
-  public Node getDocumentById(String workspace, String uuid) throws RepositoryException {
+  public Node getDocumentById(String workspace, String uuid) throws RepositoryException, DocumentNotFoundException {
     if (workspace == null) {
       workspace = jcrService.getCurrentRepository().getConfiguration().getDefaultWorkspaceName();
     }
@@ -1022,7 +1019,7 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
       if (LOG.isDebugEnabled()) {
         LOG.debug("The node is not found. Workspace: {}, UUID: {}", workspace, uuid);
       }
-      return null;
+      throw new DocumentNotFoundException("The document not found with uuid: " + uuid + ", and workspace: " + workspace);
     }
   }
 
@@ -1033,27 +1030,24 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
   public List<Version> getVersions(String workspace, String docId, int itemParPage, int pageNum) throws Exception {
     List<Version> versions = new ArrayList<>();
     Node currentNode = getDocumentById(workspace, docId);
-    if (currentNode != null) {
-      if (itemParPage == 0) {
-        return versions;
-      }
-      ;
-      VersionNode rootVersion = new VersionNode(currentNode, currentNode.getSession());
+    if (itemParPage == 0) {
+      return versions;
+    }
+    VersionNode rootVersion = new VersionNode(currentNode, currentNode.getSession());
 
-      List<VersionNode> versionNodes = getNodeVersions(rootVersion.getChildren(), new ArrayList<>());
-      int pageNbrs = (int) Math.ceil((double) versionNodes.size() / (double) itemParPage);
-      for (int i = 0; i < versionNodes.size(); i++) {
-        VersionNode versionNode = versionNodes.get(i);
-        Version version = new Version();
-        version.setAuthor(versionNode.getAuthor());
-        version.setName(versionNode.getName());
-        version.setDisplayName(versionNode.getDisplayName());
-        version.setFullName(getUser(versionNode.getAuthor()).getDisplayName());
-        version.setVersionLabels(versionNode.getVersionLabels());
-        version.setCreatedTime(versionNode.getCreatedTime().getTimeInMillis());
-        version.setVersionPageNumber(pageNbrs);
-        versions.add(version);
-      }
+    List<VersionNode> versionNodes = getNodeVersions(rootVersion.getChildren(), new ArrayList<>());
+    int pageNbrs = (int) Math.ceil((double) versionNodes.size() / (double) itemParPage);
+    for (int i = 0; i < versionNodes.size(); i++) {
+      VersionNode versionNode = versionNodes.get(i);
+      Version version = new Version();
+      version.setAuthor(versionNode.getAuthor());
+      version.setName(versionNode.getName());
+      version.setDisplayName(versionNode.getDisplayName());
+      version.setFullName(getUser(versionNode.getAuthor()).getDisplayName());
+      version.setVersionLabels(versionNode.getVersionLabels());
+      version.setCreatedTime(versionNode.getCreatedTime().getTimeInMillis());
+      version.setVersionPageNumber(pageNbrs);
+      versions.add(version);
     }
     return getPages(versions, itemParPage, pageNum);
   }
@@ -1380,10 +1374,6 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
         return;
       }
       NodeImpl node = (NodeImpl) getDocumentById(workspace, docId);
-      if (node == null) {
-        throw new DocumentNotFoundException("Cannot find document. docId: " + docId);
-      }
-
       Node parentNode = node.getParent();
       if (parentNode.canAddMixin(NodetypeConstant.MIX_REFERENCEABLE)) {
         parentNode.addMixin(NodetypeConstant.MIX_REFERENCEABLE);
@@ -1792,12 +1782,6 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
       DocumentNotFoundException notFoundEx = null;
       try {
         node = getDocumentById(workspace, config.getDocId());
-        // DocumentNotFoundException if it is and go out the try-catch
-        if (node == null) {
-          notFoundEx = new DocumentNotFoundException("The document is not found. docId: " + config.getDocId() + ", workspace: "
-              + workspace);
-          throw notFoundEx;
-        }
         if (trashService.isInTrash(node)) {
           notFoundEx = new DocumentNotFoundException("The document is in trash. docId: " + config.getDocId() + ", workspace: "
               + workspace);

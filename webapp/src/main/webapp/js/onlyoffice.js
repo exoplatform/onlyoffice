@@ -657,23 +657,27 @@
      * Initializes a document preview.
      */
     this.initPreview = function(settings) {
-      init(settings.userId, settings.cometdConf, settings.messages);
-      log("Initialize preview of document: " + settings.fileId);
-      // We set timeout here to avoid the case when the element is rendered but
-      // is going to be updated soon
-      setTimeout(function() {
-        store.subscribe(function() {
-          var state = store.getState();
-          if (state.type === DOCUMENT_SAVED && state.docId === settings.fileId) {
-            UI.addRefreshBannerPDF();
-          }
-        });
-      }, 100);
-      subscribeDocument(settings.fileId);
-      if (settings.link != null) {
-        editorbuttons.addCreateButtonFn(ONLYOFFICE, function() {
-          return UI.createEditorButton(settings.link);
-        });
+      if (settings) {
+        init(settings.userId, settings.cometdConf, settings.messages);
+        log("Initialize preview of document: " + settings.fileId);
+        // We set timeout here to avoid the case when the element is rendered but
+        // is going to be updated soon
+        setTimeout(function() {
+          store.subscribe(function() {
+            var state = store.getState();
+            if (state.type === DOCUMENT_SAVED && state.docId === settings.fileId) {
+              UI.addRefreshBannerPDF();
+            }
+          });
+        }, 100);
+        subscribeDocument(settings.fileId);
+        if (settings.link != null) {
+          editorbuttons.addCreateButtonFn(ONLYOFFICE, function() {
+            return UI.createEditorButton(settings.link);
+          });
+        }
+      } else {
+        log("Cannot init preview - the settings are null");
       }
     };
 
@@ -681,34 +685,38 @@
      * Initializes JCRExplorer when a document is displayed.
      */
     this.initExplorer = function(settings) {
-      init(settings.userId, settings.cometdConf, settings.messages);
-      log("Initialize explorer with document: " + settings.fileId);
-      // Listen document updated
-      store.subscribe(function() {
-        var state = store.getState();
-        if (state.type === DOCUMENT_SAVED) {
-          if (state.userId === currentUserId) {
-            UI.refreshPDFPreview();
-          } else {
-            UI.addRefreshBannerPDF();
+      if (settings) {
+        init(settings.userId, settings.cometdConf, settings.messages);
+        log("Initialize explorer with document: " + settings.fileId);
+        // Listen document updated
+        store.subscribe(function() {
+          var state = store.getState();
+          if (state.type === DOCUMENT_SAVED) {
+            if (state.userId === currentUserId) {
+              UI.refreshPDFPreview();
+            } else {
+              UI.addRefreshBannerPDF();
+            }
           }
-        }
-        if (state.type === DOCUMENT_DELETED) {
-          UI.showError(message("ErrorTitle"), message("ErrorFileDeletedECMS"));
-        }
-      });
-      if (settings.docId != explorerDocId) {
-        // We need unsubscribe from previous doc
-        if (explorerDocId) {
-          unsubscribeDocument(explorerDocId);
-        }
-        subscribeDocument(settings.docId);
-        explorerDocId = settings.docId;
-      }
-      if (settings.link != null) {
-        editorbuttons.addCreateButtonFn(ONLYOFFICE, function() {
-          return UI.createEditorButton(settings.link);
+          if (state.type === DOCUMENT_DELETED) {
+            UI.showError(message("ErrorTitle"), message("ErrorFileDeletedECMS"));
+          }
         });
+        if (settings.docId != explorerDocId) {
+          // We need unsubscribe from previous doc
+          if (explorerDocId) {
+            unsubscribeDocument(explorerDocId);
+          }
+          subscribeDocument(settings.docId);
+          explorerDocId = settings.docId;
+        }
+        if (settings.link != null) {
+          editorbuttons.addCreateButtonFn(ONLYOFFICE, function() {
+            return UI.createEditorButton(settings.link);
+          });
+        } 
+      } else {
+        log("Cannot init explorer - the settings are null");
       }
     };
 
