@@ -33,6 +33,7 @@ import org.exoplatform.container.PortalContainer;
 import org.exoplatform.container.component.BaseComponentPlugin;
 import org.exoplatform.ecm.webui.component.explorer.UIJCRExplorer;
 import org.exoplatform.onlyoffice.DocumentNotFoundException;
+import org.exoplatform.onlyoffice.EditorLinkNotFoundException;
 import org.exoplatform.onlyoffice.OnlyofficeEditorException;
 import org.exoplatform.onlyoffice.OnlyofficeEditorService;
 import org.exoplatform.onlyoffice.cometd.CometdConfig;
@@ -54,26 +55,44 @@ import org.exoplatform.webui.application.WebuiRequestContext;
 public class OnlyofficeDocumentEditorPlugin extends BaseComponentPlugin implements DocumentEditor {
 
   /** The Constant PROVIDER_NAME. */
-  protected static final String           PROVIDER_NAME                = "onlyoffice";
+  protected static final String           PROVIDER_NAME                       = "onlyoffice";
 
   /** The Constant PROVIDER_CONFIGURATION_PARAM. */
-  protected static final String           PROVIDER_CONFIGURATION_PARAM = "provider-configuration";
+  protected static final String           PROVIDER_CONFIGURATION_PARAM        = "provider-configuration";
+
+  /** The Constant EDITOR_LINK_NOT_FOUND_ERROR. */
+  protected static final String           EDITOR_LINK_NOT_FOUND_ERROR         = "EditorLinkNotFoundError";
+
+  /** The Constant EDITOR_LINK_NOT_FOUND_ERROR_MESSAGE. */
+  protected static final String           EDITOR_LINK_NOT_FOUND_ERROR_MESSAGE = "EditorLinkNotFoundErrorMessage";
+
+  /** The Constant STORAGE_ERROR. */
+  protected static final String           STORAGE_ERROR                       = "StorageError";
+
+  /** The Constant STORAGE_ERROR_MESSAGE. */
+  protected static final String           STORAGE_ERROR_MESSAGE               = "StorageErrorMessage";
+
+  /** The Constant INTERNAL_EDITOR_ERROR. */
+  protected static final String           INTERNAL_EDITOR_ERROR               = "InternalEditorError";
+
+  /** The Constant INTERNAL_EDITOR_ERROR_MESSAGE. */
+  protected static final String           INTERNAL_EDITOR_ERROR_MESSAGE       = "InternalEditorErrorMessage";
 
   /** The Constant LOG. */
-  protected static final Log              LOG                          =
+  protected static final Log              LOG                                 =
                                               ExoLogger.getLogger(OnlyofficeDocumentEditorPlugin.class);
 
   /** The Constant STREAM. */
-  protected static final String           STREAM                       = "stream";
+  protected static final String           STREAM                              = "stream";
 
   /** The Constant PREVIEW. */
-  protected static final String           PREVIEW                      = "peview";
+  protected static final String           PREVIEW                             = "peview";
 
   /** The Constant DRIVES. */
-  protected static final String           DRIVES                       = "drives";
+  protected static final String           DRIVES                              = "drives";
 
   /** The Constant CLIENT_RESOURCE_PREFIX. */
-  protected static final String           CLIENT_RESOURCE_PREFIX       = "OnlyofficeEditorClient.";
+  protected static final String           CLIENT_RESOURCE_PREFIX              = "OnlyofficeEditorClient.";
 
   /** The editor service. */
   protected final OnlyofficeEditorService editorService;
@@ -88,7 +107,7 @@ public class OnlyofficeDocumentEditorPlugin extends BaseComponentPlugin implemen
   protected final LinkManager             linkManager;
 
   /** The editor links. */
-  protected final Map<Node, String>       editorLinks                  = new ConcurrentHashMap<>();
+  protected final Map<Node, String>       editorLinks                         = new ConcurrentHashMap<>();
 
   /**
    * Instantiates a new OnlyOffice new document editor plugin.
@@ -195,16 +214,25 @@ public class OnlyofficeDocumentEditorPlugin extends BaseComponentPlugin implemen
         }
         String documentId = editorService.initDocument(node);
         String link = null;
+        EditorError error = null;
         try {
           link = contextEditorLink(node, PREVIEW, requestUri);
+        } catch (EditorLinkNotFoundException e) {
+          LOG.debug("Cannot get editor link for preview: {}", e.getMessage());
+          error = new EditorError(EDITOR_LINK_NOT_FOUND_ERROR, EDITOR_LINK_NOT_FOUND_ERROR_MESSAGE);
         } catch (OnlyofficeEditorException e) {
           LOG.error("Cannot get editor link for preview: ", e);
+          error = new EditorError(INTERNAL_EDITOR_ERROR, INTERNAL_EDITOR_ERROR_MESSAGE);
+        } catch (RepositoryException e) {
+          LOG.error("Cannot get editor link for preview: ", e);
+          error = new EditorError(STORAGE_ERROR, STORAGE_ERROR_MESSAGE);
         }
+
         Map<String, String> messages = initMessages(locale);
         CometdConfig cometdConf = new CometdConfig(cometdService.getCometdServerPath(),
                                                    cometdService.getUserToken(userId),
                                                    PortalContainer.getCurrentPortalContainerName());
-        return new EditorSetting(documentId, link, userId, cometdConf, messages);
+        return new EditorSetting(documentId, link, userId, cometdConf, messages, error);
       }
     } catch (OnlyofficeEditorException e) {
       LOG.error("Cannot initialize preview for fileId: {}, workspace: {}. {}", fileId, workspace, e.getMessage());
@@ -242,16 +270,24 @@ public class OnlyofficeDocumentEditorPlugin extends BaseComponentPlugin implemen
           LOG.warn("Cannot check for symlink node {}:{} - UIJCRExplorer is null", fileId, workspace);
         }
         String link = null;
+        EditorError error = null;
         try {
-          link = contextEditorLink(node, DRIVES, null);
+          link = contextEditorLink(node, PREVIEW, null);
+        } catch (EditorLinkNotFoundException e) {
+          LOG.debug("Cannot get editor link for preview: {}", e.getMessage());
+          error = new EditorError(EDITOR_LINK_NOT_FOUND_ERROR, EDITOR_LINK_NOT_FOUND_ERROR_MESSAGE);
         } catch (OnlyofficeEditorException e) {
-          LOG.error("Cannot get editor link for explorer: ", e);
+          LOG.error("Cannot get editor link for preview: ", e);
+          error = new EditorError(INTERNAL_EDITOR_ERROR, INTERNAL_EDITOR_ERROR_MESSAGE);
+        } catch (RepositoryException e) {
+          LOG.error("Cannot get editor link for preview: ", e);
+          error = new EditorError(STORAGE_ERROR, STORAGE_ERROR_MESSAGE);
         }
         Map<String, String> messages = initMessages(context.getLocale());
         CometdConfig cometdConf = new CometdConfig(cometdService.getCometdServerPath(),
                                                    cometdService.getUserToken(userId),
                                                    PortalContainer.getCurrentPortalContainerName());
-        return new EditorSetting(fileId, link, userId, cometdConf, messages);
+        return new EditorSetting(fileId, link, userId, cometdConf, messages, error);
       }
     } catch (Exception e) {
       LOG.error("Cannot initialize explorer for fileId: " + fileId + ", workspace: " + workspace, e);
@@ -363,6 +399,9 @@ public class OnlyofficeDocumentEditorPlugin extends BaseComponentPlugin implemen
     /** The messages. */
     private final Map<String, String> messages;
 
+    /** The error. */
+    private final EditorError         error;
+
     /**
      * Instantiates a new editor setting.
      *
@@ -371,13 +410,20 @@ public class OnlyofficeDocumentEditorPlugin extends BaseComponentPlugin implemen
      * @param userId the user id
      * @param cometdConf the cometd conf
      * @param messages the messages
+     * @param error the error
      */
-    public EditorSetting(String fileId, String link, String userId, CometdConfig cometdConf, Map<String, String> messages) {
+    public EditorSetting(String fileId,
+                         String link,
+                         String userId,
+                         CometdConfig cometdConf,
+                         Map<String, String> messages,
+                         EditorError error) {
       this.fileId = fileId;
       this.link = link;
       this.userId = userId;
       this.cometdConf = cometdConf;
       this.messages = messages;
+      this.error = error;
     }
 
     /**
@@ -424,6 +470,57 @@ public class OnlyofficeDocumentEditorPlugin extends BaseComponentPlugin implemen
     public Map<String, String> getMessages() {
       return messages;
     }
+
+    /**
+     * Gets the error.
+     *
+     * @return the error
+     */
+    public EditorError getError() {
+      return error;
+    }
+  }
+
+  /**
+   * The Class Error.
+   */
+  public static class EditorError {
+
+    /** The key. */
+    private final String type;
+    
+    /** The message. */
+    private final String message;
+
+    /**
+     * Instantiates a new editor error.
+     *
+     * @param type the type
+     * @param message the message
+     */
+    public EditorError(String type, String message) { 
+      this.type = type;
+      this.message = message;
+    }
+
+    /**
+     * Gets the message.
+     *
+     * @return the message
+     */
+    public String getMessage() {
+      return message;
+    }
+
+    /**
+     * Gets the type.
+     *
+     * @return the type
+     */
+    public String getType() {
+      return type;
+    }
+
   }
 
 }

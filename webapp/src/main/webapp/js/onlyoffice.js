@@ -675,7 +675,9 @@
           editorbuttons.addCreateButtonFn(ONLYOFFICE, function() {
             return UI.createEditorButton(settings.link);
           });
-        }
+        } else if (settings.error) {
+          log(message(settings.error.type) + " - " + message(settings.error.message));
+        } 
       } else {
         log("Cannot init preview - the settings are null");
       }
@@ -714,6 +716,8 @@
           editorbuttons.addCreateButtonFn(ONLYOFFICE, function() {
             return UI.createEditorButton(settings.link);
           });
+        } else if (settings.error) {
+          log(message(settings.error.type) + " - " + message(settings.error.message));
         } 
       } else {
         log("Cannot init explorer - the settings are null");
