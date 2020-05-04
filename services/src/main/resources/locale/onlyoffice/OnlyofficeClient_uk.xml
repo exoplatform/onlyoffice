@@ -6,11 +6,11 @@
     <EditButtonTitle>Edit in OnlyOffice</EditButtonTitle>
     <SaveVersionLabel>Save version</SaveVersionLabel>
     <SeeMoreButton>Go to full version history</SeeMoreButton>
-    <LoadMoreButton>Charger plus</LoadMoreButton>
-    <CloseButton>Fermer</CloseButton>
-    <SaveButton>Enregistrer</SaveButton>
+    <LoadMoreButton>Load more</LoadMoreButton>
+    <CloseButton>Закрити</CloseButton>
+    <SaveButton>Зберегти</SaveButton>
     <PlaceHolderTextarea>Write your summary of changes ...</PlaceHolderTextarea>
-    <TitleTooltip>Cliquez pour modifier</TitleTooltip>
+    <TitleTooltip>натисніть для редагування</TitleTooltip>
     <OpenDrawerBtn>Add new version</OpenDrawerBtn>
     <NoVersions>No versions</NoVersions>
     <AlertSave>Changes saved</AlertSave>
@@ -18,8 +18,8 @@
     <UpdateBannerTitle>The document has been updated.</UpdateBannerTitle>
     <ReloadButtonTitle>Reload</ReloadButtonTitle>
 
-    <ErrorTitle>Erreur</ErrorTitle>
-    <InfoTitle>Information:</InfoTitle>
+    <ErrorTitle>Помилка</ErrorTitle>
+    <InfoTitle>Інформація</InfoTitle>
 
     <ErrorConfigNotDefined>Editor configuration not defined</ErrorConfigNotDefined>
     <ErrorLinkNotFound>Editor link not found</ErrorLinkNotFound>
@@ -27,15 +27,15 @@
     <ErrorFileDeletedECMS>The file has been deleted. You can try to restore it from Trash</ErrorFileDeletedECMS>
     <ErrorFileDeletedEditor>The file has been deleted. You can save it using File -&gt; Save</ErrorFileDeletedEditor>
     <TimeConvert>
-      <Less_Than_A_Minute>il y a moins d'une minute</Less_Than_A_Minute>
-      <About_A_Minute>il y a une minute</About_A_Minute>
-      <About_X_Minutes>il y a environ {0} minutes</About_X_Minutes>
-      <About_An_Hour>il y a environ une heure</About_An_Hour>
-      <About_X_Hours>il y a environ {0} heures</About_X_Hours>
-      <About_A_Day>il y a environ un jour</About_A_Day>
-      <About_X_Days>il y a environ {0} jours</About_X_Days>
-      <About_A_Month>il y a environ un mois</About_A_Month>
-      <About_X_Months>il y a environ {0} mois</About_X_Months>
+      <Less_Than_A_Minute>менше хвилини назад</Less_Than_A_Minute>
+      <About_A_Minute>біля хвилини назад</About_A_Minute>
+      <About_X_Minutes>біля {0} хвилин назад</About_X_Minutes>
+      <About_An_Hour>близько години назад</About_An_Hour>
+      <About_X_Hours>біля {0} годин назад</About_X_Hours>
+      <About_A_Day>День назад</About_A_Day>
+      <About_X_Days>близько {0} днів назад</About_X_Days>
+      <About_A_Month>близько місяця назад</About_A_Month>
+      <About_X_Months>Близько {0} місяців назад</About_X_Months>
     </TimeConvert>
   </OnlyofficeEditorClient>
 </bundle>

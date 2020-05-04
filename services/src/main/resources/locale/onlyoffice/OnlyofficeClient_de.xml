@@ -6,11 +6,11 @@
     <EditButtonTitle>Edit in OnlyOffice</EditButtonTitle>
     <SaveVersionLabel>Save version</SaveVersionLabel>
     <SeeMoreButton>Go to full version history</SeeMoreButton>
-    <LoadMoreButton>Charger plus</LoadMoreButton>
-    <CloseButton>Fermer</CloseButton>
-    <SaveButton>Enregistrer</SaveButton>
+    <LoadMoreButton>Load more</LoadMoreButton>
+    <CloseButton>Schließen</CloseButton>
+    <SaveButton>Speichern</SaveButton>
     <PlaceHolderTextarea>Write your summary of changes ...</PlaceHolderTextarea>
-    <TitleTooltip>Cliquez pour modifier</TitleTooltip>
+    <TitleTooltip>Klicken, um zu ändern</TitleTooltip>
     <OpenDrawerBtn>Add new version</OpenDrawerBtn>
     <NoVersions>No versions</NoVersions>
     <AlertSave>Changes saved</AlertSave>
@@ -18,8 +18,8 @@
     <UpdateBannerTitle>The document has been updated.</UpdateBannerTitle>
     <ReloadButtonTitle>Reload</ReloadButtonTitle>
 
-    <ErrorTitle>Erreur</ErrorTitle>
-    <InfoTitle>Information:</InfoTitle>
+    <ErrorTitle>Fehler</ErrorTitle>
+    <InfoTitle>Informationen</InfoTitle>
 
     <ErrorConfigNotDefined>Editor configuration not defined</ErrorConfigNotDefined>
     <ErrorLinkNotFound>Editor link not found</ErrorLinkNotFound>
@@ -27,15 +27,15 @@
     <ErrorFileDeletedECMS>The file has been deleted. You can try to restore it from Trash</ErrorFileDeletedECMS>
     <ErrorFileDeletedEditor>The file has been deleted. You can save it using File -&gt; Save</ErrorFileDeletedEditor>
     <TimeConvert>
-      <Less_Than_A_Minute>il y a moins d'une minute</Less_Than_A_Minute>
-      <About_A_Minute>il y a une minute</About_A_Minute>
-      <About_X_Minutes>il y a environ {0} minutes</About_X_Minutes>
-      <About_An_Hour>il y a environ une heure</About_An_Hour>
-      <About_X_Hours>il y a environ {0} heures</About_X_Hours>
-      <About_A_Day>il y a environ un jour</About_A_Day>
-      <About_X_Days>il y a environ {0} jours</About_X_Days>
-      <About_A_Month>il y a environ un mois</About_A_Month>
-      <About_X_Months>il y a environ {0} mois</About_X_Months>
+      <Less_Than_A_Minute>Vor weniger als einer Minute</Less_Than_A_Minute>
+      <About_A_Minute>Vor etwa einer Minute</About_A_Minute>
+      <About_X_Minutes>Vor {0} Minuten</About_X_Minutes>
+      <About_An_Hour>Vor etwa einer Stunde</About_An_Hour>
+      <About_X_Hours>Vor {0} Stunden</About_X_Hours>
+      <About_A_Day>vor etwa einem Tag</About_A_Day>
+      <About_X_Days>vor etwa {0} Tagen</About_X_Days>
+      <About_A_Month>vor etwa einem Monat</About_A_Month>
+      <About_X_Months>vor {0} Monaten</About_X_Months>
     </TimeConvert>
   </OnlyofficeEditorClient>
 </bundle>

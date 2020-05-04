@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bundle>
+  <!-- For client UI -->
+  <OnlyofficeEditorClient>
+
+    <EditButtonTitle>crwdns6935308:0crwdne6935308:0</EditButtonTitle>
+    <SaveVersionLabel>crwdns6935310:0crwdne6935310:0</SaveVersionLabel>
+    <SeeMoreButton>crwdns6935312:0crwdne6935312:0</SeeMoreButton>
+    <LoadMoreButton>crwdns6935314:0crwdne6935314:0</LoadMoreButton>
+    <CloseButton>crwdns6935316:0crwdne6935316:0</CloseButton>
+    <SaveButton>crwdns6935318:0crwdne6935318:0</SaveButton>
+    <PlaceHolderTextarea>crwdns6935320:0crwdne6935320:0</PlaceHolderTextarea>
+    <TitleTooltip>crwdns6935322:0crwdne6935322:0</TitleTooltip>
+    <OpenDrawerBtn>crwdns6935324:0crwdne6935324:0</OpenDrawerBtn>
+    <NoVersions>crwdns6935326:0crwdne6935326:0</NoVersions>
+    <AlertSave>crwdns6935328:0crwdne6935328:0</AlertSave>
+    <ErrorSave>crwdns6935330:0crwdne6935330:0</ErrorSave>
+    <UpdateBannerTitle>crwdns6935332:0crwdne6935332:0</UpdateBannerTitle>
+    <ReloadButtonTitle>crwdns6935334:0crwdne6935334:0</ReloadButtonTitle>
+
+    <ErrorTitle>crwdns6935336:0crwdne6935336:0</ErrorTitle>
+    <InfoTitle>crwdns6935338:0crwdne6935338:0</InfoTitle>
+
+    <ErrorConfigNotDefined>crwdns6935340:0crwdne6935340:0</ErrorConfigNotDefined>
+    <ErrorLinkNotFound>crwdns6935342:0crwdne6935342:0</ErrorLinkNotFound>
+    <ErrorCreateConfig>crwdns6935344:0crwdne6935344:0</ErrorCreateConfig>
+    <ErrorFileDeletedECMS>crwdns6935346:0crwdne6935346:0</ErrorFileDeletedECMS>
+    <ErrorFileDeletedEditor>crwdns6935348:0crwdne6935348:0</ErrorFileDeletedEditor>
+    <TimeConvert>
+      <Less_Than_A_Minute>crwdns6935350:0crwdne6935350:0</Less_Than_A_Minute>
+      <About_A_Minute>crwdns6935352:0crwdne6935352:0</About_A_Minute>
+      <About_X_Minutes>crwdns6935354:0{0}crwdne6935354:0</About_X_Minutes>
+      <About_An_Hour>crwdns6935356:0crwdne6935356:0</About_An_Hour>
+      <About_X_Hours>crwdns6935358:0{0}crwdne6935358:0</About_X_Hours>
+      <About_A_Day>crwdns6935360:0crwdne6935360:0</About_A_Day>
+      <About_X_Days>crwdns6935362:0{0}crwdne6935362:0</About_X_Days>
+      <About_A_Month>crwdns6935364:0crwdne6935364:0</About_A_Month>
+      <About_X_Months>crwdns6935366:0{0}crwdne6935366:0</About_X_Months>
+    </TimeConvert>
+  </OnlyofficeEditorClient>
+</bundle>
