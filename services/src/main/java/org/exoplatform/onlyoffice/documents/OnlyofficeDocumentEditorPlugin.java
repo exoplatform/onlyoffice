@@ -218,7 +218,9 @@ public class OnlyofficeDocumentEditorPlugin extends BaseComponentPlugin implemen
         try {
           link = contextEditorLink(node, PREVIEW, requestUri);
         } catch (EditorLinkNotFoundException e) {
-          LOG.debug("Cannot get editor link for preview: {}", e.getMessage());
+          if (LOG.isDebugEnabled()) {
+            LOG.debug("Cannot get editor link for preview: {}", e.getMessage());
+          }
           error = new EditorError(EDITOR_LINK_NOT_FOUND_ERROR, EDITOR_LINK_NOT_FOUND_ERROR_MESSAGE);
         } catch (OnlyofficeEditorException e) {
           LOG.error("Cannot get editor link for preview: ", e);
@@ -274,7 +276,9 @@ public class OnlyofficeDocumentEditorPlugin extends BaseComponentPlugin implemen
         try {
           link = contextEditorLink(node, PREVIEW, null);
         } catch (EditorLinkNotFoundException e) {
-          LOG.debug("Cannot get editor link for preview: {}", e.getMessage());
+          if (LOG.isDebugEnabled()) {
+            LOG.debug("Cannot get editor link for preview: {}", e.getMessage());
+          }
           error = new EditorError(EDITOR_LINK_NOT_FOUND_ERROR, EDITOR_LINK_NOT_FOUND_ERROR_MESSAGE);
         } catch (OnlyofficeEditorException e) {
           LOG.error("Cannot get editor link for preview: ", e);
@@ -488,7 +492,7 @@ public class OnlyofficeDocumentEditorPlugin extends BaseComponentPlugin implemen
 
     /** The key. */
     private final String type;
-    
+
     /** The message. */
     private final String message;
 
@@ -498,7 +502,7 @@ public class OnlyofficeDocumentEditorPlugin extends BaseComponentPlugin implemen
      * @param type the type
      * @param message the message
      */
-    public EditorError(String type, String message) { 
+    public EditorError(String type, String message) {
       this.type = type;
       this.message = message;
     }
