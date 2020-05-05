@@ -239,8 +239,8 @@ public interface OnlyofficeEditorService {
    *
    * @param node the node
    * @return the document ID or <code>null</code>
-   * @throws OnlyofficeEditorException the onlyoffice editor exception
    * @throws DocumentNotFoundException the document not found exception
+   * @throws RepositoryException the repository exception
    * @see #initDocument(String, String)
    * @see #canEditDocument(Node)
    */
