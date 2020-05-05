@@ -178,7 +178,7 @@ public class DocumentServiceMock implements DocumentService {
    * {@inheritDoc}
    */
   @Override
-  public String getPreferedEditor(String userId, String uuid, String workspace) throws RepositoryException {
+  public String getPreferredEditor(String userId, String uuid, String workspace) throws RepositoryException {
     return null;
   }
 
@@ -186,7 +186,7 @@ public class DocumentServiceMock implements DocumentService {
    * {@inheritDoc}
    */
   @Override
-  public void savePreferedEditor(String userId, String provider, String uuid, String workspace) throws RepositoryException {
+  public void savePreferredEditor(String userId, String provider, String uuid, String workspace) throws RepositoryException {
   }
 
   /**
@@ -195,4 +195,14 @@ public class DocumentServiceMock implements DocumentService {
   @Override
   public void addDocumentMetadataPlugin(ComponentPlugin plugin) {
   }
+
+  @Override
+  public void setCurrentDocumentProvider(String uuid, String workspace, String provider) throws RepositoryException {
+  }
+
+  @Override
+  public String getCurrentDocumentProvider(String uuid, String workspace) throws RepositoryException {
+    return null;
+  }
+
 }

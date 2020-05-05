@@ -94,6 +94,9 @@
     <depends>
       <module>editorbuttons</module>
     </depends>
+    <depends>
+      <module>editorsupport</module>
+    </depends>
   </module>
 
   <portlet-skin>

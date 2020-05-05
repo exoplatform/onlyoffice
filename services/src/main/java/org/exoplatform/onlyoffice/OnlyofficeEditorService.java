@@ -18,15 +18,14 @@
  */
 package org.exoplatform.onlyoffice;
 
+import java.util.List;
+
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 
 import org.exoplatform.container.component.ComponentPlugin;
 import org.exoplatform.onlyoffice.Config.Editor;
 import org.exoplatform.services.organization.User;
-
-import java.net.URI;
-import java.util.List;
 
 /**
  * Created by The eXo Platform SAS.
@@ -119,10 +118,9 @@ public interface OnlyofficeEditorService {
    *
    * @param node the node of the document
    * @return the string with document ID for use within editors
-   * @throws OnlyofficeEditorException the onlyoffice editor exception
    * @throws RepositoryException the repository exception
    */
-  String initDocument(Node node) throws OnlyofficeEditorException, RepositoryException;
+  String initDocument(Node node) throws RepositoryException;
 
   /**
    * Inits the document and returns an ID for use within editors. Node will be
@@ -137,38 +135,17 @@ public interface OnlyofficeEditorService {
   String initDocument(String workspace, String path) throws OnlyofficeEditorException, RepositoryException;
 
   /**
-   * Gets the editor page URL for opening at Platform server relatively to the
-   * current PortalRequest.
-   *
-   * @param node the node
-   * @return the editor link
-   * @throws OnlyofficeEditorException the onlyoffice editor exception
-   * @throws RepositoryException the repository exception
-   */
-  String getEditorLink(Node node) throws OnlyofficeEditorException, RepositoryException;
-
-  /**
-   * Gets the editor page URL for opening at Platform server relatively to the request URI.
-   *
-   * @param node the node
-   * @param requestUri the requestUri
-   * @return the editor link
-   * @throws OnlyofficeEditorException the onlyoffice editor exception
-   * @throws RepositoryException the repository exception
-   */
-  String getEditorLink(Node node, URI requestUri) throws RepositoryException, OnlyofficeEditorException;
-  
-  /**
    * Gets the editor page URL for opening at Platform server.
    *
-   * @param schema the schema
+   * @param node the node
+   * @param scheme the scheme
    * @param host the host
    * @param port the port
-   * @param workspace the workspace
-   * @param docId the doc ID
    * @return the editor link
+   * @throws EditorLinkNotFoundException the editor link not found exceptions
+   * @throws RepositoryException the repository exception
    */
-  String getEditorLink(String schema, String host, int port, String workspace, String docId);
+  public String getEditorLink(Node node, String scheme, String host, int port) throws RepositoryException, EditorLinkNotFoundException;
 
   /**
    * Gets the document node by its path and optionally a repository workspace.
@@ -262,12 +239,12 @@ public interface OnlyofficeEditorService {
    *
    * @param node the node
    * @return the document ID or <code>null</code>
-   * @throws OnlyofficeEditorException the onlyoffice editor exception
+   * @throws DocumentNotFoundException the document not found exception
    * @throws RepositoryException the repository exception
    * @see #initDocument(String, String)
    * @see #canEditDocument(Node)
    */
-  String getDocumentId(Node node) throws OnlyofficeEditorException, RepositoryException;
+  String getDocumentId(Node node) throws DocumentNotFoundException, RepositoryException;
 
   /**
    * Checks if the node has compatible mime-types.
@@ -285,9 +262,10 @@ public interface OnlyofficeEditorService {
    *          one will be used
    * @param uuid the id of a document
    * @return the document or <code>null</code> if nothing found
+   * @throws DocumentNotFoundException the document not found exception
    * @throws RepositoryException the repository exception
    */
-  Node getDocumentById(String workspace, String uuid) throws RepositoryException;
+  Node getDocumentById(String workspace, String uuid) throws RepositoryException, DocumentNotFoundException;
 
 
   /**

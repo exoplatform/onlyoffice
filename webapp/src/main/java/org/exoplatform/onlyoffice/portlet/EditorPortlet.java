@@ -1,3 +1,4 @@
+
 /*
  * Copyright (C) 2003-2019 eXo Platform SAS.
  *
@@ -19,8 +20,8 @@
 package org.exoplatform.onlyoffice.portlet;
 
 import static org.exoplatform.onlyoffice.webui.OnlyofficeContext.callModule;
-import static org.exoplatform.onlyoffice.webui.OnlyofficeContext.showError;
 import static org.exoplatform.onlyoffice.webui.OnlyofficeContext.requireJS;
+import static org.exoplatform.onlyoffice.webui.OnlyofficeContext.showError;
 
 import java.io.IOException;
 import java.util.Locale;
@@ -35,17 +36,19 @@ import javax.portlet.RenderMode;
 import javax.portlet.RenderRequest;
 import javax.portlet.RenderResponse;
 
+import org.w3c.dom.Element;
+
 import org.exoplatform.container.ExoContainer;
 import org.exoplatform.container.ExoContainerContext;
 import org.exoplatform.onlyoffice.Config;
 import org.exoplatform.onlyoffice.OnlyofficeEditorException;
 import org.exoplatform.onlyoffice.OnlyofficeEditorService;
+import org.exoplatform.services.cms.documents.DocumentService;
 import org.exoplatform.services.log.ExoLogger;
 import org.exoplatform.services.log.Log;
 import org.exoplatform.services.resources.ResourceBundleService;
 import org.exoplatform.webui.application.WebuiRequestContext;
 import org.exoplatform.ws.frameworks.json.impl.JsonException;
-import org.w3c.dom.Element;
 
 /**
  * The Class EditorPortlet.
@@ -53,13 +56,19 @@ import org.w3c.dom.Element;
 public class EditorPortlet extends GenericPortlet {
 
   /** The Constant LOG. */
-  private static final Log        LOG = ExoLogger.getLogger(EditorPortlet.class);
+  private static final Log        LOG           = ExoLogger.getLogger(EditorPortlet.class);
+
+  /** The Constant PROVIDER_NAME. */
+  private static final String     PROVIDER_NAME = "onlyoffice";
 
   /** The onlyoffice. */
   private OnlyofficeEditorService onlyoffice;
 
   /** The i 18 n service. */
   private ResourceBundleService   i18nService;
+
+  /** The document service. */
+  private DocumentService         documentService;
 
   /**
    * {@inheritDoc}
@@ -70,20 +79,27 @@ public class EditorPortlet extends GenericPortlet {
     ExoContainer container = ExoContainerContext.getCurrentContainer();
     this.onlyoffice = container.getComponentInstanceOfType(OnlyofficeEditorService.class);
     this.i18nService = container.getComponentInstanceOfType(ResourceBundleService.class);
+    this.documentService = container.getComponentInstanceOfType(DocumentService.class);
   }
 
+  /**
+   * Do headers.
+   *
+   * @param request the request
+   * @param response the response
+   */
   @Override
   protected void doHeaders(RenderRequest request, RenderResponse response) {
     super.doHeaders(request, response);
 
     ResourceBundle i18n = i18nService.getResourceBundle(
-            new String[] { "locale.onlyoffice.Onlyoffice",
-                    "locale.onlyoffice.OnlyofficeClient" },
-            request.getLocale());
+                                                        new String[] { "locale.onlyoffice.Onlyoffice",
+                                                            "locale.onlyoffice.OnlyofficeClient" },
+                                                        request.getLocale());
 
     Config config = getConfig(request, response, i18n);
 
-    if(config != null) {
+    if (config != null) {
       Element onlyOfficeJavascript = response.createElement("script");
       onlyOfficeJavascript.setAttribute("type", "text/javascript");
       onlyOfficeJavascript.setAttribute("src", config.getDocumentserverJsUrl());
@@ -102,24 +118,24 @@ public class EditorPortlet extends GenericPortlet {
   @RenderMode(name = "view")
   public void view(RenderRequest request, RenderResponse response) throws IOException, PortletException {
     ResourceBundle i18n = i18nService.getResourceBundle(
-            new String[] { "locale.onlyoffice.Onlyoffice",
-                    "locale.onlyoffice.OnlyofficeClient" },
-            request.getLocale());
+                                                        new String[] { "locale.onlyoffice.Onlyoffice",
+                                                            "locale.onlyoffice.OnlyofficeClient" },
+                                                        request.getLocale());
 
     Config config = getConfig(request, response, i18n);
 
-    if(config != null) {
+    if (config != null) {
       try {
         requireJS().require("SHARED/bts_tooltip");
         callModule("initEditor(" + config.toJSON() + ");");
       } catch (JsonException e) {
         LOG.error("Error converting editor configuration to JSON for node by ID: {}", config.getDocId(), e);
         showError(i18n.getString("OnlyofficeEditorClient.ErrorTitle"),
-                i18n.getString("OnlyofficeEditor.error.CannotSendEditorConfiguration"));
+                  i18n.getString("OnlyofficeEditor.error.CannotSendEditorConfiguration"));
       } catch (Exception e) {
         LOG.error("Error initializing editor configuration for node by ID: {}", config.getDocId(), e);
         showError(i18n.getString("OnlyofficeEditorClient.ErrorTitle"),
-                i18n.getString("OnlyofficeEditor.error.CannotInitEditorConfiguration"));
+                  i18n.getString("OnlyofficeEditor.error.CannotInitEditorConfiguration"));
       }
     }
 
@@ -145,11 +161,11 @@ public class EditorPortlet extends GenericPortlet {
     if (docId != null) {
       try {
         config = onlyoffice.createEditor(request.getScheme(),
-                request.getServerName(),
-                request.getServerPort(),
-                request.getRemoteUser(),
-                null,
-                docId);
+                                         request.getServerName(),
+                                         request.getServerPort(),
+                                         request.getRemoteUser(),
+                                         null,
+                                         docId);
         if (config != null) {
           if (config.getEditorConfig().getLang() == null) {
             if (request.getLocale() != null) {
@@ -162,20 +178,20 @@ public class EditorPortlet extends GenericPortlet {
           }
         } else {
           showError(i18n.getString("OnlyofficeEditorClient.ErrorTitle"),
-                  i18n.getString("OnlyofficeEditor.error.EditorCannotBeCreated"));
+                    i18n.getString("OnlyofficeEditor.error.EditorCannotBeCreated"));
         }
       } catch (RepositoryException e) {
         LOG.error("Error reading document node by ID: {}", docId, e);
         showError(i18n.getString("OnlyofficeEditorClient.ErrorTitle"),
-                i18n.getString("OnlyofficeEditor.error.CannotReadDocument"));
+                  i18n.getString("OnlyofficeEditor.error.CannotReadDocument"));
       } catch (OnlyofficeEditorException e) {
         LOG.error("Error creating document editor for node by ID: {}", docId, e);
         showError(i18n.getString("OnlyofficeEditorClient.ErrorTitle"),
-                i18n.getString("OnlyofficeEditor.error.CannotCreateEditor"));
+                  i18n.getString("OnlyofficeEditor.error.CannotCreateEditor"));
       } catch (Exception e) {
         LOG.error("Error initializing editor configuration for node by ID: {}", docId, e);
         showError(i18n.getString("OnlyofficeEditorClient.ErrorTitle"),
-                i18n.getString("OnlyofficeEditor.error.CannotInitEditorConfiguration"));
+                  i18n.getString("OnlyofficeEditor.error.CannotInitEditorConfiguration"));
       }
     } else {
       showError(i18n.getString("OnlyofficeEditorClient.ErrorTitle"), i18n.getString("OnlyofficeEditor.error.DocumentIdRequired"));

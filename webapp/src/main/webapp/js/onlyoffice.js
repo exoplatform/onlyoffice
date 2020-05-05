@@ -1,7 +1,7 @@
 /**
  * Onlyoffice Editor client.
  */
-(function($, cCometD, redux, editorbuttons) {
+(function($, cCometD, redux, editorbuttons, editorsupport) {
   "use strict";
   // ******** polyfills ********
   if (!String.prototype.endsWith) {
@@ -153,15 +153,15 @@
   function Editor() {
 
     // Constants:
-    var DOCUMENT_SAVED = "DOCUMENT_SAVED";
-    var DOCUMENT_CHANGED = "DOCUMENT_CHANGED";
-    var DOCUMENT_DELETED = "DOCUMENT_DELETED";
-    var DOCUMENT_VERSION = "DOCUMENT_VERSION";
-    var DOCUMENT_USERSAVED = "DOCUMENT_USERSAVED";
-    var DOCUMENT_TITLE_UPDATED = "DOCUMENT_TITLE_UPDATED";
-    var DOCUMENT_LINK = "DOCUMENT_LINK";
-    var EDITOR_CLOSED = "EDITOR_CLOSED";
-
+    const DOCUMENT_SAVED = "DOCUMENT_SAVED";
+    const DOCUMENT_CHANGED = "DOCUMENT_CHANGED";
+    const DOCUMENT_DELETED = "DOCUMENT_DELETED";
+    const DOCUMENT_VERSION = "DOCUMENT_VERSION";
+    const DOCUMENT_USERSAVED = "DOCUMENT_USERSAVED";
+    const DOCUMENT_TITLE_UPDATED = "DOCUMENT_TITLE_UPDATED";
+    const DOCUMENT_LINK = "DOCUMENT_LINK";
+    const EDITOR_CLOSED = "EDITOR_CLOSED";
+    const ONLYOFFICE = "onlyoffice";
     // Events that are dispatched to redux as actions
     var dispatchableEvents = [ DOCUMENT_SAVED, DOCUMENT_CHANGED, DOCUMENT_DELETED, DOCUMENT_VERSION, DOCUMENT_TITLE_UPDATED ];
 
@@ -529,104 +529,107 @@
      * Initialize an editor page in current browser window.
      */
     this.initEditor = function(config) {
-      initBar(config);
-      log("Initialize editor for document: " + config.docId);
-      window.document.title = config.document.title + " - " + window.document.title;
-      UI.initEditor();
+      editorsupport.onEditorOpen(config.docId, config.workspace, ONLYOFFICE).done(function(){
+        initBar(config);
+        log("Initialize editor for document: " + config.docId);
+        window.document.title = config.document.title + " - " + window.document.title;
+        UI.initEditor();
 
-      create(config).done(function(localConfig) {
-        if (localConfig) {
-          currentConfig = localConfig;
+        create(config).done(function(localConfig) {
+          if (localConfig) {
+            currentConfig = localConfig;
 
-          store.subscribe(function() {
-            var state = store.getState();
-            if (state.type === DOCUMENT_DELETED) {
-              UI.showError(message("ErrorTitle"), message("ErrorFileDeletedEditor"));
-            }
-            if (state.type === DOCUMENT_SAVED) {
-              UI.updateBar(state.displayName, state.comment, currentConfig.workspace, currentConfig.docId);
-              if (state.comment) {
-                currentConfig.editorPage.comment = state.comment;
+            store.subscribe(function() {
+              var state = store.getState();
+              if (state.type === DOCUMENT_DELETED) {
+                UI.showError(message("ErrorTitle"), message("ErrorFileDeletedEditor"));
               }
-              if (state.userId === currentUserId) {
-                currentUserChanges = false;
+              if (state.type === DOCUMENT_SAVED) {
+                UI.updateBar(state.displayName, state.comment, currentConfig.workspace, currentConfig.docId);
+                if (state.comment) {
+                  currentConfig.editorPage.comment = state.comment;
+                }
+                if (state.userId === currentUserId) {
+                  currentUserChanges = false;
+                }
               }
-            }
-            if (state.type === DOCUMENT_TITLE_UPDATED) {
-              console.log("Title updated");
-              var oldTitle = currentConfig.document.title;
-              currentConfig.document.title = state.title;
-              window.document.title = window.document.title.replace(oldTitle, state.title);
-              $("#editor-drawer").find(".editable-title").text(state.title).append("<i class='uiIconPencilEdit'></i>");
-              var documentOldTitle = config.explorerUrl.substr(config.explorerUrl.lastIndexOf("/"));
-              var url = config.explorerUrl.split(documentOldTitle)[0];
-              var documentNewPath = url + "/" + state.title;
-              config.explorerUrl = documentNewPath;
-              $("#see-more-btn").prop("disabled", true);
-              setTimeout(function() {
-                $("#see-more-btn").prop("disabled", false);
-              }, 5000);
-            }
-          });
+              if (state.type === DOCUMENT_TITLE_UPDATED) {
+                console.log("Title updated");
+                var oldTitle = currentConfig.document.title;
+                currentConfig.document.title = state.title;
+                window.document.title = window.document.title.replace(oldTitle, state.title);
+                $("#editor-drawer").find(".editable-title").text(state.title).append("<i class='uiIconPencilEdit'></i>");
+                var documentOldTitle = config.explorerUrl.substr(config.explorerUrl.lastIndexOf("/"));
+                var url = config.explorerUrl.split(documentOldTitle)[0];
+                var documentNewPath = url + "/" + state.title;
+                config.explorerUrl = documentNewPath;
+                $("#see-more-btn").prop("disabled", true);
+                setTimeout(function() {
+                  $("#see-more-btn").prop("disabled", false);
+                }, 5000);
+              }
+            });
 
-          // Establish a Comet/WebSocket channel from this point.
-          // A new editor page will join the channel and notify when the doc
-          // will be saved
-          // so we'll refresh this explorer view to reflect the edited content.
-          subscribeDocument(currentConfig.docId);
+            // Establish a Comet/WebSocket channel from this point.
+            // A new editor page will join the channel and notify when the doc
+            // will be saved
+            // so we'll refresh this explorer view to reflect the edited content.
+            subscribeDocument(currentConfig.docId);
+            // We are a editor oage here: publish that the doc was changed by
+            // current user
 
-          // We are a editor oage here: publish that the doc was changed by
-          // current user
+            window.addEventListener("beforeunload", function() {
+              UI.closeEditor(); // try this first, then in unload
+            });
 
-          window.addEventListener("beforeunload", function() {
-            UI.closeEditor(); // try this first, then in unload
-          });
+            window.addEventListener("unload", function() {
+              UI.closeEditor();
+              // We need to save current changes when user closes the editor
+              if (currentConfig) {
+                publishDocument(currentConfig.docId, {
+                  "type" : EDITOR_CLOSED,
+                  "userId" : currentUserId,
+                  "explorerUrl" : config.explorerUrl,
+                  "key" : currentConfig.document.key,
+                  "changes" : currentUserChanges
+                });
+              }
+            });
 
-          window.addEventListener("unload", function() {
-            UI.closeEditor();
-            // We need to save current changes when user closes the editor
-            if (currentConfig) {
-              publishDocument(currentConfig.docId, {
-                "type" : EDITOR_CLOSED,
-                "userId" : currentUserId,
-                "explorerUrl" : config.explorerUrl,
-                "key" : currentConfig.document.key,
-                "changes" : currentUserChanges
-              });
-            }
-          });
+            $(function() {
+              try {
+                UI.create(currentConfig);
+              } catch (e) {
+                log("Error initializing Onlyoffice client UI " + e, e);
+              }
+            });
+          } else {
+            log("ERROR: editor config not defined: " + localConfig);
+            UI.showError(message("ErrorTitle"), message("ErrorConfigNotDefined"));
+          }
+        }).fail(function(error) {
+          log("ERROR: editor config creation failed : " + error);
+          UI.showError(message("ErrorTitle"), message("ErrorCreateConfig"));
+        });
 
-          $(function() {
-            try {
-              UI.create(currentConfig);
-            } catch (e) {
-              log("Error initializing Onlyoffice client UI " + e, e);
-            }
-          });
-        } else {
-          log("ERROR: editor config not defined: " + localConfig);
-          UI.showError(message("ErrorTitle"), message("ErrorConfigNotDefined"));
-        }
-      }).fail(function(error) {
-        log("ERROR: editor config creation failed : " + error);
-        UI.showError(message("ErrorTitle"), message("ErrorCreateConfig"));
-      });
+        $("#open-drawer-btn").on('click', function() {
+          return UI.openDrawer();
+        });
 
-      $("#open-drawer-btn").on('click', function() {
-        return UI.openDrawer();
-      });
+        $("#editor-drawer .header .closebtn").on('click', function() {
+          return UI.closeDrawer();
+        });
 
-      $("#editor-drawer .header .closebtn").on('click', function() {
-        return UI.closeDrawer();
-      });
+        $("#see-more-btn").on('click', function() {
+          window.open(config.explorerUrl);
+        });
 
-      $("#see-more-btn").on('click', function() {
-        window.open(config.explorerUrl);
-      });
-
-      $("#load-more-btn").on('click', function() {
-        UI.loadVersions(currentConfig.workspace, currentConfig.docId, 3, pageToLoad);
-        pageToLoad++;
+        $("#load-more-btn").on('click', function() {
+          UI.loadVersions(currentConfig.workspace, currentConfig.docId, 3, pageToLoad);
+          pageToLoad++;
+        }); 
+      }).fail(function() {
+        UI.showError(message("ErrorTitle"), message("AnotherEditorIsOpen"));
       });
     };
 
@@ -644,7 +647,7 @@
       });
       subscribeDocument(docId);
       if (editorLink != null) {
-        editorbuttons.addCreateButtonFn("onlyoffice", function() {
+        editorbuttons.addCreateButtonFn(ONLYOFFICE, function() {
           return UI.createEditorButton(editorLink);
         });
       }
@@ -654,54 +657,71 @@
      * Initializes a document preview.
      */
     this.initPreview = function(settings) {
-      init(settings.userId, settings.cometdConf, settings.messages);
-      log("Initialize preview of document: " + settings.fileId);
-      // We set timeout here to avoid the case when the element is rendered but
-      // is going to be updated soon
-      setTimeout(function() {
-        store.subscribe(function() {
-          var state = store.getState();
-          if (state.type === DOCUMENT_SAVED && state.docId === settings.fileId) {
-            UI.addRefreshBannerPDF();
-          }
-        });
-      }, 100);
-      // subscribeDocument(settings.fileId);
-      if (settings.link != null) {
-        editorbuttons.addCreateButtonFn("onlyoffice", function() {
-          return UI.createEditorButton(settings.link);
-        });
+      if (settings) {
+        init(settings.userId, settings.cometdConf, settings.messages);
+        log("Initialize preview of document: " + settings.fileId);
+        // We set timeout here to avoid the case when the element is rendered but
+        // is going to be updated soon
+        setTimeout(function() {
+          store.subscribe(function() {
+            var state = store.getState();
+            if (state.type === DOCUMENT_SAVED && state.docId === settings.fileId) {
+              UI.addRefreshBannerPDF();
+            }
+          });
+        }, 100);
+        subscribeDocument(settings.fileId);
+        if (settings.link != null) {
+          editorbuttons.addCreateButtonFn(ONLYOFFICE, function() {
+            return UI.createEditorButton(settings.link);
+          });
+        } else if (settings.error) {
+          log(message(settings.error.type) + " - " + message(settings.error.message));
+        } 
+      } else {
+        log("Cannot init preview - the settings are null");
       }
     };
 
     /**
      * Initializes JCRExplorer when a document is displayed.
      */
-    this.initExplorer = function(docId, editorLink) {
-      log("Initialize explorer with document: " + docId);
-      // Listen document updated
-      store.subscribe(function() {
-        var state = store.getState();
-        if (state.type === DOCUMENT_SAVED) {
-          if (state.userId === currentUserId) {
-            UI.refreshPDFPreview();
-          } else {
-            UI.addRefreshBannerPDF();
+    this.initExplorer = function(settings) {
+      if (settings) {
+        init(settings.userId, settings.cometdConf, settings.messages);
+        log("Initialize explorer with document: " + settings.fileId);
+        // Listen document updated
+        store.subscribe(function() {
+          var state = store.getState();
+          if (state.type === DOCUMENT_SAVED) {
+            if (state.userId === currentUserId) {
+              UI.refreshPDFPreview();
+            } else {
+              UI.addRefreshBannerPDF();
+            }
           }
+          if (state.type === DOCUMENT_DELETED) {
+            UI.showError(message("ErrorTitle"), message("ErrorFileDeletedECMS"));
+          }
+        });
+        if (settings.docId != explorerDocId) {
+          // We need unsubscribe from previous doc
+          if (explorerDocId) {
+            unsubscribeDocument(explorerDocId);
+          }
+          subscribeDocument(settings.docId);
+          explorerDocId = settings.docId;
         }
-        if (state.type === DOCUMENT_DELETED) {
-          UI.showError(message("ErrorTitle"), message("ErrorFileDeletedECMS"));
-        }
-      });
-      if (docId != explorerDocId) {
-        // We need unsubscribe from previous doc
-        if (explorerDocId) {
-          unsubscribeDocument(explorerDocId);
-        }
-        subscribeDocument(docId);
-        explorerDocId = docId;
+        if (settings.link != null) {
+          editorbuttons.addCreateButtonFn(ONLYOFFICE, function() {
+            return UI.createEditorButton(settings.link);
+          });
+        } else if (settings.error) {
+          log(message(settings.error.type) + " - " + message(settings.error.message));
+        } 
+      } else {
+        log("Cannot init explorer - the settings are null");
       }
-
     };
 
     /**
@@ -722,8 +742,9 @@
         if (link != null) {
           editorWindow.location = link;
         } else {
-          UI.showError(message("ErrorTitle"), message("ErrorLinkNotFound"));
+          editorWindow.close();
           editorWindow = null;
+          UI.showError(message("ErrorTitle"), message("ErrorLinkNotFound"));
         }
       }
     };
@@ -1265,4 +1286,4 @@
     }
   });
   return editor;
-})($, cCometD, Redux, editorbuttons);
+})($, cCometD, Redux, editorbuttons, editorsupport);
