@@ -678,8 +678,6 @@
         } else if (settings.error) {
           log(message(settings.error.type) + " - " + message(settings.error.message));
         } 
-      } else {
-        log("Cannot init preview - the settings are null");
       }
     };
 
@@ -719,8 +717,6 @@
         } else if (settings.error) {
           log(message(settings.error.type) + " - " + message(settings.error.message));
         } 
-      } else {
-        log("Cannot init explorer - the settings are null");
       }
     };
 

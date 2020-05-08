@@ -179,14 +179,18 @@ public class OnlyofficeDocumentEditorPlugin extends BaseComponentPlugin implemen
   public void initActivity(String uuid, String workspace, String activityId) throws Exception {
     Node symlink = editorService.getDocumentById(workspace, uuid);
     Node node = editorService.getDocument(symlink.getSession().getWorkspace().getName(), symlink.getPath());
-    if (node != null) {
+    if (node != null && editorService.isDocumentMimeSupported(node)) {
       String fileId = editorService.initDocument(node);
       String link = "null";
       try {
         link = contextEditorLink(node, STREAM, null);
         link = new StringBuilder("'").append(link).append("'").toString();
+      } catch (EditorLinkNotFoundException e) {
+        if (LOG.isDebugEnabled()) {
+          LOG.debug("Cannot get editor link for activity: ", e.getMessage());
+        }
       } catch (OnlyofficeEditorException e) {
-        LOG.error("Cannot get editor link for activity: ", e);
+        LOG.warn("Cannot get editor link for activity: ", e);
       }
       callModule("initActivity('" + fileId + "', " + link + ", '" + activityId + "');");
     }
@@ -208,7 +212,7 @@ public class OnlyofficeDocumentEditorPlugin extends BaseComponentPlugin implemen
       String userId = ConversationState.getCurrent().getIdentity().getUserId();
       Node symlink = editorService.getDocumentById(workspace, fileId);
       Node node = editorService.getDocument(symlink.getSession().getWorkspace().getName(), symlink.getPath());
-      if (node != null) {
+      if (node != null && editorService.isDocumentMimeSupported(node)) {
         if (symlink.isNodeType("exo:symlink")) {
           editorService.addFilePreferences(node, userId, symlink.getPath());
         }
