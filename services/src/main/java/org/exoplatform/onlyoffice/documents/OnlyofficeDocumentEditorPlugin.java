@@ -34,6 +34,7 @@ import org.exoplatform.container.component.BaseComponentPlugin;
 import org.exoplatform.ecm.webui.component.explorer.UIJCRExplorer;
 import org.exoplatform.onlyoffice.DocumentNotFoundException;
 import org.exoplatform.onlyoffice.EditorLinkNotFoundException;
+import org.exoplatform.onlyoffice.OnlyOfficeDocumentUpdateActivityHandler;
 import org.exoplatform.onlyoffice.OnlyofficeEditorException;
 import org.exoplatform.onlyoffice.OnlyofficeEditorService;
 import org.exoplatform.onlyoffice.cometd.CometdConfig;
@@ -41,6 +42,7 @@ import org.exoplatform.onlyoffice.cometd.CometdOnlyofficeService;
 import org.exoplatform.portal.application.PortalRequestContext;
 import org.exoplatform.portal.webui.util.Util;
 import org.exoplatform.services.cms.documents.DocumentEditor;
+import org.exoplatform.services.cms.documents.DocumentUpdateActivityHandler;
 import org.exoplatform.services.cms.documents.NewDocumentTemplate;
 import org.exoplatform.services.cms.link.LinkManager;
 import org.exoplatform.services.log.ExoLogger;
@@ -109,6 +111,9 @@ public class OnlyofficeDocumentEditorPlugin extends BaseComponentPlugin implemen
   /** The editor links. */
   protected final Map<Node, String>       editorLinks                         = new ConcurrentHashMap<>();
 
+  /** The update handler. */
+  protected final DocumentUpdateActivityHandler updateHandler;
+  
   /**
    * Instantiates a new OnlyOffice new document editor plugin.
    *
@@ -125,6 +130,7 @@ public class OnlyofficeDocumentEditorPlugin extends BaseComponentPlugin implemen
     this.i18nService = i18nService;
     this.cometdService = cometdService;
     this.linkManager = linkManager;
+    this.updateHandler = new OnlyOfficeDocumentUpdateActivityHandler();
   }
 
   /**
@@ -319,6 +325,17 @@ public class OnlyofficeDocumentEditorPlugin extends BaseComponentPlugin implemen
       LOG.error("Cannot check if the file is supported", e);
     }
     return false;
+  }
+  
+
+  /**
+   * Gets the document update handler.
+   *
+   * @return the document update handler
+   */
+  @Override
+  public DocumentUpdateActivityHandler getDocumentUpdateHandler() {
+    return updateHandler;
   }
 
   /**

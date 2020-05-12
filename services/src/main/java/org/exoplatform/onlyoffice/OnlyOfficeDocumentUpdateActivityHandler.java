@@ -10,6 +10,7 @@ import javax.jcr.RepositoryException;
 import org.apache.commons.chain.Context;
 
 import org.exoplatform.container.ExoContainerContext;
+import org.exoplatform.services.cms.documents.DocumentUpdateActivityHandler;
 import org.exoplatform.services.ext.action.InvocationContext;
 import org.exoplatform.services.listener.Event;
 import org.exoplatform.wcm.ext.component.activity.listener.FileUpdateActivityListener;
@@ -24,7 +25,7 @@ import org.exoplatform.wcm.ext.component.activity.listener.FileUpdateActivityLis
  * method is invoked.
  *
  */
-public class DocumentUpdateActivityListener extends FileUpdateActivityListener {
+public class OnlyOfficeDocumentUpdateActivityHandler extends FileUpdateActivityListener implements DocumentUpdateActivityHandler{
 
   /** The Constant EVENT_DELAY in min. */
   protected static final long     EVENT_DELAY = 10;
@@ -35,19 +36,15 @@ public class DocumentUpdateActivityListener extends FileUpdateActivityListener {
   /**
    * Instantiates a new document update activity listener.
    */
-  public DocumentUpdateActivityListener() {
+  public OnlyOfficeDocumentUpdateActivityHandler() {
     editorService = (OnlyofficeEditorService) ExoContainerContext.getCurrentContainer()
                                                                  .getComponentInstanceOfType(OnlyofficeEditorService.class);
   }
 
-  /**
-   * Event handler.
-   *
-   * @param event the event
-   * @throws Exception the exception
-   */
+  
+
   @Override
-  public void onEvent(Event<Context, String> event) throws Exception {
+  public boolean handleDocumentUpdateEvent(Event<Context, String> event) throws Exception {
     Context context = event.getSource();
     Property currentProperty = (Property) context.get(InvocationContext.CURRENT_ITEM);
     Node currentNode = currentProperty.getParent().getParent();
@@ -63,13 +60,12 @@ public class DocumentUpdateActivityListener extends FileUpdateActivityListener {
         long difference = Calendar.getInstance().getTimeInMillis() - previousModified.getTimeInMillis();
         if (!sameModifier || TimeUnit.MILLISECONDS.toMinutes(difference) > EVENT_DELAY) {
           super.onEvent(event);
+          return true;
         }
-        // Manually updated node
-      } else {
-        super.onEvent(event);
-      }
+      } 
+      return false;
     }
-
+    return true;
   }
 
   /**
@@ -86,4 +82,5 @@ public class DocumentUpdateActivityListener extends FileUpdateActivityListener {
     }
     return false;
   }
+
 }
