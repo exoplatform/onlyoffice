@@ -988,8 +988,11 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
       }
       return link;
     } else {
-      LOG.warn("Editor link not found for {}", node.getPath());
-      throw new EditorLinkNotFoundException("Editor link not found for node: " + node.getPath());
+      String path = node != null ? node.getPath() : null;
+      if (LOG.isDebugEnabled()) {
+        LOG.debug("Editor link not found for {}", path);
+      }
+      throw new EditorLinkNotFoundException("Editor link not found for node: " + path);
     }
   }
 
