@@ -69,7 +69,6 @@ import org.apache.commons.lang.StringUtils;
 import org.json.JSONObject;
 import org.picocontainer.Startable;
 
-import org.exoplatform.commons.utils.CommonsUtils;
 import org.exoplatform.commons.utils.MimeTypeResolver;
 import org.exoplatform.container.PortalContainer;
 import org.exoplatform.container.component.ComponentPlugin;
@@ -84,6 +83,7 @@ import org.exoplatform.ecm.webui.utils.Utils;
 import org.exoplatform.onlyoffice.Config.Editor;
 import org.exoplatform.onlyoffice.jcr.NodeFinder;
 import org.exoplatform.portal.Constants;
+import org.exoplatform.portal.config.UserPortalConfigService;
 import org.exoplatform.portal.webui.util.Util;
 import org.exoplatform.services.cache.CacheListener;
 import org.exoplatform.services.cache.CacheListenerContext;
@@ -337,6 +337,9 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
   /** The manage drive service */
   protected final ManageDriveService                              manageDriveService;
 
+  /** The user portal config service. */
+  protected final UserPortalConfigService                         userPortalConfigService;
+
   /** Cache of Editing documents. */
   protected final ExoCache<String, ConcurrentMap<String, Config>> activeCache;
 
@@ -401,6 +404,7 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
    * @param activityManager the activityManager
    * @param manageDriveService the manageDriveService
    * @param hierarchyCreator the hierarchyCreator
+   * @param userPortalConfigService the user portal config service
    * @param params the params
    * @throws ConfigurationException the configuration exception
    */
@@ -419,6 +423,7 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
                                      ActivityManager activityManager,
                                      ManageDriveService manageDriveService,
                                      NodeHierarchyCreator hierarchyCreator,
+                                     UserPortalConfigService userPortalConfigService,
                                      InitParams params)
       throws ConfigurationException {
     this.jcrService = jcrService;
@@ -436,6 +441,7 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
     this.activeCache = cacheService.getCacheInstance(CACHE_NAME);
     this.hierarchyCreator = hierarchyCreator;
     this.manageDriveService = manageDriveService;
+    this.userPortalConfigService = userPortalConfigService;
     if (LOG.isDebugEnabled()) {
       addDebugCacheListener();
     }
@@ -974,12 +980,12 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
     Node node = node(workspace, path);
     return initDocument(node);
   }
-  
+
   /**
    * {@inheritDoc}
    */
   public String getEditorLink(Node node, String scheme, String host, int port) throws RepositoryException,
-                                                                                  EditorLinkNotFoundException {
+                                                                               EditorLinkNotFoundException {
     if (canEditDocument(node)) {
       String docId = initDocument(node);
       String link = platformUrl(scheme, host, port).append(editorURLPath(docId)).toString();
@@ -1003,7 +1009,6 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
     }
     throw new DocumentNotFoundException("The document not found with path: " + node.getPath());
   }
-
 
   /**
    * {@inheritDoc}
@@ -2558,12 +2563,46 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
    * @param docId the doc id
    * @return the string
    */
-  protected String editorURLPath(String docId) {
+  protected String editorURLPath(String docId) throws EditorLinkNotFoundException {
+    String portalOwner;
+    try {
+      portalOwner = getCurrentPortalOwner();
+    } catch (Exception e) {
+      LOG.error("Cannot get current portal owner {}", e.getMessage());
+      throw new EditorLinkNotFoundException("Editor link not found - cannot get current portal owner");
+    }
     return new StringBuilder().append('/')
-                              .append(Util.getPortalRequestContext().getPortalOwner())
+                              .append(portalOwner)
                               .append("/oeditor?docId=")
                               .append(docId)
                               .toString();
+  }
+
+  /**
+   * Gets the current portal owner.
+   *
+   * @return the current portal owner
+   * @throws Exception the exception
+   */
+  protected String getCurrentPortalOwner() throws Exception {
+    // Try to get the portal owner from request context
+    try {
+      return Util.getPortalRequestContext().getPortalOwner();
+    } catch (Exception e) {
+      if (LOG.isDebugEnabled()) {
+        LOG.debug("Cannot get portal owner from portal request context");
+      }
+    }
+
+    String defaultPortal = userPortalConfigService.getDefaultPortal();
+    // Retrieve the list of accessible portals by current user (defined in ConservationState.getCurrent() )
+    List<String> allPortalNames = userPortalConfigService.getAllPortalNames();
+    // Check if current portal is accessbile
+    if (allPortalNames.contains(defaultPortal)) {
+      return defaultPortal;
+    } else {
+      return allPortalNames.get(0);
+    }
   }
 
   /**
