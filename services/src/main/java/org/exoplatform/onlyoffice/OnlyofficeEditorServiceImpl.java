@@ -2560,7 +2560,7 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
    */
   protected String editorURLPath(String docId) {
     return new StringBuilder().append('/')
-                              .append(CommonsUtils.getCurrentPortalOwner())
+                              .append(Util.getPortalRequestContext().getPortalOwner())
                               .append("/oeditor?docId=")
                               .append(docId)
                               .toString();
