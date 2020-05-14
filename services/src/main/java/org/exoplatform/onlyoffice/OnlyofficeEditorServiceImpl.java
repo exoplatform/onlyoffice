@@ -2557,15 +2557,15 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
    * @return the string
    */
   protected String editorURLPath(String docId) throws EditorLinkNotFoundException {
-    String portalOwner;
+    String portalName;
     try {
-      portalOwner = WCMCoreUtils.getCurrentPortalName();
+      portalName = WCMCoreUtils.getCurrentPortalName();
     } catch (Exception e) {
       LOG.error("Cannot get current portal owner {}", e.getMessage());
       throw new EditorLinkNotFoundException("Editor link not found - cannot get current portal owner");
     }
     return new StringBuilder().append('/')
-                              .append(portalOwner)
+                              .append(portalName)
                               .append("/oeditor?docId=")
                               .append(docId)
                               .toString();
