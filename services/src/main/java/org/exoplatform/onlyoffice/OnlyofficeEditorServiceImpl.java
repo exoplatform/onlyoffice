@@ -83,6 +83,7 @@ import org.exoplatform.ecm.webui.utils.Utils;
 import org.exoplatform.onlyoffice.Config.Editor;
 import org.exoplatform.onlyoffice.jcr.NodeFinder;
 import org.exoplatform.portal.Constants;
+import org.exoplatform.portal.application.PortalRequestContext;
 import org.exoplatform.portal.config.UserPortalConfigService;
 import org.exoplatform.portal.webui.util.Util;
 import org.exoplatform.services.cache.CacheListener;
@@ -2587,10 +2588,16 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
   protected String getCurrentPortalOwner() throws Exception {
     // Try to get the portal owner from request context
     try {
-      return Util.getPortalRequestContext().getPortalOwner();
+      PortalRequestContext requestContext = Util.getPortalRequestContext();
+      if (requestContext != null) {
+        String portalOwner = requestContext.getPortalOwner();
+        if (portalOwner != null) {
+          return portalOwner;
+        }
+      }
     } catch (Exception e) {
       if (LOG.isDebugEnabled()) {
-        LOG.debug("Cannot get portal owner from portal request context");
+        LOG.debug("Cannot get portal owner from portal request context: {}", e.getMessage());
       }
     }
 
