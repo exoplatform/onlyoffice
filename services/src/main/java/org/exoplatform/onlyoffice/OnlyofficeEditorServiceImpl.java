@@ -69,7 +69,6 @@ import org.apache.commons.lang.StringUtils;
 import org.json.JSONObject;
 import org.picocontainer.Startable;
 
-import org.exoplatform.commons.utils.CommonsUtils;
 import org.exoplatform.commons.utils.MimeTypeResolver;
 import org.exoplatform.container.PortalContainer;
 import org.exoplatform.container.component.ComponentPlugin;
@@ -974,12 +973,12 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
     Node node = node(workspace, path);
     return initDocument(node);
   }
-  
+
   /**
    * {@inheritDoc}
    */
   public String getEditorLink(Node node, String scheme, String host, int port) throws RepositoryException,
-                                                                                  EditorLinkNotFoundException {
+                                                                               EditorLinkNotFoundException {
     if (canEditDocument(node)) {
       String docId = initDocument(node);
       String link = platformUrl(scheme, host, port).append(editorURLPath(docId)).toString();
@@ -1006,7 +1005,6 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
     }
     throw new DocumentNotFoundException("The document not found with path: " + node.getPath());
   }
-
 
   /**
    * {@inheritDoc}
@@ -2561,13 +2559,21 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
    * @param docId the doc id
    * @return the string
    */
-  protected String editorURLPath(String docId) {
+  protected String editorURLPath(String docId) throws EditorLinkNotFoundException {
+    String portalName;
+    try {
+      portalName = WCMCoreUtils.getCurrentPortalName();
+    } catch (Exception e) {
+      LOG.error("Cannot get current portal owner {}", e.getMessage());
+      throw new EditorLinkNotFoundException("Editor link not found - cannot get current portal owner");
+    }
     return new StringBuilder().append('/')
-                              .append(CommonsUtils.getCurrentPortalOwner())
+                              .append(portalName)
                               .append("/oeditor?docId=")
                               .append(docId)
                               .toString();
   }
+
 
   /**
    * Logs editor errors.

@@ -33,6 +33,7 @@
     <ErrorConfigNotDefined>Editor configuration not defined</ErrorConfigNotDefined>
     <ErrorLinkNotFound>Editor link not found</ErrorLinkNotFound>
     <ErrorCreateConfig>Failed to create editor configuration</ErrorCreateConfig>
+    <AnotherEditorIsOpen>Cannot create editor. The document is being edited in another editor (provider)</AnotherEditorIsOpen>
     <ErrorFileDeletedECMS>The file has been deleted. You can try to restore it from Trash</ErrorFileDeletedECMS>
     <ErrorFileDeletedEditor>The file has been deleted. You can save it using File -&gt; Save</ErrorFileDeletedEditor>
     <TimeConvert>
