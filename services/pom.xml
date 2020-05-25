@@ -212,7 +212,7 @@
         <artifactId>maven-surefire-plugin</artifactId>
         <configuration>
           <includes>
-            <!-- include>**/**/EditorServiceTest.java</include -->
+            <include>**/**/EditorServiceTest.java</include>
             <include>**/**/OnlyofficeEditorServiceTest.java</include>
           </includes>
         </configuration>

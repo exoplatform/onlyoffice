@@ -10,6 +10,10 @@ import javax.ws.rs.core.MultivaluedMap;
 import org.apache.commons.io.IOUtils;
 import org.junit.Test;
 
+import org.exoplatform.container.ExoContainer;
+import org.exoplatform.container.ExoContainerContext;
+import org.exoplatform.container.PortalContainer;
+import org.exoplatform.container.component.RequestLifeCycle;
 import org.exoplatform.onlyoffice.test.AbstractResourceTest;
 import org.exoplatform.services.rest.impl.ContainerResponse;
 import org.exoplatform.services.rest.impl.MultivaluedMapImpl;
@@ -56,6 +60,11 @@ public class EditorServiceTest extends AbstractResourceTest {
     if (key == null) {
       try {
         startSessionAs(USER);
+        ExoContainer exoContainer = ExoContainerContext.getContainerByName(PortalContainer.getCurrentPortalContainerName());
+        ExoContainer contextContainer = ExoContainerContext.getCurrentContainerIfPresent();
+        ExoContainerContext.setCurrentContainer(exoContainer);
+        RequestLifeCycle.begin(exoContainer);
+        
         key = createTestDocument(USER, "abc.docx", "Testing Content");
         contentPayload.put("key", key);
 
@@ -64,6 +73,9 @@ public class EditorServiceTest extends AbstractResourceTest {
         statusPayload.put("url", "localhost");
         statusPayload.put("error", 0);
         statusPayloadJson = "{ \"key\": \"" + key + "\", \"status\": 1, \"url\": \"localhost\", \"error\": 0 }";
+        RequestLifeCycle.end();
+        ExoContainerContext.setCurrentContainer(contextContainer);
+        
       } catch (Exception e) {
         e.printStackTrace();
       }
