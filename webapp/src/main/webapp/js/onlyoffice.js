@@ -702,13 +702,13 @@
             UI.showError(message("ErrorTitle"), message("ErrorFileDeletedECMS"));
           }
         });
-        if (settings.docId != explorerDocId) {
+        if (settings.fileId != explorerDocId) {
           // We need unsubscribe from previous doc
           if (explorerDocId) {
             unsubscribeDocument(explorerDocId);
           }
-          subscribeDocument(settings.docId);
-          explorerDocId = settings.docId;
+          subscribeDocument(settings.fileId);
+          explorerDocId = settings.fileId;
         }
         if (settings.link != null) {
           editorbuttons.addCreateButtonFn(ONLYOFFICE, function() {
