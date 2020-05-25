@@ -85,7 +85,7 @@ public class EditorServiceTest extends AbstractResourceTest {
           LOG.info("Life cycle of {} container ended.", containerName);
         }
       } catch (Exception e) {
-        e.printStackTrace();
+        LOG.error("Cannot prepare status payload", e);
       }
     }
   }
