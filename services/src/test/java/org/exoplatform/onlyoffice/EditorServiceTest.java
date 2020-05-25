@@ -10,7 +10,13 @@ import javax.ws.rs.core.MultivaluedMap;
 import org.apache.commons.io.IOUtils;
 import org.junit.Test;
 
+import org.exoplatform.container.ExoContainer;
+import org.exoplatform.container.ExoContainerContext;
+import org.exoplatform.container.PortalContainer;
+import org.exoplatform.container.component.RequestLifeCycle;
 import org.exoplatform.onlyoffice.test.AbstractResourceTest;
+import org.exoplatform.services.log.ExoLogger;
+import org.exoplatform.services.log.Log;
 import org.exoplatform.services.rest.impl.ContainerResponse;
 import org.exoplatform.services.rest.impl.MultivaluedMapImpl;
 
@@ -22,6 +28,9 @@ import io.jsonwebtoken.security.Keys;
  */
 
 public class EditorServiceTest extends AbstractResourceTest {
+
+  /** The Constant LOG. */
+  protected static final Log    LOG              = ExoLogger.getLogger(EditorServiceTest.class);
 
   /** The Constant RESOURCE_URL. */
   protected static final String RESOURCE_URL     = "/onlyoffice/editor";
@@ -56,16 +65,27 @@ public class EditorServiceTest extends AbstractResourceTest {
     if (key == null) {
       try {
         startSessionAs(USER);
-        key = createTestDocument(USER, "abc.docx", "Testing Content");
-        contentPayload.put("key", key);
-
-        statusPayload.put("key", key);
-        statusPayload.put("satus", 1);
-        statusPayload.put("url", "localhost");
-        statusPayload.put("error", 0);
-        statusPayloadJson = "{ \"key\": \"" + key + "\", \"status\": 1, \"url\": \"localhost\", \"error\": 0 }";
+        ExoContainer contextContainer = ExoContainerContext.getCurrentContainerIfPresent();
+        String containerName = PortalContainer.getCurrentPortalContainerName();
+        try {
+          ExoContainer exoContainer = ExoContainerContext.getContainerByName(containerName);
+          ExoContainerContext.setCurrentContainer(exoContainer);
+          RequestLifeCycle.begin(exoContainer);
+          LOG.info("Life cycle of {} container started.", containerName);
+          key = createTestDocument(USER, "abc.docx", "Testing Content");
+          contentPayload.put("key", key);
+          statusPayload.put("key", key);
+          statusPayload.put("satus", 1);
+          statusPayload.put("url", "localhost");
+          statusPayload.put("error", 0);
+          statusPayloadJson = "{ \"key\": \"" + key + "\", \"status\": 1, \"url\": \"localhost\", \"error\": 0 }";
+        } finally {
+          RequestLifeCycle.end();
+          ExoContainerContext.setCurrentContainer(contextContainer);
+          LOG.info("Life cycle of {} container ended.", containerName);
+        }
       } catch (Exception e) {
-        e.printStackTrace();
+        LOG.error("Cannot prepare status payload", e);
       }
     }
   }
@@ -87,7 +107,7 @@ public class EditorServiceTest extends AbstractResourceTest {
     headers.putSingle("authorization", "Bearer " + token);
     ContainerResponse response = service("GET", RESOURCE_URL + "/content/" + USER + "/" + key, "", headers, null);
     String content = IOUtils.toString((InputStream) response.getEntity(), StandardCharsets.UTF_8.name());
-    
+
     assertNotNull(response);
     assertEquals(200, response.getStatus());
     assertEquals("Testing Content", content);
@@ -109,7 +129,7 @@ public class EditorServiceTest extends AbstractResourceTest {
     MultivaluedMap<String, String> headers = new MultivaluedMapImpl();
     headers.putSingle("authorization", "Bearer " + token);
     ContainerResponse response = service("GET", RESOURCE_URL + "/content/" + USER + "/" + key, "", headers, null);
-    
+
     assertNotNull(response);
     assertEquals(401, response.getStatus());
     assertEquals("{\"error\":\"The token is not valid\"}", response.getEntity());
@@ -123,7 +143,7 @@ public class EditorServiceTest extends AbstractResourceTest {
   @Test
   public void testContentNoToken() throws Exception {
     ContainerResponse response = service("GET", RESOURCE_URL + "/content/" + USER + "/" + key, "", null, null);
-    
+
     assertNotNull(response);
     assertEquals(401, response.getStatus());
     assertEquals("{\"error\":\"The token is not valid\"}", response.getEntity());
@@ -167,7 +187,7 @@ public class EditorServiceTest extends AbstractResourceTest {
                        .claim("payload", statusPayload)
                        .signWith(Keys.hmacShaKeyFor(WRONG_SECRET_KEY.getBytes()))
                        .compact();
-    
+
     MultivaluedMap<String, String> headers = new MultivaluedMapImpl();
     headers.putSingle("authorization", "Bearer " + token);
     ContainerResponse response = service("POST",
