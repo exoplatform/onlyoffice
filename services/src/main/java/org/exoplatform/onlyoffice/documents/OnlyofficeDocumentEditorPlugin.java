@@ -337,6 +337,17 @@ public class OnlyofficeDocumentEditorPlugin extends BaseComponentPlugin implemen
   public DocumentUpdateActivityHandler getDocumentUpdateHandler() {
     return updateHandler;
   }
+  
+  /**
+   * On last editor closed.
+   *
+   * @param fileId the file id
+   * @param workspace the workspace
+   */
+  @Override
+  public void onLastEditorClosed(String fileId, String workspace) {
+    // Nothing
+  }
 
   /**
    * Context editor link.
