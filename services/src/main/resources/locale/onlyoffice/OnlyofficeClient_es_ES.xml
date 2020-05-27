@@ -3,29 +3,39 @@
   <!-- For client UI -->
   <OnlyofficeEditorClient>
 
-    <EditButtonTitle>Edit in OnlyOffice</EditButtonTitle>
-    <SaveVersionLabel>Save version</SaveVersionLabel>
-    <SeeMoreButton>Go to full version history</SeeMoreButton>
-    <LoadMoreButton>Load more</LoadMoreButton>
+    <EditButtonTitle>Editar en OnlyOffice</EditButtonTitle>
+    <SaveVersionLabel>Guardar versión</SaveVersionLabel>
+    <SeeMoreButton>Ir al historial de versiones completo</SeeMoreButton>
+    <LoadMoreButton>Cargar más</LoadMoreButton>
     <CloseButton>Cerrar</CloseButton>
     <SaveButton>Guardar</SaveButton>
-    <PlaceHolderTextarea>Write your summary of changes ...</PlaceHolderTextarea>
+    <PlaceHolderTextarea>Guardar resumen de cambios...</PlaceHolderTextarea>
     <TitleTooltip>Haga clic para editar</TitleTooltip>
-    <OpenDrawerBtn>Add new version</OpenDrawerBtn>
-    <NoVersions>No versions</NoVersions>
-    <AlertSave>Changes saved</AlertSave>
-    <ErrorSave>No more than 500 characters</ErrorSave>
-    <UpdateBannerTitle>The document has been updated.</UpdateBannerTitle>
-    <ReloadButtonTitle>Reload</ReloadButtonTitle>
+    <OpenDrawerBtn>Añadir nueva versión</OpenDrawerBtn>
+    <NoVersions>No hay versiones</NoVersions>
+    <AlertSave>Cambios guardados</AlertSave>
+    <ErrorSave>Menos de 500 caracteres</ErrorSave>
+    <UpdateBannerTitle>El documento se ha actualizado.</UpdateBannerTitle>
+    <ReloadButtonTitle>Recargar</ReloadButtonTitle>
 
     <ErrorTitle>Error</ErrorTitle>
     <InfoTitle>Información</InfoTitle>
-
-    <ErrorConfigNotDefined>Editor configuration not defined</ErrorConfigNotDefined>
-    <ErrorLinkNotFound>Editor link not found</ErrorLinkNotFound>
-    <ErrorCreateConfig>Failed to create editor configuration</ErrorCreateConfig>
-    <ErrorFileDeletedECMS>The file has been deleted. You can try to restore it from Trash</ErrorFileDeletedECMS>
-    <ErrorFileDeletedEditor>The file has been deleted. You can save it using File -&gt; Save</ErrorFileDeletedEditor>
+    
+    <!-- For Explorer/Preview/Stream -->
+    <EditorLinkNotFoundError>No se ha encontrado el enlace del editor</EditorLinkNotFoundError>
+    <EditorLinkNotFoundErrorMessage>Error al obtener el enlace del editor: permiso denegado.</EditorLinkNotFoundErrorMessage>
+    <StorageError>Se ha producido un error de almacenamiento.</StorageError>
+    <StorageErrorMessage>Error al obtener el enlace del editor debido a un error de almacenamiento.</StorageErrorMessage>
+    <InternalEditorError>Error del editor integrado.</InternalEditorError>
+    <InternalEditorErrorMessage>Error al obtener el enlace del editor debido a un fallo interno del editor.</InternalEditorErrorMessage>
+    
+    <!-- For Editor frame -->
+    <ErrorConfigNotDefined>La configuración del editor no está definida</ErrorConfigNotDefined>
+    <ErrorLinkNotFound>No se ha encontrado el enlace del editor</ErrorLinkNotFound>
+    <ErrorCreateConfig>Error al crear la configuración del editor</ErrorCreateConfig>
+    <AnotherEditorIsOpen>Error al crear el editor. El documento está siendo editado por otro editor (proveedor).</AnotherEditorIsOpen>
+    <ErrorFileDeletedECMS>El archivo se ha eliminado. Puedes intentar restaurarlo desde la Papelera.</ErrorFileDeletedECMS>
+    <ErrorFileDeletedEditor>El archivo se ha eliminado. Puedes guardarlo haciendo clic en Archivo -&gt; Guardar.</ErrorFileDeletedEditor>
     <TimeConvert>
       <Less_Than_A_Minute>Hace menos de un minuto</Less_Than_A_Minute>
       <About_A_Minute>hace un minuto</About_A_Minute>

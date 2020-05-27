@@ -30,12 +30,12 @@
       <ViewerNotFound>OnlyOffice document editor not found</ViewerNotFound>
     </message>
     <error>
-      <EditorCannotBeCreated>Editor cannot be created. Please retry.</EditorCannotBeCreated>
+      <EditorCannotBeCreated>The editor cannot be created. Please retry.</EditorCannotBeCreated>
       <CannotReadDocument>Cannot read the document. Please retry.</CannotReadDocument>
       <CannotCreateEditor>Cannot create editor. Please retry.</CannotCreateEditor>
-      <CannotSendEditorConfiguration>Cannot send editor configuration. Please retry.</CannotSendEditorConfiguration>
-      <CannotInitEditorConfiguration>Cannot initialize editor configuration. Please retry.</CannotInitEditorConfiguration>
-      <InitializationError>Error initialize editor. Please retry.</InitializationError>
+      <CannotSendEditorConfiguration>Cannot send editor's configuration. Please retry.</CannotSendEditorConfiguration>
+      <CannotInitEditorConfiguration>Cannot initialize the editor's configuration. Please retry.</CannotInitEditorConfiguration>
+      <InitializationError>Error initializing the editor. Please retry.</InitializationError>
       <DocumentIdRequired>Wrong request: document ID required.</DocumentIdRequired>
     </error>
   </OnlyofficeEditor>

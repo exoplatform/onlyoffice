@@ -20,10 +20,20 @@
 
     <ErrorTitle>crwdns6935336:0crwdne6935336:0</ErrorTitle>
     <InfoTitle>crwdns6935338:0crwdne6935338:0</InfoTitle>
-
+    
+    <!-- For Explorer/Preview/Stream -->
+    <EditorLinkNotFoundError>crwdns6936560:0crwdne6936560:0</EditorLinkNotFoundError>
+    <EditorLinkNotFoundErrorMessage>crwdns6936562:0crwdne6936562:0</EditorLinkNotFoundErrorMessage>
+    <StorageError>crwdns6936564:0crwdne6936564:0</StorageError>
+    <StorageErrorMessage>crwdns6936566:0crwdne6936566:0</StorageErrorMessage>
+    <InternalEditorError>crwdns6936568:0crwdne6936568:0</InternalEditorError>
+    <InternalEditorErrorMessage>crwdns6936570:0crwdne6936570:0</InternalEditorErrorMessage>
+    
+    <!-- For Editor frame -->
     <ErrorConfigNotDefined>crwdns6935340:0crwdne6935340:0</ErrorConfigNotDefined>
     <ErrorLinkNotFound>crwdns6935342:0crwdne6935342:0</ErrorLinkNotFound>
     <ErrorCreateConfig>crwdns6935344:0crwdne6935344:0</ErrorCreateConfig>
+    <AnotherEditorIsOpen>crwdns6936758:0crwdne6936758:0</AnotherEditorIsOpen>
     <ErrorFileDeletedECMS>crwdns6935346:0crwdne6935346:0</ErrorFileDeletedECMS>
     <ErrorFileDeletedEditor>crwdns6935348:0crwdne6935348:0</ErrorFileDeletedEditor>
     <TimeConvert>

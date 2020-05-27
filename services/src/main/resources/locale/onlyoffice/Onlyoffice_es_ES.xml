@@ -3,13 +3,13 @@
   <!-- For menu caption in Action Bar -->
   <UIActionBar>
     <tooltip>
-      <OnlyofficeOpen>Edit in OnlyOffice</OnlyofficeOpen>
+      <OnlyofficeOpen>Editar en OnlyOffice</OnlyofficeOpen>
     </tooltip>
   </UIActionBar>
   <!-- Used in Administration-Content-Explorer in Views settings a popup with actions list -->
   <UITabForm>
     <label>
-      <onlyofficeOpen>Edit in OnlyOffice</onlyofficeOpen>
+      <onlyofficeOpen>Editar en OnlyOffice</onlyofficeOpen>
     </label>
   </UITabForm>
   
@@ -17,9 +17,9 @@
   <UINewDocumentForm>
     <label>
       <option>
-        <MicrosoftOfficeDocument>Microsoft Word Document (*.docx)</MicrosoftOfficeDocument>
-        <MicrosoftOfficeSpreadsheet>Microsoft Excel Workbook (*.xlsx)</MicrosoftOfficeSpreadsheet>
-        <MicrosoftOfficePresentation>Microsoft PowerPoint Presentation (*.pptx)</MicrosoftOfficePresentation>
+        <MicrosoftOfficeDocument>Documento de Microsoft Word (*.docx)</MicrosoftOfficeDocument>
+        <MicrosoftOfficeSpreadsheet>Hoja de cálculo de Microsoft Excel (*.xlsx)</MicrosoftOfficeSpreadsheet>
+        <MicrosoftOfficePresentation>Presentación de Microsoft PowerPoint (*.pptx)</MicrosoftOfficePresentation>
       </option>
     </label>
   </UINewDocumentForm>  
@@ -27,16 +27,16 @@
   <!-- Messages -->
   <OnlyofficeEditor>
     <message>
-      <ViewerNotFound>OnlyOffice document editor not found</ViewerNotFound>
+      <ViewerNotFound>No se ha encontrado el editor de documentos OnlyOffice</ViewerNotFound>
     </message>
     <error>
-      <EditorCannotBeCreated>Editor cannot be created. Please retry.</EditorCannotBeCreated>
-      <CannotReadDocument>Cannot read the document. Please retry.</CannotReadDocument>
-      <CannotCreateEditor>Cannot create editor. Please retry.</CannotCreateEditor>
-      <CannotSendEditorConfiguration>Cannot send editor configuration. Please retry.</CannotSendEditorConfiguration>
-      <CannotInitEditorConfiguration>Cannot initialize editor configuration. Please retry.</CannotInitEditorConfiguration>
-      <InitializationError>Error initialize editor. Please retry.</InitializationError>
-      <DocumentIdRequired>Wrong request: document ID required.</DocumentIdRequired>
+      <EditorCannotBeCreated>Error al crear el editor. Reinténtalo.</EditorCannotBeCreated>
+      <CannotReadDocument>Error al leer el documento. Reinténtalo.</CannotReadDocument>
+      <CannotCreateEditor>Error al crear el editor. Reinténtalo.</CannotCreateEditor>
+      <CannotSendEditorConfiguration>Error al enviar la configuración del editor. Reinténtalo.</CannotSendEditorConfiguration>
+      <CannotInitEditorConfiguration>Error al inicializar la configuración del editor. Reinténtalo.</CannotInitEditorConfiguration>
+      <InitializationError>Error al inicializar el editor. Reinténtalo.</InitializationError>
+      <DocumentIdRequired>Solicitud incorrecta: documento ID obligatorio.</DocumentIdRequired>
     </error>
   </OnlyofficeEditor>
 </bundle>
