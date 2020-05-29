@@ -348,6 +348,11 @@ public class OnlyofficeDocumentEditorPlugin extends BaseComponentPlugin implemen
   public void onLastEditorClosed(String fileId, String workspace) {
     // Nothing
   }
+  
+  @Override
+  public void onFirstEditorOpened(String fileId, String workspace) {
+    // Nothing
+  }
 
   /**
    * Context editor link.
