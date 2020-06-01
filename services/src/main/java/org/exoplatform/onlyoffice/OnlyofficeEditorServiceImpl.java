@@ -22,6 +22,7 @@ import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.io.UnsupportedEncodingException;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URI;
@@ -145,6 +146,9 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
 
   /** The Constant LOG. */
   protected static final Log     LOG                      = ExoLogger.getLogger(OnlyofficeEditorServiceImpl.class);
+
+  /** The Constant UTF_8. */
+  private static final String    UTF_8                    = "utf-8";
 
   /** The Constant RANDOM. */
   protected static final Random  RANDOM                   = new Random();
@@ -1521,6 +1525,11 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
     if (title == null) {
       title = node.getName();
     }
+    try {
+      title = URLDecoder.decode(node.getName(), UTF_8);
+    } catch (UnsupportedEncodingException e) {
+      LOG.warn("Cannot decode node name using URLDecoder. {}", e.getMessage());
+    }
     return title;
   }
 
@@ -2567,13 +2576,8 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
       LOG.error("Cannot get current portal owner {}", e.getMessage());
       throw new EditorLinkNotFoundException("Editor link not found - cannot get current portal owner");
     }
-    return new StringBuilder().append('/')
-                              .append(portalName)
-                              .append("/oeditor?docId=")
-                              .append(docId)
-                              .toString();
+    return new StringBuilder().append('/').append(portalName).append("/oeditor?docId=").append(docId).toString();
   }
-
 
   /**
    * Logs editor errors.
