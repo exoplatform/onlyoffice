@@ -189,4 +189,9 @@ public class LockServiceMock implements LockService{
     return null;
   }
 
+  @Override
+  public String getLockTokenOfUser(Node node, String userId) throws Exception {
+    return null;
+  }
+
 }
