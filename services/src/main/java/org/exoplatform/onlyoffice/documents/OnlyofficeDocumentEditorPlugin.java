@@ -57,63 +57,66 @@ import org.exoplatform.webui.application.WebuiRequestContext;
 public class OnlyofficeDocumentEditorPlugin extends BaseComponentPlugin implements DocumentEditor {
 
   /** The Constant PROVIDER_NAME. */
-  protected static final String           PROVIDER_NAME                       = "onlyoffice";
+  protected static final String                 PROVIDER_NAME                       = "onlyoffice";
+
+  /** The Constant EDITING_FINISHED_DELAY. */
+  protected static final long                   EDITING_FINISHED_DELAY              = 10000L;
 
   /** The Constant PROVIDER_CONFIGURATION_PARAM. */
-  protected static final String           PROVIDER_CONFIGURATION_PARAM        = "provider-configuration";
+  protected static final String                 PROVIDER_CONFIGURATION_PARAM        = "provider-configuration";
 
   /** The Constant EDITOR_LINK_NOT_FOUND_ERROR. */
-  protected static final String           EDITOR_LINK_NOT_FOUND_ERROR         = "EditorLinkNotFoundError";
+  protected static final String                 EDITOR_LINK_NOT_FOUND_ERROR         = "EditorLinkNotFoundError";
 
   /** The Constant EDITOR_LINK_NOT_FOUND_ERROR_MESSAGE. */
-  protected static final String           EDITOR_LINK_NOT_FOUND_ERROR_MESSAGE = "EditorLinkNotFoundErrorMessage";
+  protected static final String                 EDITOR_LINK_NOT_FOUND_ERROR_MESSAGE = "EditorLinkNotFoundErrorMessage";
 
   /** The Constant STORAGE_ERROR. */
-  protected static final String           STORAGE_ERROR                       = "StorageError";
+  protected static final String                 STORAGE_ERROR                       = "StorageError";
 
   /** The Constant STORAGE_ERROR_MESSAGE. */
-  protected static final String           STORAGE_ERROR_MESSAGE               = "StorageErrorMessage";
+  protected static final String                 STORAGE_ERROR_MESSAGE               = "StorageErrorMessage";
 
   /** The Constant INTERNAL_EDITOR_ERROR. */
-  protected static final String           INTERNAL_EDITOR_ERROR               = "InternalEditorError";
+  protected static final String                 INTERNAL_EDITOR_ERROR               = "InternalEditorError";
 
   /** The Constant INTERNAL_EDITOR_ERROR_MESSAGE. */
-  protected static final String           INTERNAL_EDITOR_ERROR_MESSAGE       = "InternalEditorErrorMessage";
+  protected static final String                 INTERNAL_EDITOR_ERROR_MESSAGE       = "InternalEditorErrorMessage";
 
   /** The Constant LOG. */
-  protected static final Log              LOG                                 =
-                                              ExoLogger.getLogger(OnlyofficeDocumentEditorPlugin.class);
+  protected static final Log                    LOG                                 =
+                                                    ExoLogger.getLogger(OnlyofficeDocumentEditorPlugin.class);
 
   /** The Constant STREAM. */
-  protected static final String           STREAM                              = "stream";
+  protected static final String                 STREAM                              = "stream";
 
   /** The Constant PREVIEW. */
-  protected static final String           PREVIEW                             = "peview";
+  protected static final String                 PREVIEW                             = "peview";
 
   /** The Constant DRIVES. */
-  protected static final String           DRIVES                              = "drives";
+  protected static final String                 DRIVES                              = "drives";
 
   /** The Constant CLIENT_RESOURCE_PREFIX. */
-  protected static final String           CLIENT_RESOURCE_PREFIX              = "OnlyofficeEditorClient.";
+  protected static final String                 CLIENT_RESOURCE_PREFIX              = "OnlyofficeEditorClient.";
 
   /** The editor service. */
-  protected final OnlyofficeEditorService editorService;
+  protected final OnlyofficeEditorService       editorService;
 
   /** The i 18 n service. */
-  protected final ResourceBundleService   i18nService;
+  protected final ResourceBundleService         i18nService;
 
   /** The cometd service. */
-  protected final CometdOnlyofficeService cometdService;
+  protected final CometdOnlyofficeService       cometdService;
 
   /** The link manager. */
-  protected final LinkManager             linkManager;
+  protected final LinkManager                   linkManager;
 
   /** The editor links. */
-  protected final Map<Node, String>       editorLinks                         = new ConcurrentHashMap<>();
+  protected final Map<Node, String>             editorLinks                         = new ConcurrentHashMap<>();
 
   /** The update handler. */
   protected final DocumentUpdateActivityHandler updateHandler;
-  
+
   /**
    * Instantiates a new OnlyOffice new document editor plugin.
    *
@@ -326,7 +329,6 @@ public class OnlyofficeDocumentEditorPlugin extends BaseComponentPlugin implemen
     }
     return false;
   }
-  
 
   /**
    * Gets the document update handler.
@@ -337,7 +339,7 @@ public class OnlyofficeDocumentEditorPlugin extends BaseComponentPlugin implemen
   public DocumentUpdateActivityHandler getDocumentUpdateHandler() {
     return updateHandler;
   }
-  
+
   /**
    * On last editor closed.
    *
@@ -348,10 +350,10 @@ public class OnlyofficeDocumentEditorPlugin extends BaseComponentPlugin implemen
   public void onLastEditorClosed(String fileId, String workspace) {
     // Nothing
   }
-  
+
   @Override
-  public void onFirstEditorOpened(String fileId, String workspace) {
-    // Nothing
+  public long getEditingFinishedDelay() {
+    return EDITING_FINISHED_DELAY;
   }
 
   /**

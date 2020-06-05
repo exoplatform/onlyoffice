@@ -197,7 +197,7 @@ public class DocumentServiceMock implements DocumentService {
   }
 
   @Override
-  public void setCurrentDocumentProvider(String uuid, String workspace, String provider) throws RepositoryException {
+  public void saveCurrentDocumentProvider(String uuid, String workspace, String provider) throws RepositoryException {
   }
 
   @Override
