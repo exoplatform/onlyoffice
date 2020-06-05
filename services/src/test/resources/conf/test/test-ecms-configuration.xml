@@ -46,6 +46,15 @@
       </value-param>
     </init-params>
   </component>
+  
+  <component>
+    <key>org.exoplatform.services.cms.clouddrives.CloudDriveService</key>
+    <type>org.exoplatform.services.cms.clouddrives.CloudDriveServiceImpl</type>
+  </component>
+  <component>
+    <key>org.exoplatform.services.cms.clouddrives.CloudDriveFeatures</key>
+    <type>org.exoplatform.services.cms.clouddrives.features.PermissiveFeatures</type>
+  </component>
 
   <component>
     <key>org.exoplatform.services.cms.documents.AutoVersionService</key>
@@ -93,6 +102,49 @@
       </value-param>
     </init-params>
   </component>
+  
+  <!-- use this plugin in external configuration, e.g. an extension -->
+  <external-component-plugins>
+    <target-component>org.exoplatform.services.cms.clouddrives.CloudDriveService</target-component>
+    <component-plugin>
+      <name>add.portalenv</name>
+      <set-method>addPlugin</set-method>
+      <type>org.exoplatform.services.cms.clouddrives.webui.PortalEnvironment</type>
+    </component-plugin>
+    <!-- use this plugin in order to add a new cloud drive (or delete added) as a documents drive in ECMS -->
+    <component-plugin>
+      <name>add.dmsdriveinitializer</name>
+      <set-method>addPlugin</set-method>
+      <type>org.exoplatform.services.cms.clouddrives.CloudDriveDocumentsDriveInitializer</type>
+    </component-plugin>
+  </external-component-plugins>
+  <external-component-plugins>
+    <target-component>org.exoplatform.services.jcr.RepositoryService</target-component>
+    <component-plugin>
+      <name>add.namespaces</name>
+      <set-method>addPlugin</set-method>
+      <type>org.exoplatform.services.jcr.impl.AddNamespacesPlugin</type>
+      <init-params>
+        <properties-param>
+          <name>namespaces</name>
+          <property name="ecd" value="http://www.exoplatform.com/jcr/clouddrive/1.0/" />
+        </properties-param>
+      </init-params>
+    </component-plugin>
+    <component-plugin>
+      <name>add.gadget.services.nodeType</name>
+      <set-method>addPlugin</set-method>
+      <type>org.exoplatform.services.jcr.impl.AddNodeTypePlugin</type>
+      <init-params>
+        <values-param>
+          <name>autoCreatedInNewRepository</name>
+          <description>Cloud Drive node types configuration file</description>
+          <value>jar:/conf/portal/jcr/clouddrive-nodetypes.xml</value>
+          <value>jar:/conf/portal/jcr/clouddrive-ui-nodetypes.xml</value>
+        </values-param>
+      </init-params>
+    </component-plugin>
+  </external-component-plugins>
 
   <external-component-plugins>
     <target-component>org.exoplatform.services.jcr.ext.hierarchy.NodeHierarchyCreator</target-component>
