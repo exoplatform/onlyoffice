@@ -3,39 +3,39 @@
   <!-- For client UI -->
   <OnlyofficeEditorClient>
 
-    <EditButtonTitle>Edit in OnlyOffice</EditButtonTitle>
-    <SaveVersionLabel>Save version</SaveVersionLabel>
-    <SeeMoreButton>Go to full version history</SeeMoreButton>
+    <EditButtonTitle>Modifier avec OnlyOffice</EditButtonTitle>
+    <SaveVersionLabel>Enregistrer la version</SaveVersionLabel>
+    <SeeMoreButton>Accéder à l'historique complet des versions</SeeMoreButton>
     <LoadMoreButton>Charger plus</LoadMoreButton>
     <CloseButton>Fermer</CloseButton>
     <SaveButton>Enregistrer</SaveButton>
-    <PlaceHolderTextarea>Write your summary of changes ...</PlaceHolderTextarea>
+    <PlaceHolderTextarea>Rédigez votre résumé des changements...</PlaceHolderTextarea>
     <TitleTooltip>Cliquez pour modifier</TitleTooltip>
-    <OpenDrawerBtn>Add new version</OpenDrawerBtn>
-    <NoVersions>No versions</NoVersions>
-    <AlertSave>Changes saved</AlertSave>
-    <ErrorSave>No more than 500 characters</ErrorSave>
-    <UpdateBannerTitle>The document has been updated.</UpdateBannerTitle>
-    <ReloadButtonTitle>Reload</ReloadButtonTitle>
+    <OpenDrawerBtn>Ajouter une nouvelle version</OpenDrawerBtn>
+    <NoVersions>Aucune version</NoVersions>
+    <AlertSave>Changements enregistrés</AlertSave>
+    <ErrorSave>Pas plus que 500 caractères</ErrorSave>
+    <UpdateBannerTitle>Le document a été mis à jour.</UpdateBannerTitle>
+    <ReloadButtonTitle>Recharger</ReloadButtonTitle>
 
     <ErrorTitle>Erreur</ErrorTitle>
     <InfoTitle>Information:</InfoTitle>
     
     <!-- For Explorer/Preview/Stream -->
-    <EditorLinkNotFoundError>Editor's link not found</EditorLinkNotFoundError>
-    <EditorLinkNotFoundErrorMessage>Cannot get the editor's link - permission denied.</EditorLinkNotFoundErrorMessage>
-    <StorageError>Storage error occurred.</StorageError>
-    <StorageErrorMessage>Cannot get the editor's link because of storage errors.</StorageErrorMessage>
-    <InternalEditorError>Integration editor error.</InternalEditorError>
-    <InternalEditorErrorMessage>Cannot get the editor's link because of an internal editor error.</InternalEditorErrorMessage>
+    <EditorLinkNotFoundError>Le lien de l’éditeur est introuvable</EditorLinkNotFoundError>
+    <EditorLinkNotFoundErrorMessage>Impossible d’obtenir le lien de l’éditeur - autorisation refusée.</EditorLinkNotFoundErrorMessage>
+    <StorageError>Une erreur de stockage s’est produite.</StorageError>
+    <StorageErrorMessage>Impossible d’obtenir le lien de l’éditeur à cause des erreurs de stockage.</StorageErrorMessage>
+    <InternalEditorError>Erreur d’intégration de l'éditeur.</InternalEditorError>
+    <InternalEditorErrorMessage>Impossible d’obtenir le lien de l’éditeur à cause d’une erreur d’éditeur interne.</InternalEditorErrorMessage>
     
     <!-- For Editor frame -->
-    <ErrorConfigNotDefined>The editor's configuration is not defined</ErrorConfigNotDefined>
-    <ErrorLinkNotFound>Editor's link not found</ErrorLinkNotFound>
-    <ErrorCreateConfig>Failed to create editor's configuration</ErrorCreateConfig>
-    <AnotherEditorIsOpen>Cannot create editor. The document is being edited in another editor (provider)</AnotherEditorIsOpen>
-    <ErrorFileDeletedECMS>The file has been deleted. You can try to restore it from the Trash</ErrorFileDeletedECMS>
-    <ErrorFileDeletedEditor>The file has been deleted. You can save it by clicking on File -&gt; Save</ErrorFileDeletedEditor>
+    <ErrorConfigNotDefined>La configuration de l’éditeur n’est pas définie</ErrorConfigNotDefined>
+    <ErrorLinkNotFound>Le lien de l’éditeur est introuvable</ErrorLinkNotFound>
+    <ErrorCreateConfig>Échec de la création de la configuration de l’éditeur</ErrorCreateConfig>
+    <AnotherEditorIsOpen>Impossible de créer l’éditeur. Le document est édité dans un autre éditeur (fournisseur)</AnotherEditorIsOpen>
+    <ErrorFileDeletedECMS>Le fichier a été supprimé. Vous pouvez essayer de le restaurer à partir de la corbeille</ErrorFileDeletedECMS>
+    <ErrorFileDeletedEditor>Le fichier a été supprimé. Vous pouvez le sauvegarder en cliquant sur Fichier -&gt; Enregistrer</ErrorFileDeletedEditor>
     <TimeConvert>
       <Less_Than_A_Minute>il y a moins d'une minute</Less_Than_A_Minute>
       <About_A_Minute>il y a une minute</About_A_Minute>
