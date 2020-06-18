@@ -922,8 +922,8 @@
 
     this.createEditorButton = function(editorLink) {
       return $("<li class='hidden-tabletL'><a href='" + editorLink + "' target='_blank'>"
-          + "<i class='uiIconEcmsOfficeOnlineOpen uiIconEcmsLightGray uiIconEdit'></i>" + message("EditButtonTitle")
-          + "</a></li>");
+          + "<i class='uiIconEcmsOfficeOnlineOpen uiIconEcmsLightGray uiIconEdit'></i><span class='editorLabel'>" + message("EditButtonTitle")
+          + "</span></a></li>");
     };
 
     this.initBar = function(config) {
