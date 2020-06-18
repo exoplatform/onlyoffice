@@ -314,6 +314,7 @@
           log("ONLYOFFICE Changes are collected on document editing service");
           changesSaved = true;
           currentUserChanges = true;
+          editorsupport.notifyActive();
           changesTimer = setTimeout(function() {
             log("Getting document link after a timeout...");
             saveDocumentLink();
