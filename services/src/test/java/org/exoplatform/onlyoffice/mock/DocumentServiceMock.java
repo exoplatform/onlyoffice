@@ -205,4 +205,16 @@ public class DocumentServiceMock implements DocumentService {
     return null;
   }
 
+  @Override
+  public void setCommonEditorPlugin(ComponentPlugin plugin) {
+    // TODO Auto-generated method stub
+    
+  }
+
+  @Override
+  public long getEditorsIdleTimeout() {
+    // TODO Auto-generated method stub
+    return 0;
+  }
+
 }
