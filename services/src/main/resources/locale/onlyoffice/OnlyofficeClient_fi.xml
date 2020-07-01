@@ -8,7 +8,7 @@
     <SeeMoreButton>Go to full version history</SeeMoreButton>
     <LoadMoreButton>Load more</LoadMoreButton>
     <CloseButton>Close</CloseButton>
-    <SaveButton>Tallenna</SaveButton>
+    <SaveButton>Save</SaveButton>
     <PlaceHolderTextarea>Write your summary of changes ...</PlaceHolderTextarea>
     <TitleTooltip>Click to edit</TitleTooltip>
     <OpenDrawerBtn>Add new version</OpenDrawerBtn>
@@ -19,7 +19,7 @@
     <ReloadButtonTitle>Reload</ReloadButtonTitle>
 
     <ErrorTitle>Error</ErrorTitle>
-    <InfoTitle>Tiedot</InfoTitle>
+    <InfoTitle>Information</InfoTitle>
     
     <!-- For Explorer/Preview/Stream -->
     <EditorLinkNotFoundError>Editor's link not found</EditorLinkNotFoundError>
@@ -37,15 +37,15 @@
     <ErrorFileDeletedECMS>The file has been deleted. You can try to restore it from the Trash</ErrorFileDeletedECMS>
     <ErrorFileDeletedEditor>The file has been deleted. You can save it by clicking on File -&gt; Save</ErrorFileDeletedEditor>
     <TimeConvert>
-      <Less_Than_A_Minute>alle minuutti sitten</Less_Than_A_Minute>
-      <About_A_Minute>noin minuutti sitten</About_A_Minute>
-      <About_X_Minutes>noin {0} minuuttia sitten</About_X_Minutes>
-      <About_An_Hour>noin tunti sitten</About_An_Hour>
-      <About_X_Hours>noin {0} tuntia sitten</About_X_Hours>
-      <About_A_Day>noin päivä sitten</About_A_Day>
-      <About_X_Days>noin {0} päivää sitten</About_X_Days>
-      <About_A_Month>noin kuukausi sitten</About_A_Month>
-      <About_X_Months>noin {0} kuukautta sitten</About_X_Months>
+      <Less_Than_A_Minute>less than a minute ago</Less_Than_A_Minute>
+      <About_A_Minute>about a minute ago</About_A_Minute>
+      <About_X_Minutes>about {0} minutes ago</About_X_Minutes>
+      <About_An_Hour>about an hour ago</About_An_Hour>
+      <About_X_Hours>about {0} hours ago</About_X_Hours>
+      <About_A_Day>about a day ago</About_A_Day>
+      <About_X_Days>about {0} days ago</About_X_Days>
+      <About_A_Month>about a month ago</About_A_Month>
+      <About_X_Months>about {0} months ago</About_X_Months>
     </TimeConvert>
   </OnlyofficeEditorClient>
 </bundle>

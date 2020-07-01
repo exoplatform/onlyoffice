@@ -10,7 +10,7 @@
     <CloseButton>بند</CloseButton>
     <SaveButton>محفوظ کریں</SaveButton>
     <PlaceHolderTextarea>Write your summary of changes ...</PlaceHolderTextarea>
-    <TitleTooltip>ترمیم کرنے کے لئے کلک کریں</TitleTooltip>
+    <TitleTooltip>Click to edit</TitleTooltip>
     <OpenDrawerBtn>Add new version</OpenDrawerBtn>
     <NoVersions>No versions</NoVersions>
     <AlertSave>Changes saved</AlertSave>

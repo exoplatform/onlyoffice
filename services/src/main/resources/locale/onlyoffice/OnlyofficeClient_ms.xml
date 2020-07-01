@@ -10,7 +10,7 @@
     <CloseButton>Close</CloseButton>
     <SaveButton>Simpan</SaveButton>
     <PlaceHolderTextarea>Write your summary of changes ...</PlaceHolderTextarea>
-    <TitleTooltip>Click untuk mengedit</TitleTooltip>
+    <TitleTooltip>Click to edit</TitleTooltip>
     <OpenDrawerBtn>Add new version</OpenDrawerBtn>
     <NoVersions>No versions</NoVersions>
     <AlertSave>Changes saved</AlertSave>
