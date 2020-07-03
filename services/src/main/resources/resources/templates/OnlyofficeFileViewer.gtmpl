@@ -1,0 +1,33 @@
+<% 
+  import javax.jcr.Node;
+  import org.exoplatform.webui.core.UIComponent;
+  import org.exoplatform.onlyoffice.Config;
+
+  UIComponent uiParent = uicomponent.getParent();  
+  
+if (uiParent != null) {
+  def originalNode = uiParent.getOriginalNode();  
+  def fileId = originalNode.getUUID();
+  def workspace = originalNode.getSession().getWorkspace().getName();
+%>
+  
+<div class="onlyofficeViewerContainer">
+
+  <div class="viewer">
+    <div id="onlyoffice"></div>
+  </div>
+</div>
+
+<% 
+def config = uicomponent.getFileViewerConfig(fileId, workspace);
+def documentserverJsUrl = config.documentserverJsUrl;
+def configJSON = config.toJSON();
+%>
+<script id="documentServerJS" type="text/javascript" async src="$documentserverJsUrl"></script>
+<script>
+	require([ "SHARED/onlyoffice"], function(onlyoffice) {
+	onlyoffice.initViewer($configJSON);
+	});
+</script>
+<%
+} %>

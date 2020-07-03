@@ -457,31 +457,53 @@
     };
 
     /**
+     * Create an viewer configuration (for use to create the viewer client UI).
+     */
+    var createViewer = function(config) {
+      var process = $.Deferred();
+      if (config) {
+        log("ONLYOFFICE editor config: " + JSON.stringify(config));
+        config.type = "embedded";
+        config.height = "100%";
+        config.width = "100%";
+        config.editorConfig.embedded = {
+          fullscreenUrl : config.document.url,
+          saveUrl : config.document.url,
+          toolbarDocked : "top"
+        };
+        // TODO: wait for script loading
+        setTimeout(function(){
+          if ((typeof DocsAPI === "undefined") || (typeof DocsAPI.DocEditor === "undefined")) {
+          log("ERROR: ONLYOFFICE script load timeout: " + config.documentserverJsUrl);
+          process.reject("ONLYOFFICE script load timeout. Ensure Document Server is running and accessible.");
+          } else {
+            process.resolve(config);
+          }
+        }, 1000);
+      } else {
+        process.reject("Editor config not found");
+      }
+      return process.promise();
+    };
+
+    /**
      * Create an editor configuration (for use to create the editor client UI).
      */
-    var create = function(config) {
+    var createEditor = function(config) {
       var process = $.Deferred();
       if (config) {
         // prepare config
         log("ONLYOFFICE editor config: " + JSON.stringify(config));
 
-        // customize Onlyoffice JS config
         config.type = "desktop";
         config.height = "100%";
         config.width = "100%";
-        config.embedded = {
-          fullscreenUrl : config.document.url,
-          saveUrl : config.document.url,
-          embedUrl : config.document.url,
-          shareUrl : config.document.url,
-          toolbarDocked : "top"
-        };
         config.events = {
           "onDocumentStateChange" : onDocumentStateChange,
           "onError" : onError,
           "onReady" : onReady,
           "onBack" : onBack
-        };
+        }; 
         config.editorConfig.customization = {
           "chat" : false,
           "compactToolbar" : true,
@@ -522,9 +544,36 @@
       }
       return process.promise();
     };
-    this.create = create;
+    this.createEditor = createEditor;
+    this.createViewer = createViewer;
 
     this.init = init;
+    
+    /**
+     * Initialize an editor page in current browser window.
+     */
+    this.initViewer = function(config) {
+        log("Initialize viewer for document: " + config.docId);
+
+        createViewer(config).done(function(localConfig) {
+          if (localConfig) {
+            currentConfig = localConfig;
+            $(function() {
+              try {
+                UI.createViewer(currentConfig);
+              } catch (e) {
+                log("Error initializing Onlyoffice client UI " + e, e);
+              }
+            });
+          } else {
+            log("ERROR: editor config not defined: " + localConfig);
+            UI.showError(message("ErrorTitle"), message("ErrorConfigNotDefined"));
+          }
+        }).fail(function(error) {
+          log("ERROR: editor config creation failed : " + error);
+          UI.showError(message("ErrorTitle"), message("ErrorCreateConfig"));
+        });
+    };
 
     /**
      * Initialize an editor page in current browser window.
@@ -535,8 +584,11 @@
         log("Initialize editor for document: " + config.docId);
         window.document.title = config.document.title + " - " + window.document.title;
         UI.initEditor();
-
-        create(config).done(function(localConfig) {
+        // customize Onlyoffice JS config
+        config.type = "desktop";
+        config.height = "100%";
+        config.width = "100%";
+        createEditor(config).done(function(localConfig) {
           if (localConfig) {
             currentConfig = localConfig;
 
@@ -599,7 +651,7 @@
 
             $(function() {
               try {
-                UI.create(currentConfig);
+                UI.createEditor(currentConfig);
               } catch (e) {
                 log("Error initializing Onlyoffice client UI " + e, e);
               }
@@ -1134,7 +1186,7 @@
     /**
      * Create an editor client UI on current page.
      */
-    this.create = function(localConfig) {
+    this.createEditor = function(localConfig) {
       var $editorPage = $("#OnlyofficeEditorPage");
       if ($editorPage.length > 0) {
         if (!docEditor) {
@@ -1155,6 +1207,19 @@
       } else {
         log("WARN: Editor element not found");
       }
+    };
+    
+    /**
+     * Create an editor client UI on current page.
+     */
+    this.createViewer = function(localConfig) {
+          // show loading while upload to editor - it is already added by WebUI
+          // side
+          var $container = $("#onlyofficeViewerContainer");
+
+          // create and start editor (this also will re-use an existing editor
+          // config from the server)
+          docEditor = new DocsAPI.DocEditor("onlyoffice", localConfig);
     };
 
     /**

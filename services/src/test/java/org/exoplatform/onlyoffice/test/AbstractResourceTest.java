@@ -18,6 +18,7 @@ import org.exoplatform.container.ExoContainerContext;
 import org.exoplatform.container.PortalContainer;
 import org.exoplatform.onlyoffice.Config;
 import org.exoplatform.onlyoffice.OnlyofficeEditorService;
+import org.exoplatform.onlyoffice.OnlyofficeEditorService.Mode;
 import org.exoplatform.services.jcr.RepositoryService;
 import org.exoplatform.services.jcr.ext.app.SessionProviderService;
 import org.exoplatform.services.jcr.ext.common.SessionProvider;
@@ -147,7 +148,7 @@ public class AbstractResourceTest extends BaseCommonsTestCase {
     contentNode.setProperty("jcr:data", content);
     session.save();
     String docId = onlyofficeEditorService.initDocument(node);
-    Config config = onlyofficeEditorService.createEditor("http", "localhost", 8080, user, null, docId);
+    Config config = onlyofficeEditorService.createEditor("http", "localhost", 8080, user, null, docId, Mode.EDIT);
     return config != null ? config.getDocument().getKey() : null;
   }
 }

@@ -35,6 +35,13 @@ import org.exoplatform.services.organization.User;
  */
 public interface OnlyofficeEditorService {
 
+  /**
+   * Editor modes.
+   */
+  enum Mode {
+    EDIT, VIEW
+  }
+
   /** The editor opened event. */
   static String EDITOR_OPENED_EVENT  = "exo.onlyoffice.editor.opened";
 
@@ -87,6 +94,7 @@ public interface OnlyofficeEditorService {
    * @param workspace {@link String}
    * @param docId {@link String} a document reference in the workspace, see
    *          {@link #initDocument(String, String)}
+   * @param mode the mode
    * @return {@link Config} instance in case of successful creation or
    *         <code>null</code> if local file type not supported.
    * @throws OnlyofficeEditorException if editor exception happened
@@ -97,7 +105,8 @@ public interface OnlyofficeEditorService {
                       int userPost,
                       String userId,
                       String workspace,
-                      String docId) throws OnlyofficeEditorException, RepositoryException;
+                      String docId,
+                      Mode mode) throws OnlyofficeEditorException, RepositoryException;
 
   /**
    * Update a configuration associated with given DocumentStatus 
@@ -145,7 +154,8 @@ public interface OnlyofficeEditorService {
    * @throws EditorLinkNotFoundException the editor link not found exceptions
    * @throws RepositoryException the repository exception
    */
-  public String getEditorLink(Node node, String scheme, String host, int port) throws RepositoryException, EditorLinkNotFoundException;
+  public String getEditorLink(Node node, String scheme, String host, int port) throws RepositoryException,
+                                                                               EditorLinkNotFoundException;
 
   /**
    * Gets the document node by its path and optionally a repository workspace.
@@ -222,7 +232,7 @@ public interface OnlyofficeEditorService {
    * @return list of versions for node
    * @throws Exception the exception
    */
-  List<Version> getVersions(String workspace, String docId, int itemParPage, int pageNum) throws Exception ;
+  List<Version> getVersions(String workspace, String docId, int itemParPage, int pageNum) throws Exception;
 
   /**
    * Checks if the node isn't locked and can be edited by the current user.
@@ -267,7 +277,6 @@ public interface OnlyofficeEditorService {
    */
   Node getDocumentById(String workspace, String uuid) throws RepositoryException, DocumentNotFoundException;
 
-
   /**
    * Builds status object based on params. Obtains the config
    *
@@ -278,12 +287,7 @@ public interface OnlyofficeEditorService {
    * @param comment the comment
    * @param contentUrl the contentUrl
    */
-  void downloadVersion(String userId,
-                             String key,
-                             boolean coEdited,
-                             boolean forcesaved,
-                             String comment,
-                             String contentUrl);
+  void downloadVersion(String userId, String key, boolean coEdited, boolean forcesaved, String comment, String contentUrl);
 
   /**
    * Gets the last modifier userId.
