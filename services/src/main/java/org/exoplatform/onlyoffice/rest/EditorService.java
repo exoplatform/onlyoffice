@@ -40,6 +40,8 @@ import javax.ws.rs.core.UriInfo;
 
 import org.apache.commons.lang3.StringUtils;
 import org.exoplatform.onlyoffice.*;
+import org.exoplatform.onlyoffice.OnlyofficeEditorService.Mode;
+
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
@@ -380,7 +382,7 @@ public class EditorService implements ResourceContainer {
                                                  requestUri.getPort(),
                                                  username,
                                                  workspace,
-                                                 path);
+                                                 path, Mode.EDIT);
             if (config.getEditorConfig().getLang() == null) {
               if (request.getLocale() != null) {
                 // If user lang not defined use current request one

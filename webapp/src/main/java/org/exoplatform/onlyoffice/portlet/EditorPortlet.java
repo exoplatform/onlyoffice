@@ -43,6 +43,7 @@ import org.exoplatform.container.ExoContainerContext;
 import org.exoplatform.onlyoffice.Config;
 import org.exoplatform.onlyoffice.OnlyofficeEditorException;
 import org.exoplatform.onlyoffice.OnlyofficeEditorService;
+import org.exoplatform.onlyoffice.OnlyofficeEditorService.Mode;
 import org.exoplatform.services.cms.documents.DocumentService;
 import org.exoplatform.services.log.ExoLogger;
 import org.exoplatform.services.log.Log;
@@ -165,7 +166,8 @@ public class EditorPortlet extends GenericPortlet {
                                          request.getServerPort(),
                                          request.getRemoteUser(),
                                          null,
-                                         docId);
+                                         docId,
+                                         Mode.EDIT);
         if (config != null) {
           if (config.getEditorConfig().getLang() == null) {
             if (request.getLocale() != null) {
