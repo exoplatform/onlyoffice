@@ -92,10 +92,13 @@ public class Config implements Externalizable {
     protected String       lastModifier;
 
     /** The lastModified. **/
-    protected String         lastModified;
+    protected String       lastModified;
 
     /** The display path. */
     protected String       displayPath;
+
+    /** The download url for viewer mode. */
+    protected String       downloadUrl;
 
     /** The comment.  */
     protected String       comment;
@@ -103,7 +106,7 @@ public class Config implements Externalizable {
     /** The rename allowed indicator. */
     protected Boolean      renameAllowed;
 
-    /** The indicator to show if the document has a file activity */
+    /**  The indicator to show if the document has a file activity. */
     protected Boolean      isActivity;
 
     /** The ECMS explorer page URL. */
@@ -353,8 +356,8 @@ public class Config implements Externalizable {
     }
 
     /**
-     * Secret
-     * 
+     * Secret.
+     *
      * @param documentServerSecret the document server secret
      * @return the builder
      */
@@ -382,6 +385,17 @@ public class Config implements Externalizable {
      */
     public Builder lastModified(String lastModified) {
       this.lastModified = lastModified;
+      return this;
+    }
+
+    /**
+     * Download url.
+     *
+     * @param downloadUrl the download url
+     * @return the builder
+     */
+    public Builder downloadUrl(String downloadUrl) {
+      this.downloadUrl = downloadUrl;
       return this;
     }
 
@@ -417,6 +431,7 @@ public class Config implements Externalizable {
                                  documentType,
                                  workspace,
                                  path,
+                                 downloadUrl,
                                  editorPage,
                                  isActivity,
                                  docId,
@@ -455,7 +470,7 @@ public class Config implements Externalizable {
       protected final String uploaded; // '2010-07-07 3:46 PM'
 
       /** The folder. */
-      protected final String folder;  // 'Example Files'
+      protected final String folder;   // 'Example Files'
 
       /**
        * Instantiates a new info.
@@ -583,12 +598,7 @@ public class Config implements Externalizable {
      * @param info the info
      * @param permissions the permissions
      */
-    protected Document(String key,
-                       String fileType,
-                       String title,
-                       String url,
-                       Info info,
-                       Permissions permissions) {
+    protected Document(String key, String fileType, String title, String url, Info info, Permissions permissions) {
       super();
       this.fileType = fileType;
       this.key = key;
@@ -676,22 +686,22 @@ public class Config implements Externalizable {
     public static class User {
 
       /** The id. */
-      protected final String     id;
+      protected final String id;
 
       /** The name. */
-      protected final String     name;
+      protected final String name;
 
       /** The lastModified timestamp. */
-      protected Long             lastModified = Long.valueOf(0);
+      protected Long         lastModified = Long.valueOf(0);
 
       /** The last saved timestamp. */
-      protected Long             lastSaved    = Long.valueOf(0);
+      protected Long         lastSaved    = Long.valueOf(0);
 
       /** The last link saved timestamp. */
-      protected Long             linkSaved    = Long.valueOf(0);
+      protected Long         linkSaved    = Long.valueOf(0);
 
       /** The download link. */
-      protected String           downloadLink;
+      protected String       downloadLink;
 
       /**
        * Instantiates a new user.
@@ -799,14 +809,14 @@ public class Config implements Externalizable {
     /** The callback url. */
     protected final String callbackUrl;
 
-    /** The mode. */
-    protected final String mode;
-
     /** The user. */
     protected final User   user;
 
     /** The lang. */
     protected String       lang;
+
+    /** The mode. */
+    protected String       mode;
 
     /**
      * Instantiates a new editor.
@@ -859,6 +869,15 @@ public class Config implements Externalizable {
      */
     public String getMode() {
       return mode;
+    }
+
+    /**
+     * Sets the mode.
+     *
+     * @param mode the new mode
+     */
+    public void setMode(String mode) {
+      this.mode = mode;
     }
 
     /**
@@ -945,10 +964,13 @@ public class Config implements Externalizable {
   /** The path. */
   private String                          path;
 
-  /** The editor page. */
-  private EditorPage                      editorPage = new EditorPage();
+  /** The download url. */
+  private String                          downloadUrl;
 
-  /** The isActivity */
+  /** The editor page. */
+  private EditorPage                      editorPage       = new EditorPage();
+
+  /**  The isActivity. */
   private Boolean                         isActivity;
 
   /** The document ID in storage. */
@@ -969,9 +991,10 @@ public class Config implements Externalizable {
   /** The error. */
   private String                          error;
 
-
+  /** The same modifier. */
   private transient ThreadLocal<Boolean>  sameModifier     = new ThreadLocal<>();
 
+  /** The previous modified. */
   private transient ThreadLocal<Calendar> previousModified = new ThreadLocal<>();
 
   /**
@@ -1011,6 +1034,7 @@ public class Config implements Externalizable {
    * @param documentType the document type
    * @param workspace the workspace
    * @param path the path
+   * @param downloadUrl the download url
    * @param editorPage the editor page
    * @param isActivity the isActivity
    * @param docId the document ID
@@ -1024,6 +1048,7 @@ public class Config implements Externalizable {
                    String documentType,
                    String workspace,
                    String path,
+                   String downloadUrl,
                    EditorPage editorPage,
                    Boolean isActivity,
                    String docId,
@@ -1031,6 +1056,7 @@ public class Config implements Externalizable {
                    Editor editor) {
     this.workspace = workspace;
     this.path = path;
+    this.downloadUrl = downloadUrl;
     this.isActivity = isActivity;
     this.editorPage = editorPage;
     this.docId = docId;
@@ -1052,6 +1078,7 @@ public class Config implements Externalizable {
     // Strings
     out.writeUTF(workspace);
     out.writeUTF(path);
+    out.writeUTF(downloadUrl);
     out.writeUTF(documentType);
     out.writeUTF(documentserverUrl);
     out.writeUTF(documentserverJsUrl);
@@ -1075,7 +1102,7 @@ public class Config implements Externalizable {
     out.writeBoolean(editorPage.renameAllowed);
     out.writeUTF(editorPage.lastModifier);
     out.writeUTF(editorPage.lastModified);
-    
+
     // Document: key, fileType, title, url, info(owner, uploaded, folder)
     out.writeUTF(document.getKey());
     out.writeUTF(document.getFileType());
@@ -1104,6 +1131,7 @@ public class Config implements Externalizable {
     // Strings
     this.workspace = in.readUTF();
     this.path = in.readUTF();
+    this.downloadUrl = in.readUTF();
     this.documentType = in.readUTF();
     this.documentserverUrl = in.readUTF();
     this.documentserverJsUrl = in.readUTF();
@@ -1141,8 +1169,8 @@ public class Config implements Externalizable {
     Boolean erenameAllowed = in.readBoolean();
     String emodifier = in.readUTF();
     String emodified = in.readUTF();
-    this.editorPage = new EditorPage(ecomment, erenameAllowed, edisplayPath,emodifier, emodified);
-    
+    this.editorPage = new EditorPage(ecomment, erenameAllowed, edisplayPath, emodifier, emodified);
+
     // Document: key, fileType, title, url, info(owner, uploaded, folder)
     String dkey = in.readUTF();
     String dfileType = in.readUTF();
@@ -1225,9 +1253,8 @@ public class Config implements Externalizable {
     return path;
   }
 
-
   /**
-   * Is activity
+   * Is activity.
    *
    * @return the isActivity
    */
@@ -1243,7 +1270,7 @@ public class Config implements Externalizable {
   public EditorPage getEditorPage() {
     return editorPage;
   }
-  
+
   /**
    * Gets the document ID in storage.
    *
@@ -1278,6 +1305,15 @@ public class Config implements Externalizable {
    */
   public URI getExplorerUri() {
     return explorerUri;
+  }
+
+  /**
+   * Gets the download url.
+   *
+   * @return the download url
+   */
+  public String getDownloadUrl() {
+    return downloadUrl;
   }
 
   /**
@@ -1344,6 +1380,15 @@ public class Config implements Externalizable {
   }
 
   /**
+   * Sets the editor url.
+   *
+   * @param url the new editor url
+   */
+  protected void setEditorUrl(String url) {
+    this.editorUrl = url;
+  }
+
+  /**
    * Gets the editor config.
    *
    * @return the editor
@@ -1352,18 +1397,38 @@ public class Config implements Externalizable {
     return editorConfig;
   }
 
+  /**
+   * Sets the previous modified.
+   *
+   * @param previousModified the new previous modified
+   */
   public void setPreviousModified(Calendar previousModified) {
     this.previousModified.set(previousModified);
   }
 
+  /**
+   * Gets the previous modified.
+   *
+   * @return the previous modified
+   */
   public Calendar getPreviousModified() {
     return this.previousModified.get();
   }
 
+  /**
+   * Sets the same modifier.
+   *
+   * @param samemodifier the new same modifier
+   */
   public void setSameModifier(Boolean samemodifier) {
     this.sameModifier.set(samemodifier);
   }
 
+  /**
+   * Gets the same modifier.
+   *
+   * @return the same modifier
+   */
   public Boolean getSameModifier() {
     return this.sameModifier.get();
   }
@@ -1388,6 +1453,7 @@ public class Config implements Externalizable {
                                documentType,
                                workspace,
                                path,
+                               downloadUrl,
                                editorPage,
                                isActivity,
                                docId,

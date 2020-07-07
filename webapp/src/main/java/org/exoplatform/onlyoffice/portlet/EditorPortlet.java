@@ -43,8 +43,6 @@ import org.exoplatform.container.ExoContainerContext;
 import org.exoplatform.onlyoffice.Config;
 import org.exoplatform.onlyoffice.OnlyofficeEditorException;
 import org.exoplatform.onlyoffice.OnlyofficeEditorService;
-import org.exoplatform.onlyoffice.OnlyofficeEditorService.Mode;
-import org.exoplatform.services.cms.documents.DocumentService;
 import org.exoplatform.services.log.ExoLogger;
 import org.exoplatform.services.log.Log;
 import org.exoplatform.services.resources.ResourceBundleService;
@@ -57,19 +55,13 @@ import org.exoplatform.ws.frameworks.json.impl.JsonException;
 public class EditorPortlet extends GenericPortlet {
 
   /** The Constant LOG. */
-  private static final Log        LOG           = ExoLogger.getLogger(EditorPortlet.class);
-
-  /** The Constant PROVIDER_NAME. */
-  private static final String     PROVIDER_NAME = "onlyoffice";
+  private static final Log        LOG = ExoLogger.getLogger(EditorPortlet.class);
 
   /** The onlyoffice. */
   private OnlyofficeEditorService onlyoffice;
 
   /** The i 18 n service. */
   private ResourceBundleService   i18nService;
-
-  /** The document service. */
-  private DocumentService         documentService;
 
   /**
    * {@inheritDoc}
@@ -80,7 +72,6 @@ public class EditorPortlet extends GenericPortlet {
     ExoContainer container = ExoContainerContext.getCurrentContainer();
     this.onlyoffice = container.getComponentInstanceOfType(OnlyofficeEditorService.class);
     this.i18nService = container.getComponentInstanceOfType(ResourceBundleService.class);
-    this.documentService = container.getComponentInstanceOfType(DocumentService.class);
   }
 
   /**
@@ -98,7 +89,7 @@ public class EditorPortlet extends GenericPortlet {
                                                             "locale.onlyoffice.OnlyofficeClient" },
                                                         request.getLocale());
 
-    Config config = getConfig(request, response, i18n);
+    Config config = getConfig(request, response, i18n, OnlyofficeEditorService.EDIT_MODE);
 
     if (config != null) {
       Element onlyOfficeJavascript = response.createElement("script");
@@ -123,12 +114,18 @@ public class EditorPortlet extends GenericPortlet {
                                                             "locale.onlyoffice.OnlyofficeClient" },
                                                         request.getLocale());
 
-    Config config = getConfig(request, response, i18n);
-
+    
+    WebuiRequestContext webuiContext = WebuiRequestContext.getCurrentInstance();
+    String mode = webuiContext.getRequestParameter("mode");
+    Config config = getConfig(request, response, i18n, mode);
     if (config != null) {
       try {
         requireJS().require("SHARED/bts_tooltip");
-        callModule("initEditor(" + config.toJSON() + ");");
+        if (OnlyofficeEditorService.VIEW_MODE.equals(mode)) {
+          callModule("initViewer(" + config.toJSON() + ");");
+        } else {
+          callModule("initEditor(" + config.toJSON() + ");");
+        }
       } catch (JsonException e) {
         LOG.error("Error converting editor configuration to JSON for node by ID: {}", config.getDocId(), e);
         showError(i18n.getString("OnlyofficeEditorClient.ErrorTitle"),
@@ -153,21 +150,29 @@ public class EditorPortlet extends GenericPortlet {
    * @param i18n the i18n resource bundle
    * @return the editor config
    */
-  private Config getConfig(RenderRequest request, RenderResponse response, ResourceBundle i18n) {
+  private Config getConfig(RenderRequest request, RenderResponse response, ResourceBundle i18n, String mode) {
     Config config = null;
 
     WebuiRequestContext webuiContext = WebuiRequestContext.getCurrentInstance();
-
     String docId = webuiContext.getRequestParameter("docId");
+
     if (docId != null) {
       try {
-        config = onlyoffice.createEditor(request.getScheme(),
-                                         request.getServerName(),
-                                         request.getServerPort(),
-                                         request.getRemoteUser(),
-                                         null,
-                                         docId,
-                                         Mode.EDIT);
+        if (OnlyofficeEditorService.VIEW_MODE.equals(mode)) {
+          config = onlyoffice.createViewer(request.getScheme(),
+                                           request.getServerName(),
+                                           request.getServerPort(),
+                                           request.getRemoteUser(),
+                                           null,
+                                           docId);
+        } else {
+          config = onlyoffice.createEditor(request.getScheme(),
+                                           request.getServerName(),
+                                           request.getServerPort(),
+                                           request.getRemoteUser(),
+                                           null,
+                                           docId);
+        }
         if (config != null) {
           if (config.getEditorConfig().getLang() == null) {
             if (request.getLocale() != null) {

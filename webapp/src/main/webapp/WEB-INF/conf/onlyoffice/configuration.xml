@@ -211,6 +211,46 @@
           </object>
         </object-param>
         <object-param>
+          <name>onlyoffice.ViewerCache</name>
+          <description></description>
+          <object type="org.exoplatform.services.cache.ExoCacheConfig">
+            <field name="name">
+              <string>onlyoffice.ViewerCache</string>
+            </field>
+            <field name="maxSize">
+              <int>${onlyoffice.ViewerCache.Capacity:5000}</int>
+            </field>
+            <field name="liveTime">
+              <long>${onlyoffice.ViewerCache.TimeToLive:259200}</long>
+            </field>
+            <field name="implementation">
+              <string>org.exoplatform.services.cache.concurrent.ConcurrentFIFOExoCache</string>
+            </field>
+          </object>
+        </object-param>
+        <object-param profiles="cluster">
+          <name>onlyoffice.ViewerCache</name>
+          <description></description>
+          <object type="org.exoplatform.services.cache.impl.infinispan.generic.GenericExoCacheConfig">
+            <field name="name">
+              <string>onlyoffice.ViewerCache</string>
+            </field>
+            <field name="strategy">
+              <string>${onlyoffice.ViewerCache.strategy:LIRS}</string>
+            </field>
+            <field name="maxEntries">
+              <int>${onlyoffice.ViewerCache.Capacity:5000}</int>
+            </field>
+            <field name="lifespan">
+              <long>${onlyoffice.ViewerCache.TimeToLive:259200000}</long>
+            </field>
+            <field name="cacheMode">
+              <string>${onlyoffice.ViewerCache.cacheMode:replication}</string>
+            </field>
+          </object>
+        </object-param>
+        
+        <object-param>
           <name>onlyoffice.EditorStateCache</name>
           <description></description>
           <object type="org.exoplatform.services.cache.ExoCacheConfig">
@@ -333,7 +373,7 @@
     </component-plugin>
   </external-component-plugins>
 
-
+  <!-- FileViewer plugin to show document preview in Explorer/Stream -->
   <external-component-plugins>
     <target-component>org.exoplatform.webui.ext.UIExtensionManager</target-component>
     <component-plugin>
@@ -348,7 +388,7 @@
               <string>org.exoplatform.ecm.dms.FileViewer</string>
             </field>
             <field name="rank">
-              <int>1</int>
+              <int>80</int>
             </field>
             <field name="name">
               <string>Office</string>
@@ -366,74 +406,13 @@
                     <field name="mimeTypes">
                       <collection type="java.util.ArrayList">
                         <value>
-                          <string>application/msword</string>
+                          <string>application/vnd.openxmlformats-officedocument.wordprocessingml.document</string>
                         </value>
                         <value>
-                          <string>application/ppt</string>
+                          <string>application/vnd.openxmlformats-officedocument.spreadsheetml.sheet</string>
                         </value>
                         <value>
-                          <string>application/vnd.ms-powerpoint</string>
-                        </value>
-                        <value>
-                          <string>application/rtf</string>
-                        </value>
-                        <value>
-                          <string>application/vnd.oasis.opendocument.graphics</string>
-                        </value>
-                        <value>
-                          <string>application/vnd.oasis.opendocument.presentation</string>
-                        </value>
-                        <value>
-                          <string>application/vnd.oasis.opendocument.spreadsheet</string>
-                        </value>
-                        <value>
-                          <string>application/vnd.oasis.opendocument.spreadsheet-template
-                                                    </string>
-                        </value>
-                        <value>
-                          <string>application/vnd.oasis.opendocument.text</string>
-                        </value>
-                        <value>
-                          <string>
-                                                        application/vnd.openxmlformats-officedocument.presentationml.presentation
-                                                    </string>
-                        </value>
-                        <value>
-                          <string>
-                                                        application/vnd.openxmlformats-officedocument.spreadsheetml.sheet
-                                                    </string>
-                        </value>
-                        <value>
-                          <string>
-                                                        application/vnd.openxmlformats-officedocument.wordprocessingml.document
-                                                    </string>
-                        </value>
-                        <value>
-                          <string>application/vnd.sun.xml.impress</string>
-                        </value>
-                        <value>
-                          <string>application/vnd.sun.xml.writer</string>
-                        </value>
-                        <value>
-                          <string>application/wordperfect</string>
-                        </value>
-                        <value>
-                          <string>application/xls</string>
-                        </value>
-                        <value>
-                          <string>application/vnd.ms-excel</string>
-                        </value>
-                        <value>
-                          <string>application/xlt</string>
-                        </value>
-                        <value>
-                          <string>application/vnd.ms-powerpoint</string>
-                        </value>
-                        <value>
-                          <string>application/vnd.ms-excel</string>
-                        </value>
-                        <value>
-                          <string>application/vnd.oasis.opendocument.formula</string>
+                          <string>application/vnd.openxmlformats-officedocument.presentationml.presentation</string>
                         </value>
                       </collection>
                     </field>
