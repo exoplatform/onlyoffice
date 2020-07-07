@@ -210,6 +210,9 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
   /** The Constant CACHE_NAME. */
   public static final String     CACHE_NAME               = "onlyoffice.EditorCache".intern();
 
+  /** The Constant VIEWER_CACHE_NAME. */
+  public static final String     VIEWER_CACHE_NAME        = "onlyoffice.ViewerCache".intern();
+
   /**
    * NewDocumentTypesConfig.
    */
@@ -343,6 +346,9 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
   /** Cache of Editing documents. */
   protected final ExoCache<String, ConcurrentMap<String, Config>> activeCache;
 
+  /** Cache of Viewing documents. */
+  protected final ExoCache<String, ConcurrentMap<String, Config>> viewerCache;
+
   /** Lock for updating Editing documents cache. */
   protected final ReentrantLock                                   activeLock = new ReentrantLock();
 
@@ -437,6 +443,7 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
     this.spaceService = spaceService;
     this.activityManager = activityManager;
     this.activeCache = cacheService.getCacheInstance(CACHE_NAME);
+    this.viewerCache = cacheService.getCacheInstance(VIEWER_CACHE_NAME);
     this.hierarchyCreator = hierarchyCreator;
     this.manageDriveService = manageDriveService;
     if (LOG.isDebugEnabled()) {
@@ -583,8 +590,7 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
                              int port,
                              String userId,
                              String workspace,
-                             String docId,
-                             Mode mode) throws OnlyofficeEditorException, RepositoryException {
+                             String docId) throws OnlyofficeEditorException, RepositoryException {
     if (workspace == null) {
       workspace = jcrService.getCurrentRepository().getConfiguration().getDefaultWorkspaceName();
     }
@@ -603,7 +609,6 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
     if (!canEditDocument(node)) {
       throw new OnlyofficeEditorException("Cannot edit document: " + nodePath(workspace, path));
     }
-
     Config config = getEditor(userId, docId, true);
     if (config == null) {
       // we should care about concurrent calls here
@@ -656,7 +661,7 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
                                         // mean a root folder
           }
           builder.lang(getUserLang(userId));
-          builder.mode(mode.toString());
+          builder.mode(OnlyofficeEditorService.EDIT_MODE);
           builder.title(nodeTitle(node));
           builder.userId(user.getUserName());
           builder.userName(user.getDisplayName());
@@ -665,8 +670,8 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
           String key = generateId(workspace, path).toString();
 
           builder.key(key);
-
           StringBuilder platformUrl = platformUrl(schema, host, port);
+
           // REST URL for file and callback URLs fill be generated respectively
           // the platform URL and actual user
           builder.generateUrls(new StringBuilder(platformUrl).append('/')
@@ -674,7 +679,6 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
                                                              .toString());
           // editor page URL
           builder.editorUrl(new StringBuilder(platformUrl).append(editorURLPath(docId)).toString());
-
           // ECMS explorer page URL
           String ecmsPageLink = explorerLink(path);
           builder.explorerUri(explorerUri(schema, host, port, ecmsPageLink));
@@ -711,11 +715,105 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
   }
 
   /**
+   * Creates the viewer.
+   *
+   * @param schema the schema
+   * @param host the host
+   * @param port the port
+   * @param userId the user id
+   * @param workspace the workspace
+   * @param docId the doc id
+   * @return the config
+   * @throws OnlyofficeEditorException the onlyoffice editor exception
+   * @throws RepositoryException the repository exception
+   */
+  public Config createViewer(String schema,
+                             String host,
+                             int port,
+                             String userId,
+                             String workspace,
+                             String docId) throws OnlyofficeEditorException, RepositoryException {
+
+    if (workspace == null) {
+      workspace = jcrService.getCurrentRepository().getConfiguration().getDefaultWorkspaceName();
+    }
+    // XXX to let REST EditorService work with paths
+    if (docId.startsWith("/")) {
+      // it's path as docId
+      docId = initDocument(workspace, docId);
+    }
+    Node node = getDocumentById(workspace, docId);
+    String path = node.getPath();
+
+    // only nt:file are supported for online edition
+    if (!node.isNodeType("nt:file")) {
+      throw new OnlyofficeEditorException("Document should be a nt:file node: " + nodePath(workspace, path));
+    }
+
+    // Build a new editor config and document key
+    User user = getUser(userId);
+
+    String fileType = fileType(node);
+    String docType = documentType(fileType);
+    
+
+    Config.Builder builder = Config.editor(documentserverUrl, docType, workspace, path, docId);
+    
+    builder.owner(userId);
+    builder.fileType(fileType);
+    builder.lang(getUserLang(userId));
+    builder.mode(OnlyofficeEditorService.VIEW_MODE);
+    builder.title(nodeTitle(node));
+    builder.userId(user.getUserName());
+    builder.userName(user.getDisplayName());
+    String key = generateId(workspace, path).toString();
+    builder.key(key);
+    StringBuilder platformUrl = platformUrl(schema, host, port);
+
+    // REST URL for file and callback URLs fill be generated respectively
+    // the platform URL and actual user
+    builder.generateUrls(new StringBuilder(platformUrl).append('/')
+                                                       .append(PortalContainer.getCurrentRestContextName())
+                                                       .toString());
+    // editor page URL
+    builder.editorUrl(new StringBuilder(platformUrl).append(editorURLPath(docId))
+                                                    .append("&mode=")
+                                                    .append(OnlyofficeEditorService.VIEW_MODE)
+                                                    .toString());
+    // ECMS explorer page URL
+    String ecmsPageLink = explorerLink(path);
+    builder.explorerUri(explorerUri(schema, host, port, ecmsPageLink));
+    builder.secret(documentserverSecret);
+   
+    try {
+      String downloadUrl = Utils.getDownloadRestServiceLink(node);
+      builder.downloadUrl(new StringBuilder(platformUrl).append(downloadUrl).toString());
+    } catch (Exception e) {
+      LOG.warn("Cannot get download link for node " + docId, e.getMessage());
+    }
+    
+    Config config = builder.build();
+    // Create users' config map and add first user
+    ConcurrentHashMap<String, Config> configs = new ConcurrentHashMap<>();
+    configs.put(userId, config);
+
+    viewerCache.put(key, configs);
+    viewerCache.put(docId, configs);
+    return config;
+
+  }
+
+  /**
    * {@inheritDoc}
    */
   @Override
   public DocumentContent getContent(String userId, String key) throws OnlyofficeEditorException, RepositoryException {
     ConcurrentMap<String, Config> configs = activeCache.get(key);
+    boolean viewMode = false;
+    if (configs == null) {
+      configs = viewerCache.get(key);
+      viewMode = true;
+    }
     if (configs != null) {
       Config config = configs.get(userId);
       if (config != null) {
@@ -734,11 +832,17 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
           }
           // work in user session
           Node node = node(config.getWorkspace(), config.getPath());
-          Node content = nodeContent(node);
 
+          if (viewMode) {
+            viewerCache.remove(key);
+            viewerCache.remove(config.getDocId());
+          }
+
+          Node content = nodeContent(node);
           final String mimeType = content.getProperty("jcr:mimeType").getString();
           // data stream will be closed when EoF will be reached
           final InputStream data = new AutoCloseInputStream(content.getProperty("jcr:data").getStream());
+
           return new DocumentContent() {
             @Override
             public String getType() {

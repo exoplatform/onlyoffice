@@ -20,14 +20,16 @@ if (uiParent != null) {
 
 <% 
 def config = uicomponent.getFileViewerConfig(fileId, workspace);
-def documentserverJsUrl = config.documentserverJsUrl;
-def configJSON = config.toJSON();
-%>
-<script id="documentServerJS" type="text/javascript" async src="$documentserverJsUrl"></script>
-<script>
-	require([ "SHARED/onlyoffice"], function(onlyoffice) {
-	onlyoffice.initViewer($configJSON);
-	});
-</script>
-<%
-} %>
+def configJSON;
+  if (config != null) {
+	def documentserverJsUrl = config.documentserverJsUrl;
+	configJSON = config.toJSON();
+	%>
+	<script id="documentServerJS" type="text/javascript" async src="$documentserverJsUrl"></script>
+ <% } %>
+	<script>
+		require([ "SHARED/onlyoffice"], function(onlyoffice) {
+		onlyoffice.initEmbeddedViewer($configJSON);
+		});
+	</script>	
+<% } %>

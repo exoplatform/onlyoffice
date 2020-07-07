@@ -82,8 +82,8 @@
             msgLine += err.message;
           }
         } else {
-          msgLine += (typeof err === "string" ? err : JSON.stringify(err)
-              + (err.toString && typeof err.toString === "function" ? "; " + err.toString() : ""));
+          msgLine += (typeof err === "string" ? err : JSON.stringify(err) +
+            (err.toString && typeof err.toString === "function" ? "; " + err.toString() : ""));
         }
 
         console.log(logPrefix + msgLine + isoTime);
@@ -163,7 +163,7 @@
     const EDITOR_CLOSED = "EDITOR_CLOSED";
     const ONLYOFFICE = "onlyoffice";
     // Events that are dispatched to redux as actions
-    var dispatchableEvents = [ DOCUMENT_SAVED, DOCUMENT_CHANGED, DOCUMENT_DELETED, DOCUMENT_VERSION, DOCUMENT_TITLE_UPDATED ];
+    var dispatchableEvents = [DOCUMENT_SAVED, DOCUMENT_CHANGED, DOCUMENT_DELETED, DOCUMENT_VERSION, DOCUMENT_TITLE_UPDATED];
 
     // CometD transport bus
     var cometd, cometdContext;
@@ -233,8 +233,8 @@
           log("Document updates subscribed successfully: " + JSON.stringify(subscribeReply));
           subscribedDocuments.docId = subscription;
         } else {
-          var err = subscribeReply.error ? subscribeReply.error : (subscribeReply.failure ? subscribeReply.failure.reason
-              : "Undefined");
+          var err = subscribeReply.error ? subscribeReply.error : (subscribeReply.failure ? subscribeReply.failure.reason :
+            "Undefined");
           log("Document updates subscription failed for " + docId, err);
         }
       });
@@ -249,8 +249,8 @@
             log("Document updates unsubscribed successfully for: " + docId);
             delete subscribedDocuments.docId;
           } else {
-            var err = unsubscribeReply.error ? unsubscribeReply.error
-                : (unsubscribeReply.failure ? unsubscribeReply.failure.reason : "Undefined");
+            var err = unsubscribeReply.error ? unsubscribeReply.error :
+              (unsubscribeReply.failure ? unsubscribeReply.failure.reason : "Undefined");
             log("Document updates unsubscription failed for " + docId, err);
           }
         });
@@ -332,10 +332,10 @@
           // We are a editor page here: publish that the doc was changed by
           // current user
           publishDocument(currentConfig.docId, {
-            "type" : DOCUMENT_CHANGED,
-            "userId" : currentUserId,
-            "clientId" : clientId,
-            "key" : currentConfig.document.key
+            "type": DOCUMENT_CHANGED,
+            "userId": currentUserId,
+            "clientId": clientId,
+            "key": currentConfig.document.key
           });
         } else {
           currentUserChanges = false;
@@ -346,10 +346,10 @@
     var downloadVersion = function() {
       if (currentConfig) {
         publishDocument(currentConfig.docId, {
-          "type" : DOCUMENT_VERSION,
-          "userId" : currentUserId,
-          "clientId" : clientId,
-          "key" : currentConfig.document.key
+          "type": DOCUMENT_VERSION,
+          "userId": currentUserId,
+          "clientId": clientId,
+          "key": currentConfig.document.key
         });
       } else {
         log("WARN: Editor configuration not found. Cannot download document version.");
@@ -359,10 +359,10 @@
     var saveDocumentLink = function() {
       if (currentConfig) {
         publishDocument(currentConfig.docId, {
-          "type" : DOCUMENT_LINK,
-          "userId" : currentUserId,
-          "clientId" : clientId,
-          "key" : currentConfig.document.key
+          "type": DOCUMENT_LINK,
+          "userId": currentUserId,
+          "clientId": clientId,
+          "key": currentConfig.document.key
         });
       } else {
         log("WARN: Editor configuration not found. Cannot save document document.");
@@ -374,7 +374,7 @@
       // Edit title
       if (config.editorPage.renameAllowed) {
         $bar.find(".editable-title").editable({
-          onChange : function(event) {
+          onChange: function(event) {
             var newTitle = event.newValue;
             var oldTitle = currentConfig.document.title;
             if (oldTitle.includes(".")) {
@@ -384,11 +384,11 @@
               }
             }
             publishDocument(currentConfig.docId, {
-              "type" : DOCUMENT_TITLE_UPDATED,
-              "userId" : currentUserId,
-              "clientId" : clientId,
-              "title" : newTitle,
-              "workspace" : currentConfig.workspace
+              "type": DOCUMENT_TITLE_UPDATED,
+              "userId": currentUserId,
+              "clientId": clientId,
+              "title": newTitle,
+              "workspace": currentConfig.workspace
             });
           }
         });
@@ -401,11 +401,11 @@
           return;
         }
         publishDocument(currentConfig.docId, {
-          "type" : DOCUMENT_USERSAVED,
-          "userId" : currentUserId,
-          "clientId" : clientId,
-          "key" : currentConfig.document.key,
-          "comment" : comment
+          "type": DOCUMENT_USERSAVED,
+          "userId": currentUserId,
+          "clientId": clientId,
+          "key": currentConfig.document.key,
+          "comment": comment
         }).done(function() {
           UI.alertSave();
         });
@@ -440,14 +440,14 @@
         }
         if (cometdConf) {
           cCometD.configure({
-            "url" : prefixUrl + cometdConf.path,
-            "exoId" : userId,
-            "exoToken" : cometdConf.token,
-            "maxNetworkDelay" : 30000,
-            "connectTimeout" : 60000
+            "url": prefixUrl + cometdConf.path,
+            "exoId": userId,
+            "exoToken": cometdConf.token,
+            "maxNetworkDelay": 30000,
+            "connectTimeout": 60000
           });
           cometdContext = {
-            "exoContainerName" : cometdConf.containerName
+            "exoContainerName": cometdConf.containerName
           };
           cometd = cCometD;
         }
@@ -455,6 +455,19 @@
         log("Cannot initialize user: " + userId);
       }
     };
+
+    var waitDocsAPI = function(process, config, retries, timeout) {
+      setTimeout(function() {
+        if ((typeof DocsAPI !== "undefined") && (typeof DocsAPI.DocEditor !== "undefined")) {
+          process.resolve(config);
+        } else if (retries > 0) {
+          waitDocsAPI(process, config, --retries, timeout);
+        } else {
+          log("ERROR: ONLYOFFICE script load timeout: " + config.documentserverJsUrl);
+          process.reject("ONLYOFFICE script load timeout. Ensure Document Server is running and accessible.");
+        }
+      }, timeout);
+    }
 
     /**
      * Create an viewer configuration (for use to create the viewer client UI).
@@ -467,19 +480,14 @@
         config.height = "100%";
         config.width = "100%";
         config.editorConfig.embedded = {
-          fullscreenUrl : config.document.url,
-          saveUrl : config.document.url,
-          toolbarDocked : "top"
+          fullscreenUrl: config.editorUrl,
+          saveUrl: config.downloadUrl,
+          toolbarDocked: "top"
         };
-        // TODO: wait for script loading
-        setTimeout(function(){
-          if ((typeof DocsAPI === "undefined") || (typeof DocsAPI.DocEditor === "undefined")) {
-          log("ERROR: ONLYOFFICE script load timeout: " + config.documentserverJsUrl);
-          process.reject("ONLYOFFICE script load timeout. Ensure Document Server is running and accessible.");
-          } else {
-            process.resolve(config);
-          }
-        }, 1000);
+
+        var retries = 15;
+        var timeout = 200;
+        waitDocsAPI(process, config, retries, timeout);
       } else {
         process.reject("Editor config not found");
       }
@@ -499,36 +507,36 @@
         config.height = "100%";
         config.width = "100%";
         config.events = {
-          "onDocumentStateChange" : onDocumentStateChange,
-          "onError" : onError,
-          "onReady" : onReady,
-          "onBack" : onBack
-        }; 
+          "onDocumentStateChange": onDocumentStateChange,
+          "onError": onError,
+          "onReady": onReady,
+          "onBack": onBack
+        };
         config.editorConfig.customization = {
-          "chat" : false,
-          "compactToolbar" : true,
-          "goback" : {
-            "blank" : true,
-            "text" : "Go to Document",
-            "url" : config.explorerUrl
+          "chat": false,
+          "compactToolbar": true,
+          "goback": {
+            "blank": true,
+            "text": "Go to Document",
+            "url": config.explorerUrl
           },
-          "help" : true,
-          "logo" : {
-            "image" : prefixUrl + "/onlyoffice/images/exo-icone.png",
-            "imageEmbedded" : prefixUrl + "/eXoSkin/skin/images/themes/default/platform/skin/ToolbarContainer/HomeIcon.png",
-            "url" : prefixUrl + "/portal"
+          "help": true,
+          "logo": {
+            "image": prefixUrl + "/onlyoffice/images/exo-icone.png",
+            "imageEmbedded": prefixUrl + "/eXoSkin/skin/images/themes/default/platform/skin/ToolbarContainer/HomeIcon.png",
+            "url": prefixUrl + "/portal"
           },
-          "customer" : {
-            "info" : "eXo Platform",
-            "logo" : prefixUrl + "/eXoSkin/skin/images/themes/default/platform/skin/ToolbarContainer/HomeIcon.png",
-            "mail" : "support@exoplatform.com",
-            "name" : "Support",
-            "www" : "exoplatform.com"
+          "customer": {
+            "info": "eXo Platform",
+            "logo": prefixUrl + "/eXoSkin/skin/images/themes/default/platform/skin/ToolbarContainer/HomeIcon.png",
+            "mail": "support@exoplatform.com",
+            "name": "Support",
+            "www": "exoplatform.com"
           }
         };
         config.editorConfig.plugins = {
-          "autostart" : [],
-          "pluginsData" : []
+          "autostart": [],
+          "pluginsData": []
         };
 
         log("ONLYOFFICE editor config: " + JSON.stringify(config));
@@ -548,38 +556,43 @@
     this.createViewer = createViewer;
 
     this.init = init;
-    
+
     /**
      * Initialize an editor page in current browser window.
      */
-    this.initViewer = function(config) {
+    this.initEmbeddedViewer = function(config) {
+      if (config) {
         log("Initialize viewer for document: " + config.docId);
-
+        log("i18n: " + JSON.stringify(messages));
         createViewer(config).done(function(localConfig) {
           if (localConfig) {
             currentConfig = localConfig;
             $(function() {
               try {
-                UI.createViewer(currentConfig);
+                new DocsAPI.DocEditor("onlyoffice", localConfig);
               } catch (e) {
                 log("Error initializing Onlyoffice client UI " + e, e);
               }
             });
           } else {
             log("ERROR: editor config not defined: " + localConfig);
-            UI.showError(message("ErrorTitle"), message("ErrorConfigNotDefined"));
+            UI.showViewerError(message("PreviewNotAvailable"), message("ErrorCreateConfig"));
           }
         }).fail(function(error) {
           log("ERROR: editor config creation failed : " + error);
-          UI.showError(message("ErrorTitle"), message("ErrorCreateConfig"));
+          UI.showViewerError(message("PreviewNotAvailable"), message("CannotLoadViewerScript"));
         });
+      } else {
+        log("ERROR: editor config not defined: " + config);
+        UI.showViewerError(message("PreviewNotAvailable"), message("ErrorCreateConfig"));
+      }
     };
 
     /**
      * Initialize an editor page in current browser window.
      */
     this.initEditor = function(config) {
-      editorsupport.onEditorOpen(config.docId, config.workspace, ONLYOFFICE).done(function(){
+      editorsupport.onEditorOpen(config.docId, config.workspace, ONLYOFFICE).done(function() {
         initBar(config);
         log("Initialize editor for document: " + config.docId);
         window.document.title = config.document.title + " - " + window.document.title;
@@ -640,11 +653,11 @@
               // We need to save current changes when user closes the editor
               if (currentConfig) {
                 publishDocument(currentConfig.docId, {
-                  "type" : EDITOR_CLOSED,
-                  "userId" : currentUserId,
-                  "explorerUrl" : config.explorerUrl,
-                  "key" : currentConfig.document.key,
-                  "changes" : currentUserChanges
+                  "type": EDITOR_CLOSED,
+                  "userId": currentUserId,
+                  "explorerUrl": config.explorerUrl,
+                  "key": currentConfig.document.key,
+                  "changes": currentUserChanges
                 });
               }
             });
@@ -680,10 +693,40 @@
         $("#load-more-btn").on('click', function() {
           UI.loadVersions(currentConfig.workspace, currentConfig.docId, 3, pageToLoad);
           pageToLoad++;
-        }); 
+        });
       }).fail(function() {
         UI.showError(message("ErrorTitle"), message("AnotherEditorIsOpen"));
       });
+    };
+    
+    this.initViewer = function(config) {
+        log("Initialize viewer for document: " + config.docId);
+        window.document.title = config.document.title + " - " + window.document.title;
+        UI.initEditor();
+        // customize Onlyoffice JS config
+        config.type = "desktop";
+        config.height = "100%";
+        config.width = "100%";
+        createEditor(config).done(function(localConfig) {
+          if (localConfig) {
+            currentConfig = localConfig;
+            $(function() {
+              try {
+                UI.createEditor(currentConfig);
+              } catch (e) {
+                log("Error initializing Onlyoffice client UI " + e, e);
+              }
+            });
+          } else {
+            log("ERROR: editor config not defined: " + localConfig);
+            UI.showError(message("ErrorTitle"), message("ErrorConfigNotDefined"));
+          }
+        }).fail(function(error) {
+          log("ERROR: editor config creation failed : " + error);
+          UI.showError(message("ErrorTitle"), message("ErrorCreateConfig"));
+        });
+        
+        $("#open-drawer-btn").css("display", "none");
     };
 
     /**
@@ -730,7 +773,7 @@
           });
         } else if (settings.error) {
           log(message(settings.error.type) + " - " + message(settings.error.message));
-        } 
+        }
       }
     };
 
@@ -769,7 +812,7 @@
           });
         } else if (settings.error) {
           log(message(settings.error.type) + " - " + message(settings.error.message));
-        } 
+        }
       }
     };
 
@@ -825,8 +868,8 @@
      * Returns the html markup of the refresh banner;
      */
     var getRefreshBanner = function() {
-      return "<div class='documentRefreshBanner'><div class='refreshBannerContent'>" + message("UpdateBannerTitle")
-          + "<span class='refreshBannerLink'>" + message("ReloadButtonTitle") + "</span></div></div>";
+      return "<div class='documentRefreshBanner'><div class='refreshBannerContent'>" + message("UpdateBannerTitle") +
+        "<span class='refreshBannerLink'>" + message("ReloadButtonTitle") + "</span></div></div>";
     };
 
     // Use this in on-close window handler.
@@ -848,7 +891,7 @@
      */
     var refreshActivityPreview = function(activityId, $banner) {
       $banner.find(".refreshBannerContent")
-          .append("<div class='loading'><i class='uiLoadingIconSmall uiIconEcmsGray'></i></div>");
+        .append("<div class='loading'><i class='uiLoadingIconSmall uiIconEcmsGray'></i></div>");
       var $refreshLink = $banner.find(".refreshBannerLink");
       $refreshLink.addClass("disabled");
       $refreshLink.on('click', function() {
@@ -885,7 +928,7 @@
           });
         });
         observer.observe($mediaContent[0], {
-          attributes : true
+          attributes: true
         });
       }
     };
@@ -974,9 +1017,9 @@
     };
 
     this.createEditorButton = function(editorLink) {
-      return $("<li class='hidden-tabletL'><a href='" + editorLink + "' target='_blank'>"
-          + "<i class='uiIconEcmsOnlyOfficeOpen uiIconEcmsLightGray uiIconEdit'></i><span class='editorLabel'>" + message("EditButtonTitle")
-          + "</span></a></li>");
+      return $("<li class='hidden-tabletL'><a href='" + editorLink + "' target='_blank'>" +
+        "<i class='uiIconEcmsOnlyOfficeOpen uiIconEcmsLightGray uiIconEdit'></i><span class='editorLabel'>" + message("EditButtonTitle") +
+        "</span></a></li>");
     };
 
     this.initBar = function(config) {
@@ -1054,39 +1097,37 @@
 
     this.loadVersions = function(workspace, docId, itemParPage, pageNum) {
       $.ajax({
-        url : "/portal/rest/onlyoffice/editor/versions/" + workspace + "/" + docId + "/" + itemParPage + "/" + pageNum,
-        success : function(data) {
+        url: "/portal/rest/onlyoffice/editor/versions/" + workspace + "/" + docId + "/" + itemParPage + "/" + pageNum,
+        success: function(data) {
           var html = "";
           for (var i = 0; i < data.length; i++) {
-            html += "<table class='tableContentStyle'>" + "<tr class='tableHead'>" + "<th class='displayAvatarFullName'>"
-                + "<div class='avatarCircle'>" + "<img src='/rest/v1/social/users/"
-                + data[i].author
-                + "/avatar'>"
-                + "</div>"
-                + "<div class='user-edit'>"
-                + data[i].fullName
-                + "</div>"
-                + "<div class='created-date' rel='tooltip' data-placement='bottom'  data-original-title='"
-                + UI.getAbsoluteTime(data[i].createdTime)
-                + "'>"
-                + UI.getRelativeTime(data[i].createdTime)
-                + "</div>"
-                + "</th>"
-                + "</tr>"
-                + "<tr class='tableContent'>"
-                + "<th>"
-                + "<div class='editors-comment-versions b' rel='tooltip' data-placement='bottom'  data-original-title='"
-                + data[i].versionLabels + "'>" + data[i].versionLabels + "</div>" + "</th>" + "</tr>" + "</table>";
-          }
-          ;
+            html += "<table class='tableContentStyle'>" + "<tr class='tableHead'>" + "<th class='displayAvatarFullName'>" +
+              "<div class='avatarCircle'>" + "<img src='/rest/v1/social/users/" +
+              data[i].author +
+              "/avatar'>" +
+              "</div>" +
+              "<div class='user-edit'>" +
+              data[i].fullName +
+              "</div>" +
+              "<div class='created-date' rel='tooltip' data-placement='bottom'  data-original-title='" +
+              UI.getAbsoluteTime(data[i].createdTime) +
+              "'>" +
+              UI.getRelativeTime(data[i].createdTime) +
+              "</div>" +
+              "</th>" +
+              "</tr>" +
+              "<tr class='tableContent'>" +
+              "<th>" +
+              "<div class='editors-comment-versions b' rel='tooltip' data-placement='bottom'  data-original-title='" +
+              data[i].versionLabels + "'>" + data[i].versionLabels + "</div>" + "</th>" + "</tr>" + "</table>";
+          };
 
           // Test update DOM versions list or load more versions
           if (updateVesionsList) {
             $("#versions").html(html);
           } else {
             $("#versions").append(html);
-          }
-          ;
+          };
           $(".editors-comment-versions").tooltip();
           $(".created-date").tooltip();
           updateVesionsList = false;
@@ -1097,13 +1138,12 @@
             $("#load-more-btn").prop("disabled", true);
           } else {
             $("#load-more-btn").prop("disabled", false);
-          }
-          ;
+          };
         },
-        error : function(xhr, thrownError) {
+        error: function(xhr, thrownError) {
           $("#versions").html(
-              "<div class='no-versions-icon'><i class='uiIconNoVersions'></i><div class='no-versions'> " + message('NoVersions')
-                  + "</div> </div>");
+            "<div class='no-versions-icon'><i class='uiIconNoVersions'></i><div class='no-versions'> " + message('NoVersions') +
+            "</div> </div>");
           log("Error fetching versions: " + xhr.responseText + "\n" + xhr.status + "\n" + thrownError, thrownError);
           $("#load-more-btn").hide();
         }
@@ -1208,19 +1248,6 @@
         log("WARN: Editor element not found");
       }
     };
-    
-    /**
-     * Create an editor client UI on current page.
-     */
-    this.createViewer = function(localConfig) {
-          // show loading while upload to editor - it is already added by WebUI
-          // side
-          var $container = $("#onlyofficeViewerContainer");
-
-          // create and start editor (this also will re-use an existing editor
-          // config from the server)
-          docEditor = new DocsAPI.DocEditor("onlyoffice", localConfig);
-    };
 
     /**
      * Ads the refresh banner to an activity in the activity stream.
@@ -1263,20 +1290,20 @@
      */
     this.showNotice = function(type, title, text, options) {
       var noticeOptions = {
-        title : title,
-        text : text,
-        type : type,
-        icon : "picon " + (options ? options.icon : ""),
-        hide : options && typeof options.hide != "undefined" ? options.hide : false,
-        closer : options && typeof options.closer != "undefined" ? options.closer : true,
-        sticker : false,
-        opacity : .9,
-        addclass : 'onlyoffice-notification',
-        shadow : true,
-        width : options && options.width ? options.width : NOTICE_WIDTH,
-        nonblock : options && typeof options.nonblock != "undefined" ? options.nonblock : false,
-        nonblock_opacity : .25,
-        after_init : function(pnotify) {
+        title: title,
+        text: text,
+        type: type,
+        icon: "picon " + (options ? options.icon : ""),
+        hide: options && typeof options.hide != "undefined" ? options.hide : false,
+        closer: options && typeof options.closer != "undefined" ? options.closer : true,
+        sticker: false,
+        opacity: .9,
+        addclass: 'onlyoffice-notification',
+        shadow: true,
+        width: options && options.width ? options.width : NOTICE_WIDTH,
+        nonblock: options && typeof options.nonblock != "undefined" ? options.nonblock : false,
+        nonblock_opacity: .25,
+        after_init: function(pnotify) {
           if (options && typeof options.onInit == "function") {
             options.onInit(pnotify);
           }
@@ -1295,11 +1322,20 @@
      */
     this.showError = function(title, text, onInit) {
       return UI.showNotice("error", title, text, {
-        icon : "picon-dialog-error",
-        hide : false,
-        delay : 0,
-        onInit : onInit
+        icon: "picon-dialog-error",
+        hide: false,
+        delay: 0,
+        onInit: onInit
       });
+    };
+
+    /**
+     * Show error on no-preview screen of viewer.
+     */
+    this.showViewerError = function(title, text) {
+      var $viewer = $(".onlyofficeViewerContainer .viewer");
+      $viewer.addClass("onlyoffice-no-preview");
+      $viewer.append("<div class='no-preview-container'><h3 class='no-preview-title'>" + title + "</h3><p class='no-preview-desc'>" + text + "</p></div>");
     };
 
     /**
@@ -1307,10 +1343,10 @@
      */
     this.showInfo = function(title, text, onInit) {
       return UI.showNotice("info", title, text, {
-        hide : true,
-        delay : 8000,
-        icon : "picon-dialog-information",
-        onInit : onInit
+        hide: true,
+        delay: 8000,
+        icon: "picon-dialog-information",
+        onInit: onInit
       });
     };
 
@@ -1319,10 +1355,10 @@
      */
     this.showWarn = function(title, text, onInit) {
       return UI.showNotice("exclamation", title, text, {
-        hide : false,
-        delay : 30000,
-        icon : "picon-dialog-warning",
-        onInit : onInit
+        hide: false,
+        delay: 30000,
+        icon: "picon-dialog-warning",
+        onInit: onInit
       });
     };
   }

@@ -35,12 +35,11 @@ import org.exoplatform.services.organization.User;
  */
 public interface OnlyofficeEditorService {
 
-  /**
-   * Editor modes.
-   */
-  enum Mode {
-    EDIT, VIEW
-  }
+  /** The edit mode. */
+  static String EDIT_MODE            = "edit";
+
+  /** The view mode. */
+  static String VIEW_MODE            = "view";
 
   /** The editor opened event. */
   static String EDITOR_OPENED_EVENT  = "exo.onlyoffice.editor.opened";
@@ -94,7 +93,6 @@ public interface OnlyofficeEditorService {
    * @param workspace {@link String}
    * @param docId {@link String} a document reference in the workspace, see
    *          {@link #initDocument(String, String)}
-   * @param mode the mode
    * @return {@link Config} instance in case of successful creation or
    *         <code>null</code> if local file type not supported.
    * @throws OnlyofficeEditorException if editor exception happened
@@ -105,8 +103,27 @@ public interface OnlyofficeEditorService {
                       int userPost,
                       String userId,
                       String workspace,
-                      String docId,
-                      Mode mode) throws OnlyofficeEditorException, RepositoryException;
+                      String docId) throws OnlyofficeEditorException, RepositoryException;
+
+  /**
+   * Creates the viewer.
+   *
+   * @param userSchema the user schema
+   * @param userHost the user host
+   * @param userPost the user post
+   * @param userId the user id
+   * @param workspace the workspace
+   * @param docId the doc id
+   * @return the config
+   * @throws OnlyofficeEditorException the onlyoffice editor exception
+   * @throws RepositoryException the repository exception
+   */
+  Config createViewer(String userSchema,
+                      String userHost,
+                      int userPost,
+                      String userId,
+                      String workspace,
+                      String docId) throws OnlyofficeEditorException, RepositoryException;
 
   /**
    * Update a configuration associated with given DocumentStatus 

@@ -21,7 +21,11 @@ package org.exoplatform.onlyoffice.rest;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.URI;
-import java.util.*;
+import java.util.Collections;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 import javax.annotation.security.RolesAllowed;
@@ -39,9 +43,6 @@ import javax.ws.rs.core.Response.Status;
 import javax.ws.rs.core.UriInfo;
 
 import org.apache.commons.lang3.StringUtils;
-import org.exoplatform.onlyoffice.*;
-import org.exoplatform.onlyoffice.OnlyofficeEditorService.Mode;
-
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
@@ -49,6 +50,15 @@ import org.json.simple.parser.ParseException;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import org.exoplatform.onlyoffice.BadParameterException;
+import org.exoplatform.onlyoffice.ChangeState;
+import org.exoplatform.onlyoffice.Config;
+import org.exoplatform.onlyoffice.DocumentContent;
+import org.exoplatform.onlyoffice.DocumentStatus;
+import org.exoplatform.onlyoffice.OnlyofficeEditorException;
+import org.exoplatform.onlyoffice.OnlyofficeEditorService;
+import org.exoplatform.onlyoffice.Userdata;
+import org.exoplatform.onlyoffice.Version;
 import org.exoplatform.services.log.ExoLogger;
 import org.exoplatform.services.log.Log;
 import org.exoplatform.services.rest.resource.ResourceContainer;
@@ -382,7 +392,7 @@ public class EditorService implements ResourceContainer {
                                                  requestUri.getPort(),
                                                  username,
                                                  workspace,
-                                                 path, Mode.EDIT);
+                                                 path);
             if (config.getEditorConfig().getLang() == null) {
               if (request.getLocale() != null) {
                 // If user lang not defined use current request one
