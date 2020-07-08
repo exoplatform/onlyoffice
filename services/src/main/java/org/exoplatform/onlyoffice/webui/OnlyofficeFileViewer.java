@@ -34,9 +34,8 @@ public class OnlyofficeFileViewer extends UIForm {
    * @param fileId the file id
    * @param workspace the workspace
    * @return the file viewer config
-   * @throws Exception the exception
    */
-  public Config getFileViewerConfig(String fileId, String workspace) throws Exception {
+  public Config getFileViewerConfig(String fileId, String workspace) {
     OnlyofficeEditorService editorService = WCMCoreUtils.getService(OnlyofficeEditorService.class);
     PortalRequestContext requestContext = Util.getPortalRequestContext();
     HttpServletRequest request = requestContext.getRequest();
@@ -47,10 +46,10 @@ public class OnlyofficeFileViewer extends UIForm {
                                                  request.getRemoteUser(),
                                                  workspace,
                                                  fileId);
-      
-        return config;
+
+      return config;
     } catch (RepositoryException | OnlyofficeEditorException e) {
-      LOG.error("Cannot create editor config for fileId: " + fileId + ", workspace: " + workspace, e);
+      LOG.error("Cannot create viewer config for fileId: " + fileId + ", workspace: " + workspace, e);
     }
     return null;
   }

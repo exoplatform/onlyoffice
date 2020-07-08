@@ -16,6 +16,7 @@
   width: 100%;
   opacity: 0.9;
   background: #FFEB3B;
+  z-index: 100;
 }
 
 .fileShare .documentRefreshBanner {
