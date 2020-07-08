@@ -99,6 +99,7 @@
     }
   };
 
+
   var tryParseJson = function(message) {
     var src = message.data ? message.data : (message.error ? message.error : message.failure);
     if (src) {
@@ -146,6 +147,16 @@
 
   // ******** REST services ********
   var prefixUrl = pageBaseUrl(location);
+
+  var getViewerConfig = function(workspace, fileId) {
+    return $.get({
+      type: "GET",
+      url: prefixUrl + "/portal/rest/onlyoffice/editor/viewer/" + workspace + "/" + fileId,
+    });
+  };
+
+  const DESKTOP_MODE = "desktop";
+  const EMBEDDED_MODE = "embedded";
 
   /**
    * Editor core class.
@@ -503,7 +514,7 @@
         // prepare config
         log("ONLYOFFICE editor config: " + JSON.stringify(config));
 
-        config.type = "desktop";
+        config.type = DESKTOP_MODE;
         config.height = "100%";
         config.width = "100%";
         config.events = {
@@ -598,7 +609,7 @@
         window.document.title = config.document.title + " - " + window.document.title;
         UI.initEditor();
         // customize Onlyoffice JS config
-        config.type = "desktop";
+        config.type = DESKTOP_MODE;
         config.height = "100%";
         config.width = "100%";
         createEditor(config).done(function(localConfig) {
@@ -698,35 +709,51 @@
         UI.showError(message("ErrorTitle"), message("AnotherEditorIsOpen"));
       });
     };
-    
+
+    /**
+     * Inits the editor in 'View' mode on separate page (fullsreen)
+     */
     this.initViewer = function(config) {
-        log("Initialize viewer for document: " + config.docId);
-        window.document.title = config.document.title + " - " + window.document.title;
-        UI.initEditor();
-        // customize Onlyoffice JS config
-        config.type = "desktop";
-        config.height = "100%";
-        config.width = "100%";
-        createEditor(config).done(function(localConfig) {
-          if (localConfig) {
-            currentConfig = localConfig;
-            $(function() {
-              try {
-                UI.createEditor(currentConfig);
-              } catch (e) {
-                log("Error initializing Onlyoffice client UI " + e, e);
+      log("Initialize viewer for document: " + config.docId);
+      window.document.title = config.document.title + " - " + window.document.title;
+      UI.initEditor();
+      // customize Onlyoffice JS config
+      config.type = DESKTOP_MODE;
+      config.height = "100%";
+      config.width = "100%";
+      createEditor(config).done(function(localConfig) {
+        if (localConfig) {
+          currentConfig = localConfig;
+
+          setTimeout(function() {
+            store.subscribe(function() {
+              var state = store.getState();
+              if (state.type === DOCUMENT_SAVED && state.docId === currentConfig.docId) {
+                UI.addRefreshBanner(currentConfig, DESKTOP_MODE);
+                // For default PFD preview
+                // UI.addRefreshBannerPDF();
               }
             });
-          } else {
-            log("ERROR: editor config not defined: " + localConfig);
-            UI.showError(message("ErrorTitle"), message("ErrorConfigNotDefined"));
-          }
-        }).fail(function(error) {
-          log("ERROR: editor config creation failed : " + error);
-          UI.showError(message("ErrorTitle"), message("ErrorCreateConfig"));
-        });
-        
-        $("#open-drawer-btn").css("display", "none");
+          }, 100);
+          subscribeDocument(currentConfig.docId);
+
+          $(function() {
+            try {
+              UI.createEditor(currentConfig);
+            } catch (e) {
+              log("Error initializing Onlyoffice client UI " + e, e);
+            }
+          });
+        } else {
+          log("ERROR: editor config not defined: " + localConfig);
+          UI.showError(message("ErrorTitle"), message("ErrorConfigNotDefined"));
+        }
+      }).fail(function(error) {
+        log("ERROR: editor config creation failed : " + error);
+        UI.showError(message("ErrorTitle"), message("ErrorCreateConfig"));
+      });
+
+      $("#open-drawer-btn").css("display", "none");
     };
 
     /**
@@ -750,7 +777,7 @@
     };
 
     /**
-     * Initializes a document preview.
+     * Initializes a document preview in Activity Stream
      */
     this.initPreview = function(settings) {
       if (settings) {
@@ -762,7 +789,9 @@
           store.subscribe(function() {
             var state = store.getState();
             if (state.type === DOCUMENT_SAVED && state.docId === settings.fileId) {
-              UI.addRefreshBannerPDF();
+              UI.addRefreshBanner(currentConfig);
+              // For default PFD preview
+              // UI.addRefreshBannerPDF();
             }
           });
         }, 100);
@@ -789,9 +818,13 @@
           var state = store.getState();
           if (state.type === DOCUMENT_SAVED) {
             if (state.userId === currentUserId) {
-              UI.refreshPDFPreview();
+              UI.refreshPreview(currentConfig, "embedded");
+              // For default PDF viewer
+              // UI.refreshPDFPreview();
             } else {
-              UI.addRefreshBannerPDF();
+              UI.addRefreshBanner(currentConfig);
+              // For default PDF viewer
+              // UI.addRefreshBannerPDF(currentConfig);
             }
           }
           if (state.type === DOCUMENT_DELETED) {
@@ -934,6 +967,27 @@
     };
 
     /**
+     *  Refreshes an embedded viewer
+     */
+    var refreshPreview = function(currentConfig, mode) {
+      getViewerConfig(currentConfig.workspace, currentConfig.docId).done(function(config) {
+        if (mode === DESKTOP_MODE) {
+          window.location.reload(true);
+        }
+        $(".onlyofficeViewerContainer .viewer").html("<div id='onlyoffice'></div>");
+        config.type = "embedded";
+        config.height = "100%";
+        config.width = "100%";
+        config.editorConfig.embedded = {
+          fullscreenUrl: config.editorUrl,
+          saveUrl: config.downloadUrl,
+          toolbarDocked: "top"
+        };
+        new DocsAPI.DocEditor("onlyoffice", config)
+      });;
+    };
+
+    /**
      * Refreshes a document preview (PDF) by reloading viewer.js script.
      */
     var refreshPDFPreview = function() {
@@ -951,6 +1005,7 @@
     };
 
     this.refreshPDFPreview = refreshPDFPreview;
+    this.refreshPreview = refreshPreview;
 
     /**
      * Init editor page UI.
@@ -1280,6 +1335,26 @@
         $toolbarContainer.append(getRefreshBanner());
         $(".documentRefreshBanner .refreshBannerLink").click(function() {
           refreshPDFPreview();
+        });
+      }
+    };
+
+    /**
+     * Ads the refresh banner to the OnlyOffice document preview.
+     */
+    this.addRefreshBanner = function(currentConfig, mode) {
+      var $container;
+      if (mode === DESKTOP_MODE) {
+        $container = $(".onlyofficeContainer .editor");
+      } else {
+        $container = $(".onlyofficeViewerContainer .viewer")
+      }
+
+      var $banner = $container.find(".documentRefreshBanner");
+      if ($container.length !== 0 && $banner.length === 0) {
+        $container.prepend(getRefreshBanner());
+        $(".documentRefreshBanner .refreshBannerLink").click(function() {
+          refreshPreview(currentConfig, mode);
         });
       }
     };

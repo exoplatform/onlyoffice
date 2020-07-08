@@ -50,6 +50,7 @@ import org.json.simple.parser.ParseException;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import org.exoplatform.common.http.HTTPStatus;
 import org.exoplatform.onlyoffice.BadParameterException;
 import org.exoplatform.onlyoffice.ChangeState;
 import org.exoplatform.onlyoffice.Config;
@@ -355,6 +356,35 @@ public class EditorService implements ResourceContainer {
   }
 
   /**
+   * Viewer config.
+   *
+   * @param request the request
+   * @param workspace the workspace
+   * @param fileId the file id
+   * @return the response
+   */
+  @GET
+  @Path("/viewer/{workspace}/{fileId}")
+  @Produces(MediaType.APPLICATION_JSON)
+  public Response viewerConfig(@Context HttpServletRequest request,
+                               @PathParam("workspace") String workspace,
+                               @PathParam("fileId") String fileId) {
+
+    try {
+      Config config = editors.createViewer(request.getScheme(),
+                                           request.getServerName(),
+                                           request.getServerPort(),
+                                           request.getRemoteUser(),
+                                           workspace,
+                                           fileId);
+      return Response.ok().entity(config).build();
+    } catch (OnlyofficeEditorException | RepositoryException e) {
+      LOG.error("Cannot create viewer config for fileId: " + fileId + ", workspace: " + workspace, e);
+      return Response.status(HTTPStatus.INTERNAL_ERROR).entity("{\"error\":\"" + e.getMessage() + "\"}").build();
+    }
+  }
+
+  /**
    * Create configuration for Onlyoffice JS.
    *
    * @param uriInfo - request with base URI
@@ -516,26 +546,30 @@ public class EditorService implements ResourceContainer {
   @Path("/versions/{workspace}/{key}/{itemParPage}/{pageNum}")
   @RolesAllowed("users")
   @Produces(MediaType.APPLICATION_JSON)
-  public Response getVersions(@Context UriInfo uriInfo, @Context HttpServletRequest request, @PathParam("workspace") String workspace,
-                              @PathParam("key") String key, @PathParam("itemParPage") int itemParPage, @PathParam("pageNum") int pageNum) {
+  public Response getVersions(@Context UriInfo uriInfo,
+                              @Context HttpServletRequest request,
+                              @PathParam("workspace") String workspace,
+                              @PathParam("key") String key,
+                              @PathParam("itemParPage") int itemParPage,
+                              @PathParam("pageNum") int pageNum) {
     if (LOG.isDebugEnabled()) {
       LOG.debug("> get versions of doc " + key + " in workspace " + workspace);
     }
     try {
       if (StringUtils.isBlank(workspace)) {
-         return Response.status(Response.Status.BAD_REQUEST).build();
+        return Response.status(Response.Status.BAD_REQUEST).build();
       }
       if (StringUtils.isBlank(key)) {
-         return Response.status(Response.Status.BAD_REQUEST).build();
+        return Response.status(Response.Status.BAD_REQUEST).build();
       }
       itemParPage = itemParPage < 0 ? 0 : itemParPage;
       pageNum = pageNum < 0 ? 0 : pageNum;
 
       List<Version> versions = editors.getVersions(workspace, key, itemParPage, pageNum);
       if (versions != null) {
-         return Response.ok(versions).build();
+        return Response.ok(versions).build();
       } else {
-         return Response.ok(Collections.EMPTY_LIST).build();
+        return Response.ok(Collections.EMPTY_LIST).build();
       }
     } catch (Exception e) {
       LOG.error("Error when fetching the versions of the document " + key, e);
