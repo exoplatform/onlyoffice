@@ -165,6 +165,7 @@
 
     // Constants:
     const DOCUMENT_SAVED = "DOCUMENT_SAVED";
+    const DOCUMENT_CONTENT_UPDATED = "DOCUMENT_CONTENT_UPDATED";
     const DOCUMENT_CHANGED = "DOCUMENT_CHANGED";
     const DOCUMENT_DELETED = "DOCUMENT_DELETED";
     const DOCUMENT_VERSION = "DOCUMENT_VERSION";
@@ -174,7 +175,7 @@
     const EDITOR_CLOSED = "EDITOR_CLOSED";
     const ONLYOFFICE = "onlyoffice";
     // Events that are dispatched to redux as actions
-    var dispatchableEvents = [DOCUMENT_SAVED, DOCUMENT_CHANGED, DOCUMENT_DELETED, DOCUMENT_VERSION, DOCUMENT_TITLE_UPDATED];
+    var dispatchableEvents = [DOCUMENT_SAVED, DOCUMENT_CONTENT_UPDATED,  DOCUMENT_CHANGED, DOCUMENT_DELETED, DOCUMENT_VERSION, DOCUMENT_TITLE_UPDATED];
 
     // CometD transport bus
     var cometd, cometdContext;
@@ -728,7 +729,7 @@
           setTimeout(function() {
             store.subscribe(function() {
               var state = store.getState();
-              if (state.type === DOCUMENT_SAVED && state.docId === currentConfig.docId) {
+              if (state.type === DOCUMENT_CONTENT_UPDATED && state.docId === currentConfig.docId) {
                 UI.addRefreshBanner(currentConfig, DESKTOP_MODE);
                 // For default PFD preview
                 // UI.addRefreshBannerPDF();
@@ -788,7 +789,7 @@
         setTimeout(function() {
           store.subscribe(function() {
             var state = store.getState();
-            if (state.type === DOCUMENT_SAVED && state.docId === settings.fileId) {
+            if (state.type === DOCUMENT_CONTENT_UPDATED && state.docId === settings.fileId) {
               UI.addRefreshBanner(currentConfig);
               // For default PFD preview
               // UI.addRefreshBannerPDF();
@@ -816,7 +817,7 @@
         // Listen document updated
         store.subscribe(function() {
           var state = store.getState();
-          if (state.type === DOCUMENT_SAVED) {
+          if (state.type === DOCUMENT_CONTENT_UPDATED) {
             if (state.userId === currentUserId) {
               UI.refreshPreview(currentConfig, "embedded");
               // For default PDF viewer

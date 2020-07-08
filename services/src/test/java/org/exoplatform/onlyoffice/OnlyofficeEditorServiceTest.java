@@ -153,6 +153,11 @@ public class OnlyofficeEditorServiceTest extends BaseCommonsTestCase {
       public void onError(DocumentStatus status) {
 
       }
+
+      @Override
+      public void onContentUpdated(String workspace, String fileId, String userId) {
+        
+      }
     };
     editorService.addListener(listener);
 
@@ -216,6 +221,11 @@ public class OnlyofficeEditorServiceTest extends BaseCommonsTestCase {
       @Override
       public void onError(DocumentStatus status) {
 
+      }
+
+      @Override
+      public void onContentUpdated(String workspace, String fileId, String userId) {
+        
       }
     };
     editorService.addListener(listener);

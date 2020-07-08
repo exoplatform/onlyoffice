@@ -380,4 +380,13 @@ public interface OnlyofficeEditorService {
    */
   void addFilePreferences(Node node, String userId, String path) throws RepositoryException;
 
+  /**
+   * On document content updated.
+   *
+   * @param workspace the workspace
+   * @param uuid the uuid
+   * @param userId the user id
+   */
+  void onDocumentContentUpdated(String workspace, String uuid, String userId);
+
 }
