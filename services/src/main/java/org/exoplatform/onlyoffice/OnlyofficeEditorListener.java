@@ -71,5 +71,14 @@ public interface OnlyofficeEditorListener {
    * @param status the status
    */
   void onError(DocumentStatus status);
+  
+  /**
+   * Invoked when on content update occurs.
+   *
+   * @param workspace the workspace
+   * @param fileId the file id
+   * @param userId the user id
+   */
+  void onContentUpdated(String workspace, String fileId, String userId);
 
 }

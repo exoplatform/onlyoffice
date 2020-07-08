@@ -755,10 +755,9 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
 
     String fileType = fileType(node);
     String docType = documentType(fileType);
-    
 
     Config.Builder builder = Config.editor(documentserverUrl, docType, workspace, path, docId);
-    
+
     builder.owner(userId);
     builder.fileType(fileType);
     builder.lang(getUserLang(userId));
@@ -784,14 +783,14 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
     String ecmsPageLink = explorerLink(path);
     builder.explorerUri(explorerUri(schema, host, port, ecmsPageLink));
     builder.secret(documentserverSecret);
-   
+
     try {
       String downloadUrl = Utils.getDownloadRestServiceLink(node);
       builder.downloadUrl(new StringBuilder(platformUrl).append(downloadUrl).toString());
     } catch (Exception e) {
       LOG.warn("Cannot get download link for node " + docId, e.getMessage());
     }
-    
+
     Config config = builder.build();
     // Create users' config map and add first user
     ConcurrentHashMap<String, Config> configs = new ConcurrentHashMap<>();
@@ -2559,6 +2558,21 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
   }
 
   /**
+   * Fire created.
+   *
+   * @param status the status
+   */
+  protected void fireContentUpdated(String workspace, String fileId, String userId) {
+    for (OnlyofficeEditorListener l : listeners) {
+      try {
+        l.onContentUpdated(workspace, fileId, userId);
+      } catch (Throwable t) {
+        LOG.warn("Creation listener error", t);
+      }
+    }
+  }
+
+  /**
    * Fire get.
    *
    * @param status the status
@@ -3019,6 +3033,18 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
       }
     }
     return null;
+  }
+
+  /**
+   * On document content updated.
+   *
+   * @param workspace the workspace
+   * @param uuid the uuid
+   * @param userId the user id
+   */
+  @Override
+  public void onDocumentContentUpdated(String workspace, String uuid, String userId) {
+    fireContentUpdated(workspace, uuid, userId);
   }
 
 }
