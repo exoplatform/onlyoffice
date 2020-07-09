@@ -1,35 +1,47 @@
 package org.exoplatform.onlyoffice.jcr;
 
-import javax.enterprise.context.Conversation;
 import javax.jcr.Item;
 import javax.jcr.Node;
 import javax.jcr.Property;
-import javax.jcr.Session;
 
 import org.apache.commons.chain.Context;
 
 import org.exoplatform.onlyoffice.OnlyofficeEditorService;
-import org.exoplatform.services.cms.jcrext.activity.ActivityCommonService;
 import org.exoplatform.services.command.action.Action;
-import org.exoplatform.services.jcr.ext.common.SessionProvider;
-import org.exoplatform.services.listener.ListenerService;
 import org.exoplatform.services.log.ExoLogger;
 import org.exoplatform.services.log.Log;
 import org.exoplatform.services.security.ConversationState;
 import org.exoplatform.services.wcm.core.NodetypeConstant;
 import org.exoplatform.services.wcm.utils.WCMCoreUtils;
 
+/**
+ * The Class ModifyDocumentAction notifies the OnlyOfficeEditorService when Office document was updated.
+ */
 public class ModifyDocumentAction implements Action {
 
   /** The Constant LOG. */
-  protected static final Log      LOG = ExoLogger.getLogger(ModifyDocumentAction.class);
+  protected static final Log      LOG               = ExoLogger.getLogger(ModifyDocumentAction.class);
 
+  /** The Constant MIX_REFERENCEABLE. */
+  private static final String     MIX_REFERENCEABLE = "mix:referenceable";
+
+  /** The editor service. */
   private OnlyofficeEditorService editorService;
 
+  /**
+   * Instantiates a new modify document action.
+   */
   public ModifyDocumentAction() {
     editorService = WCMCoreUtils.getService(OnlyofficeEditorService.class);
   }
 
+  /**
+   * Handles updating JCR_DATA in office documents and notifies the editor service.
+   *
+   * @param context the context
+   * @return true if the processing of this Context has been completed
+   * @throws Exception the exception
+   */
   @Override
   public boolean execute(Context context) throws Exception {
     Item item = (Item) context.get("currentItem");
@@ -42,13 +54,12 @@ public class ModifyDocumentAction implements Action {
     }
     String propertyName = item.getName();
     if (propertyName.equals(NodetypeConstant.JCR_DATA) && editorService.isDocumentMimeSupported(node)) {
-      if (node.canAddMixin("mix:referenceable")) {
-        node.addMixin("mix:referenceable");
+      if (node.canAddMixin(MIX_REFERENCEABLE)) {
+        node.addMixin(MIX_REFERENCEABLE);
       }
       String userId = ConversationState.getCurrent().getIdentity().getUserId();
       editorService.onDocumentContentUpdated(node.getSession().getWorkspace().getName(), node.getUUID(), userId);
     }
-
     return false;
   }
 
