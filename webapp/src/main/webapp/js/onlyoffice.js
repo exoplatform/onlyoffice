@@ -974,7 +974,7 @@
         window.location.reload(true);
       }
       // Get viewer config for reloading embedded viewer
-      getViewerConfig(currentConfig.workspace, currentConfig.docId).done(function(config) {
+      getViewerConfig(currentConfig.workspace, currentConfig.docId).then(function(config) {
         $(".onlyofficeViewerContainer .viewer").html("<div id='onlyoffice'></div>");
         config.type = EMBEDDED_MODE;
         config.height = "100%";
@@ -985,7 +985,9 @@
           toolbarDocked: "top"
         };
         new DocsAPI.DocEditor("onlyoffice", config)
-      });;
+      }).catch(function(xhr, status, error) {
+        log("Cannot get viewer config: " + error);
+      });
     };
 
     /**
