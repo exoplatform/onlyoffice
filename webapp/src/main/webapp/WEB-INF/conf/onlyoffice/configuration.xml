@@ -221,7 +221,7 @@
               <int>${onlyoffice.ViewerCache.Capacity:5000}</int>
             </field>
             <field name="liveTime">
-              <long>${onlyoffice.ViewerCache.TimeToLive:259200}</long>
+              <long>${onlyoffice.ViewerCache.TimeToLive:600}</long>
             </field>
             <field name="implementation">
               <string>org.exoplatform.services.cache.concurrent.ConcurrentFIFOExoCache</string>
@@ -241,8 +241,8 @@
             <field name="maxEntries">
               <int>${onlyoffice.ViewerCache.Capacity:5000}</int>
             </field>
-            <field name="lifespan">
-              <long>${onlyoffice.ViewerCache.TimeToLive:259200000}</long>
+            <field name="liveTime">
+              <long>${onlyoffice.ViewerCache.TimeToLive:600}</long>
             </field>
             <field name="cacheMode">
               <string>${onlyoffice.ViewerCache.cacheMode:replication}</string>
