@@ -467,7 +467,10 @@
         log("Cannot initialize user: " + userId);
       }
     };
-
+    
+    /**
+     * Resolves process with config after DocsAPI script is loaded.
+     */
     var waitDocsAPI = function(process, config, retries, timeout) {
       setTimeout(function() {
         if ((typeof DocsAPI !== "undefined") && (typeof DocsAPI.DocEditor !== "undefined")) {
@@ -487,8 +490,7 @@
     var createViewer = function(config) {
       var process = $.Deferred();
       if (config) {
-        log("ONLYOFFICE editor config: " + JSON.stringify(config));
-        config.type = "embedded";
+        config.type = EMBEDDED_MODE;
         config.height = "100%";
         config.width = "100%";
         config.editorConfig.embedded = {
@@ -512,9 +514,6 @@
     var createEditor = function(config) {
       var process = $.Deferred();
       if (config) {
-        // prepare config
-        log("ONLYOFFICE editor config: " + JSON.stringify(config));
-
         config.type = DESKTOP_MODE;
         config.height = "100%";
         config.width = "100%";
@@ -570,7 +569,7 @@
     this.init = init;
 
     /**
-     * Initialize an editor page in current browser window.
+     * Initialize an editor page in current browser window (ECMS/Preview from Scream)
      */
     this.initEmbeddedViewer = function(config) {
       if (config) {
@@ -725,7 +724,6 @@
       createEditor(config).done(function(localConfig) {
         if (localConfig) {
           currentConfig = localConfig;
-
           setTimeout(function() {
             store.subscribe(function() {
               var state = store.getState();
@@ -765,7 +763,7 @@
       // Listen to document updates
       store.subscribe(function() {
         var state = store.getState();
-        if (state.type === DOCUMENT_SAVED && state.docId === docId) {
+        if (state.type === DOCUMENT_CONTENT_UPDATED && state.docId === docId) {
           UI.addRefreshBannerActivity(activityId);
         }
       });
@@ -819,7 +817,7 @@
           var state = store.getState();
           if (state.type === DOCUMENT_CONTENT_UPDATED) {
             if (state.userId === currentUserId) {
-              UI.refreshPreview(currentConfig, "embedded");
+              UI.refreshPreview(currentConfig, EMBEDDED_MODE);
               // For default PDF viewer
               // UI.refreshPDFPreview();
             } else {
@@ -968,15 +966,17 @@
     };
 
     /**
-     *  Refreshes an embedded viewer
+     *  Refreshes an embedded viewer or on separate page
      */
     var refreshPreview = function(currentConfig, mode) {
+      // View mode on separate page - reloads the page
+      if (mode === DESKTOP_MODE) {
+        window.location.reload(true);
+      }
+      // Get viewer config for reloading embedded viewer
       getViewerConfig(currentConfig.workspace, currentConfig.docId).done(function(config) {
-        if (mode === DESKTOP_MODE) {
-          window.location.reload(true);
-        }
         $(".onlyofficeViewerContainer .viewer").html("<div id='onlyoffice'></div>");
-        config.type = "embedded";
+        config.type = EMBEDDED_MODE;
         config.height = "100%";
         config.width = "100%";
         config.editorConfig.embedded = {
