@@ -1,6 +1,10 @@
 package org.exoplatform.onlyoffice;
 
-import java.util.*;
+import java.util.Calendar;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import javax.jcr.Node;
@@ -11,7 +15,9 @@ import org.apache.commons.lang.ArrayUtils;
 import org.junit.Test;
 
 import org.exoplatform.commons.testing.BaseCommonsTestCase;
-import org.exoplatform.component.test.*;
+import org.exoplatform.component.test.ConfigurationUnit;
+import org.exoplatform.component.test.ConfiguredBy;
+import org.exoplatform.component.test.ContainerScope;
 import org.exoplatform.container.ExoContainerContext;
 import org.exoplatform.services.jcr.access.PermissionType;
 import org.exoplatform.services.jcr.ext.ActivityTypeUtils;
@@ -20,7 +26,9 @@ import org.exoplatform.services.jcr.ext.common.SessionProvider;
 import org.exoplatform.services.jcr.impl.core.NodeImpl;
 import org.exoplatform.services.log.ExoLogger;
 import org.exoplatform.services.log.Log;
-import org.exoplatform.services.security.*;
+import org.exoplatform.services.security.ConversationState;
+import org.exoplatform.services.security.Identity;
+import org.exoplatform.services.security.MembershipEntry;
 
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
@@ -154,10 +162,6 @@ public class OnlyofficeEditorServiceTest extends BaseCommonsTestCase {
 
       }
 
-      @Override
-      public void onContentUpdated(String workspace, String fileId, String userId) {
-        
-      }
     };
     editorService.addListener(listener);
 
@@ -221,11 +225,6 @@ public class OnlyofficeEditorServiceTest extends BaseCommonsTestCase {
       @Override
       public void onError(DocumentStatus status) {
 
-      }
-
-      @Override
-      public void onContentUpdated(String workspace, String fileId, String userId) {
-        
       }
     };
     editorService.addListener(listener);

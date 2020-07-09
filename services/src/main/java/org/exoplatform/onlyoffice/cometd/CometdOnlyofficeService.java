@@ -32,7 +32,14 @@ import java.util.stream.Collectors;
 
 import javax.annotation.PostConstruct;
 import javax.inject.Inject;
+import javax.jcr.Item;
+import javax.jcr.Node;
+import javax.jcr.Property;
 import javax.jcr.RepositoryException;
+import javax.jcr.observation.Event;
+import javax.jcr.observation.EventIterator;
+import javax.jcr.observation.EventListener;
+import javax.jcr.observation.ObservationManager;
 
 import org.cometd.annotation.Param;
 import org.cometd.annotation.ServerAnnotationProcessor;
@@ -59,9 +66,11 @@ import org.exoplatform.onlyoffice.DocumentStatus;
 import org.exoplatform.onlyoffice.OnlyofficeEditorException;
 import org.exoplatform.onlyoffice.OnlyofficeEditorListener;
 import org.exoplatform.onlyoffice.OnlyofficeEditorService;
+import org.exoplatform.services.jcr.RepositoryService;
 import org.exoplatform.services.log.ExoLogger;
 import org.exoplatform.services.log.Log;
 import org.exoplatform.services.organization.User;
+import org.exoplatform.services.wcm.core.NodetypeConstant;
 
 /**
  * The CometdOnlyofficeService.
@@ -254,15 +263,22 @@ public class CometdOnlyofficeService implements Startable {
   /** The call handlers. */
   protected final ExecutorService         eventsHandlers;
 
+  /** The jcr service. */
+  protected final RepositoryService       jcrService;
+
   /**
    * Instantiates the CometdOnlyofficeService.
    *
    * @param exoBayeux the exoBayeux
    * @param onlyofficeEditorService the onlyoffice editor service
+   * @param jcrService the jcr service
    */
-  public CometdOnlyofficeService(EXoContinuationBayeux exoBayeux, OnlyofficeEditorService onlyofficeEditorService) {
+  public CometdOnlyofficeService(EXoContinuationBayeux exoBayeux,
+                                 OnlyofficeEditorService onlyofficeEditorService,
+                                 RepositoryService jcrService) {
     this.exoBayeux = exoBayeux;
     this.editors = onlyofficeEditorService;
+    this.jcrService = jcrService;
     this.service = new CometdService();
     this.eventsHandlers = createThreadExecutor(THREAD_PREFIX, MAX_FACTOR, QUEUE_FACTOR);
   }
@@ -387,12 +403,39 @@ public class CometdOnlyofficeService implements Startable {
           // Nothing
         }
 
-        @Override
-        public void onContentUpdated(String workspace, String fileId, String userId) {
-          publishContentUpdatedEvent(workspace, fileId, userId);
-        }
-
       });
+      try {
+        String workspace = jcrService.getCurrentRepository().getConfiguration().getDefaultWorkspaceName();
+        javax.jcr.Session systemSession = jcrService.getCurrentRepository().getSystemSession(workspace);
+        ObservationManager observation = systemSession.getWorkspace().getObservationManager();
+        observation.addEventListener(new EventListener() {
+
+          @Override
+          public void onEvent(EventIterator events) {
+            while (events.hasNext()) {
+              Event event = events.nextEvent();
+              try {
+                Item item = systemSession.getItem(event.getPath());
+                Property property = (Property) item;
+                if (property.getName().equals(NodetypeConstant.JCR_DATA)) {
+                  Node content = property.getParent();
+                  Node file = content.getParent();
+                  if (file.isNodeType(NodetypeConstant.NT_FILE) && editors.isDocumentMimeSupported(file)) {
+                    publishContentUpdatedEvent(workspace, file.getUUID(), event.getUserID());
+                  }
+                }
+              } catch (RepositoryException e) {
+                LOG.error("Cannot handle updating JCR_DATA in node", e);
+              }
+            }
+
+          }
+        }, Event.PROPERTY_CHANGED, "/", true, null, new String[] { NodetypeConstant.NT_RESOURCE }, false);
+
+      } catch (RepositoryException e) {
+        LOG.error("Cannot observe files changes for refreshing preview", e);
+      }
+
     }
 
     /**

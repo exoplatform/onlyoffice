@@ -2558,21 +2558,6 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
   }
 
   /**
-   * Fire created.
-   *
-   * @param status the status
-   */
-  protected void fireContentUpdated(String workspace, String fileId, String userId) {
-    for (OnlyofficeEditorListener l : listeners) {
-      try {
-        l.onContentUpdated(workspace, fileId, userId);
-      } catch (Throwable t) {
-        LOG.warn("Creation listener error", t);
-      }
-    }
-  }
-
-  /**
    * Fire get.
    *
    * @param status the status
@@ -3033,18 +3018,6 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
       }
     }
     return null;
-  }
-
-  /**
-   * On document content updated.
-   *
-   * @param workspace the workspace
-   * @param uuid the uuid
-   * @param userId the user id
-   */
-  @Override
-  public void onDocumentContentUpdated(String workspace, String uuid, String userId) {
-    fireContentUpdated(workspace, uuid, userId);
   }
 
 }
