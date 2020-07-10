@@ -736,9 +736,9 @@ public class CometdOnlyofficeService implements Startable {
     /**
      * Publish saved event.
      *
+     * @param workspace the workspace
      * @param docId the doc id
      * @param userId the user id
-     * @param comment the comment
      */
     protected void publishContentUpdatedEvent(String workspace, String docId, String userId) {
       ServerChannel channel = bayeux.getChannel(CHANNEL_NAME + docId);
