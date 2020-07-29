@@ -20,6 +20,7 @@
 
     <ErrorTitle>Chyba</ErrorTitle>
     <InfoTitle>Informace</InfoTitle>
+    <PreviewNotAvailable>OnlyOffice document preview is not available now.</PreviewNotAvailable>
     
     <!-- For Explorer/Preview/Stream -->
     <EditorLinkNotFoundError>Editor's link not found</EditorLinkNotFoundError>
@@ -28,7 +29,7 @@
     <StorageErrorMessage>Cannot get the editor's link because of storage errors.</StorageErrorMessage>
     <InternalEditorError>Integration editor error.</InternalEditorError>
     <InternalEditorErrorMessage>Cannot get the editor's link because of an internal editor error.</InternalEditorErrorMessage>
-    
+    <CannotLoadViewerScript>Cannot load DocsAPI script. Please contact the administrator.</CannotLoadViewerScript>
     <!-- For Editor frame -->
     <ErrorConfigNotDefined>The editor's configuration is not defined</ErrorConfigNotDefined>
     <ErrorLinkNotFound>Editor's link not found</ErrorLinkNotFound>

@@ -3,39 +3,40 @@
   <!-- For client UI -->
   <OnlyofficeEditorClient>
 
-    <EditButtonTitle>Edit in OnlyOffice</EditButtonTitle>
-    <SaveVersionLabel>Save version</SaveVersionLabel>
-    <SeeMoreButton>Go to full version history</SeeMoreButton>
-    <LoadMoreButton>Load more</LoadMoreButton>
+    <EditButtonTitle>تحرير بواسطة OnlyOffice</EditButtonTitle>
+    <SaveVersionLabel>حفظ الإصدار</SaveVersionLabel>
+    <SeeMoreButton>الذهاب إلى السجل الكامل للإصدارات</SeeMoreButton>
+    <LoadMoreButton>تحميل المزيد</LoadMoreButton>
     <CloseButton>اغلاق</CloseButton>
     <SaveButton>حفظ</SaveButton>
-    <PlaceHolderTextarea>Write your summary of changes ...</PlaceHolderTextarea>
+    <PlaceHolderTextarea>اكتب ملخصك حول التغييرات...</PlaceHolderTextarea>
     <TitleTooltip>انقر للتغيير</TitleTooltip>
-    <OpenDrawerBtn>Add new version</OpenDrawerBtn>
-    <NoVersions>No versions</NoVersions>
-    <AlertSave>Changes saved</AlertSave>
-    <ErrorSave>No more than 500 characters</ErrorSave>
-    <UpdateBannerTitle>The document has been updated.</UpdateBannerTitle>
-    <ReloadButtonTitle>Reload</ReloadButtonTitle>
+    <OpenDrawerBtn>إضافة إصدار جديد</OpenDrawerBtn>
+    <NoVersions>لا توجد إصدارات</NoVersions>
+    <AlertSave>تم حفظ التغييرات</AlertSave>
+    <ErrorSave>لا أكثر من 500 حرف</ErrorSave>
+    <UpdateBannerTitle>تم تحديث الملف.</UpdateBannerTitle>
+    <ReloadButtonTitle>إعادة التحميل</ReloadButtonTitle>
 
     <ErrorTitle>خطأ</ErrorTitle>
     <InfoTitle>معلومات:</InfoTitle>
+    <PreviewNotAvailable>OnlyOffice document preview is not available now.</PreviewNotAvailable>
     
     <!-- For Explorer/Preview/Stream -->
-    <EditorLinkNotFoundError>Editor's link not found</EditorLinkNotFoundError>
-    <EditorLinkNotFoundErrorMessage>Cannot get the editor's link - permission denied.</EditorLinkNotFoundErrorMessage>
-    <StorageError>Storage error occurred.</StorageError>
-    <StorageErrorMessage>Cannot get the editor's link because of storage errors.</StorageErrorMessage>
-    <InternalEditorError>Integration editor error.</InternalEditorError>
-    <InternalEditorErrorMessage>Cannot get the editor's link because of an internal editor error.</InternalEditorErrorMessage>
-    
+    <EditorLinkNotFoundError>لم يتم العثور على رابط المحرر</EditorLinkNotFoundError>
+    <EditorLinkNotFoundErrorMessage>لا يمكن الحصول على رابط المحرر - اذن غير مسموح.</EditorLinkNotFoundErrorMessage>
+    <StorageError>حدث خطأ في التخزين.</StorageError>
+    <StorageErrorMessage>لا يمكن الحصول على رابط المحرر بسبب أخطاء التخزين.</StorageErrorMessage>
+    <InternalEditorError>خطأ في ادماج المحرر.</InternalEditorError>
+    <InternalEditorErrorMessage>لا يمكن الحصول على رابط المحرر بسبب خطأ داخلي للمحرر.</InternalEditorErrorMessage>
+    <CannotLoadViewerScript>Cannot load DocsAPI script. Please contact the administrator.</CannotLoadViewerScript>
     <!-- For Editor frame -->
-    <ErrorConfigNotDefined>The editor's configuration is not defined</ErrorConfigNotDefined>
-    <ErrorLinkNotFound>Editor's link not found</ErrorLinkNotFound>
-    <ErrorCreateConfig>Failed to create editor's configuration</ErrorCreateConfig>
-    <AnotherEditorIsOpen>Cannot create the editor. The document is being edited in another editor (provider)</AnotherEditorIsOpen>
-    <ErrorFileDeletedECMS>The file has been deleted. You can try to restore it from the Trash</ErrorFileDeletedECMS>
-    <ErrorFileDeletedEditor>The file has been deleted. You can save it by clicking on File -&gt; Save</ErrorFileDeletedEditor>
+    <ErrorConfigNotDefined>لم يتم العثور على اعدادات المحرر</ErrorConfigNotDefined>
+    <ErrorLinkNotFound>لم يتم العثور على رابط المحرر</ErrorLinkNotFound>
+    <ErrorCreateConfig>فشل في إنشاء إعدادات المحرر</ErrorCreateConfig>
+    <AnotherEditorIsOpen>لا يمكن إنشاء المحرر. يتم تحرير الملف في محرر آخر (المزود)</AnotherEditorIsOpen>
+    <ErrorFileDeletedECMS>تم حذف الملف. يمكنك محاولة استعادته من سلة المهملات</ErrorFileDeletedECMS>
+    <ErrorFileDeletedEditor>تم حذف الملف. يمكنك حفظه بالنقر على الملف -&gt; حفظ</ErrorFileDeletedEditor>
     <TimeConvert>
       <Less_Than_A_Minute>منذ أقل من دقيقة</Less_Than_A_Minute>
       <About_A_Minute>منذ نحو دقيقة</About_A_Minute>

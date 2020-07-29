@@ -20,6 +20,7 @@
 
     <ErrorTitle>Erreur</ErrorTitle>
     <InfoTitle>Information:</InfoTitle>
+    <PreviewNotAvailable>OnlyOffice document preview is not available now.</PreviewNotAvailable>
     
     <!-- For Explorer/Preview/Stream -->
     <EditorLinkNotFoundError>Le lien de l’éditeur est introuvable</EditorLinkNotFoundError>
@@ -28,7 +29,7 @@
     <StorageErrorMessage>Impossible d’obtenir le lien de l’éditeur à cause des erreurs de stockage.</StorageErrorMessage>
     <InternalEditorError>Erreur d’intégration de l'éditeur.</InternalEditorError>
     <InternalEditorErrorMessage>Impossible d’obtenir le lien de l’éditeur à cause d’une erreur d’éditeur interne.</InternalEditorErrorMessage>
-    
+    <CannotLoadViewerScript>Cannot load DocsAPI script. Please contact the administrator.</CannotLoadViewerScript>
     <!-- For Editor frame -->
     <ErrorConfigNotDefined>La configuration de l’éditeur n’est pas définie</ErrorConfigNotDefined>
     <ErrorLinkNotFound>Le lien de l’éditeur est introuvable</ErrorLinkNotFound>
