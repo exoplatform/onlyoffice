@@ -306,7 +306,6 @@
           <value>locale.onlyoffice.Onlyoffice</value>
           <value>locale.onlyoffice.OnlyofficeClient</value>
           <value>locale.onlyoffice.EditorsAdmin</value>
-          <value>locale.navigation.portal.intranet</value>
         </values-param>
         <values-param>
           <name>portal.resource.names</name>
@@ -314,7 +313,6 @@
           <value>locale.onlyoffice.Onlyoffice</value>
           <value>locale.onlyoffice.OnlyofficeClient</value>
           <value>locale.onlyoffice.EditorsAdmin</value>
-          <value>locale.navigation.portal.intranet</value>
         </values-param>
       </init-params>
     </component-plugin>
