@@ -3,13 +3,13 @@
   <!-- For menu caption in Action Bar -->
   <UIActionBar>
     <tooltip>
-      <OnlyofficeOpen>Edit in OnlyOffice</OnlyofficeOpen>
+      <OnlyofficeOpen>Редагувати в OnlyOffice</OnlyofficeOpen>
     </tooltip>
   </UIActionBar>
   <!-- Used in Administration-Content-Explorer in Views settings a popup with actions list -->
   <UITabForm>
     <label>
-      <onlyofficeOpen>Edit in OnlyOffice</onlyofficeOpen>
+      <onlyofficeOpen>Редагувати в OnlyOffice</onlyofficeOpen>
     </label>
   </UITabForm>
   
@@ -17,9 +17,9 @@
   <UINewDocumentForm>
     <label>
       <option>
-        <MicrosoftOfficeDocument>Microsoft Word Document (*.docx)</MicrosoftOfficeDocument>
+        <MicrosoftOfficeDocument>Документ Microsoft Word (*.docx)</MicrosoftOfficeDocument>
         <MicrosoftOfficeSpreadsheet>Microsoft Excel Workbook (*.xlsx)</MicrosoftOfficeSpreadsheet>
-        <MicrosoftOfficePresentation>Microsoft PowerPoint Presentation (*.pptx)</MicrosoftOfficePresentation>
+        <MicrosoftOfficePresentation>Презентація Microsoft PowerPoint (*.pptx)</MicrosoftOfficePresentation>
       </option>
     </label>
   </UINewDocumentForm>  
@@ -27,16 +27,16 @@
   <!-- Messages -->
   <OnlyofficeEditor>
     <message>
-      <ViewerNotFound>OnlyOffice document editor not found</ViewerNotFound>
+      <ViewerNotFound>Редактор документів OnlyOffice не знайдено</ViewerNotFound>
     </message>
     <error>
-      <EditorCannotBeCreated>The editor cannot be created. Please retry.</EditorCannotBeCreated>
-      <CannotReadDocument>Cannot read the document. Please retry.</CannotReadDocument>
-      <CannotCreateEditor>Cannot create editor. Please retry.</CannotCreateEditor>
-      <CannotSendEditorConfiguration>Cannot send editor's configuration. Please retry.</CannotSendEditorConfiguration>
-      <CannotInitEditorConfiguration>Cannot initialize the editor's configuration. Please retry.</CannotInitEditorConfiguration>
-      <InitializationError>Error initializing the editor. Please retry.</InitializationError>
-      <DocumentIdRequired>Wrong request: document ID required.</DocumentIdRequired>
+      <EditorCannotBeCreated>Не вдалося створити редактор. Спробуйте ще раз.</EditorCannotBeCreated>
+      <CannotReadDocument>Не вдалося прочитати документ. Будь ласка, спробуйте ще раз.</CannotReadDocument>
+      <CannotCreateEditor>Не вдалося створити редактор. Будь ласка, спробуйте знову.</CannotCreateEditor>
+      <CannotSendEditorConfiguration>Неможливо надіслати конфігурацію редактора. Будь ласка, повторіть спробу.</CannotSendEditorConfiguration>
+      <CannotInitEditorConfiguration>Не вдалося ініціалізувати конфігурацію редактора. Спробуйте ще раз.</CannotInitEditorConfiguration>
+      <InitializationError>Помилка ініціалізації редактора. Будь ласка, спробуйте знову.</InitializationError>
+      <DocumentIdRequired>Невірний запит: необхідний ідентифікатор документа.</DocumentIdRequired>
     </error>
   </OnlyofficeEditor>
 </bundle>

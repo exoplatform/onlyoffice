@@ -3,40 +3,40 @@
   <!-- For client UI -->
   <OnlyofficeEditorClient>
 
-    <EditButtonTitle>Edit in OnlyOffice</EditButtonTitle>
-    <SaveVersionLabel>Save version</SaveVersionLabel>
-    <SeeMoreButton>Go to full version history</SeeMoreButton>
-    <LoadMoreButton>Load more</LoadMoreButton>
+    <EditButtonTitle>Modifica in OnlyOffice</EditButtonTitle>
+    <SaveVersionLabel>Salva versione</SaveVersionLabel>
+    <SeeMoreButton>Vai alla versione completa della cronologia</SeeMoreButton>
+    <LoadMoreButton>Carica più</LoadMoreButton>
     <CloseButton>Chiudere</CloseButton>
     <SaveButton>Salva</SaveButton>
-    <PlaceHolderTextarea>Write your summary of changes ...</PlaceHolderTextarea>
+    <PlaceHolderTextarea>Scrivi il tuo riepilogo delle modifiche ...</PlaceHolderTextarea>
     <TitleTooltip>Clicca per modificare</TitleTooltip>
-    <OpenDrawerBtn>Add new version</OpenDrawerBtn>
-    <NoVersions>No versions</NoVersions>
-    <AlertSave>Changes saved</AlertSave>
-    <ErrorSave>No more than 500 characters</ErrorSave>
-    <UpdateBannerTitle>The document has been updated.</UpdateBannerTitle>
-    <ReloadButtonTitle>Reload</ReloadButtonTitle>
+    <OpenDrawerBtn>Aggiungi nuova versione</OpenDrawerBtn>
+    <NoVersions>Nessuna versione</NoVersions>
+    <AlertSave>Modifiche salvate</AlertSave>
+    <ErrorSave>Non oltre 500 caratteri</ErrorSave>
+    <UpdateBannerTitle>Il documento è stato aggiornato.</UpdateBannerTitle>
+    <ReloadButtonTitle>Ricarica</ReloadButtonTitle>
 
     <ErrorTitle>Errore</ErrorTitle>
     <InfoTitle>Informazione</InfoTitle>
     <PreviewNotAvailable>OnlyOffice document preview is not available now.</PreviewNotAvailable>
     
     <!-- For Explorer/Preview/Stream -->
-    <EditorLinkNotFoundError>Editor's link not found</EditorLinkNotFoundError>
-    <EditorLinkNotFoundErrorMessage>Cannot get the editor's link - permission denied.</EditorLinkNotFoundErrorMessage>
-    <StorageError>Storage error occurred.</StorageError>
-    <StorageErrorMessage>Cannot get the editor's link because of storage errors.</StorageErrorMessage>
-    <InternalEditorError>Integration editor error.</InternalEditorError>
-    <InternalEditorErrorMessage>Cannot get the editor's link because of an internal editor error.</InternalEditorErrorMessage>
+    <EditorLinkNotFoundError>Collegamento dell'editor non trovato</EditorLinkNotFoundError>
+    <EditorLinkNotFoundErrorMessage>Impossibile ottenere il link dell'editor - permesso negato.</EditorLinkNotFoundErrorMessage>
+    <StorageError>Si è verificato un errore d'archiviazione.</StorageError>
+    <StorageErrorMessage>Impossibile ottenere il link dell'editor per degli errori d'archiviazione.</StorageErrorMessage>
+    <InternalEditorError>Errore dell'editor di integrazione.</InternalEditorError>
+    <InternalEditorErrorMessage>Impossibile ottenere il link dell'editor per un errore dell'editor interno.</InternalEditorErrorMessage>
     <CannotLoadViewerScript>Cannot load DocsAPI script. Please contact the administrator.</CannotLoadViewerScript>
     <!-- For Editor frame -->
-    <ErrorConfigNotDefined>The editor's configuration is not defined</ErrorConfigNotDefined>
-    <ErrorLinkNotFound>Editor's link not found</ErrorLinkNotFound>
-    <ErrorCreateConfig>Failed to create editor's configuration</ErrorCreateConfig>
-    <AnotherEditorIsOpen>Cannot create the editor. The document is being edited in another editor (provider)</AnotherEditorIsOpen>
-    <ErrorFileDeletedECMS>The file has been deleted. You can try to restore it from the Trash</ErrorFileDeletedECMS>
-    <ErrorFileDeletedEditor>The file has been deleted. You can save it by clicking on File -&gt; Save</ErrorFileDeletedEditor>
+    <ErrorConfigNotDefined>La configurazione dell'editor non è definita.</ErrorConfigNotDefined>
+    <ErrorLinkNotFound>Link dell'editor non trovato</ErrorLinkNotFound>
+    <ErrorCreateConfig>Impossibile creare la configurazione dell'editor</ErrorCreateConfig>
+    <AnotherEditorIsOpen>Impossibile creare l'editor. Il documento è in fase di modifica in un altro editor (provider)</AnotherEditorIsOpen>
+    <ErrorFileDeletedECMS>Il file è stato eliminato. Puoi provare a ripristinarlo dal Cestino</ErrorFileDeletedECMS>
+    <ErrorFileDeletedEditor>Il file è stato eliminato. Puoi salvarlo cliccando su File -&gt; Salva</ErrorFileDeletedEditor>
     <TimeConvert>
       <Less_Than_A_Minute>meno di un minuto fa</Less_Than_A_Minute>
       <About_A_Minute>circa un minuto fa</About_A_Minute>
