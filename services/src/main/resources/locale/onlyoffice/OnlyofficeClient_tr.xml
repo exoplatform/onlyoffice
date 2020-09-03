@@ -3,40 +3,40 @@
   <!-- For client UI -->
   <OnlyofficeEditorClient>
 
-    <EditButtonTitle>Edit in OnlyOffice</EditButtonTitle>
-    <SaveVersionLabel>Save version</SaveVersionLabel>
-    <SeeMoreButton>Go to full version history</SeeMoreButton>
-    <LoadMoreButton>Load more</LoadMoreButton>
+    <EditButtonTitle>OnlyOffice'te düzenle</EditButtonTitle>
+    <SaveVersionLabel>Sürümü kaydet</SaveVersionLabel>
+    <SeeMoreButton>Tam sürüm geçmişine git</SeeMoreButton>
+    <LoadMoreButton>Daha fazla yükle</LoadMoreButton>
     <CloseButton>Kapat</CloseButton>
     <SaveButton>Kaydet</SaveButton>
-    <PlaceHolderTextarea>Write your summary of changes ...</PlaceHolderTextarea>
+    <PlaceHolderTextarea>Değişikliklerinizin özetini yazın ...</PlaceHolderTextarea>
     <TitleTooltip>Düzenlemek için tıklayın</TitleTooltip>
-    <OpenDrawerBtn>Add new version</OpenDrawerBtn>
-    <NoVersions>No versions</NoVersions>
-    <AlertSave>Changes saved</AlertSave>
-    <ErrorSave>No more than 500 characters</ErrorSave>
-    <UpdateBannerTitle>The document has been updated.</UpdateBannerTitle>
-    <ReloadButtonTitle>Reload</ReloadButtonTitle>
+    <OpenDrawerBtn>Yeni sürüm ekle</OpenDrawerBtn>
+    <NoVersions>Sürüm yok</NoVersions>
+    <AlertSave>Değişiklikler kaydedildi</AlertSave>
+    <ErrorSave>En fazla 500 karakter</ErrorSave>
+    <UpdateBannerTitle>Belge güncellendi.</UpdateBannerTitle>
+    <ReloadButtonTitle>Tekrar yükle</ReloadButtonTitle>
 
     <ErrorTitle>Hata</ErrorTitle>
     <InfoTitle>Bilgi</InfoTitle>
     <PreviewNotAvailable>OnlyOffice document preview is not available now.</PreviewNotAvailable>
     
     <!-- For Explorer/Preview/Stream -->
-    <EditorLinkNotFoundError>Editor's link not found</EditorLinkNotFoundError>
-    <EditorLinkNotFoundErrorMessage>Cannot get the editor's link - permission denied.</EditorLinkNotFoundErrorMessage>
-    <StorageError>Storage error occurred.</StorageError>
-    <StorageErrorMessage>Cannot get the editor's link because of storage errors.</StorageErrorMessage>
-    <InternalEditorError>Integration editor error.</InternalEditorError>
-    <InternalEditorErrorMessage>Cannot get the editor's link because of an internal editor error.</InternalEditorErrorMessage>
+    <EditorLinkNotFoundError>Düzenleyici bağlantısı bulunamadı</EditorLinkNotFoundError>
+    <EditorLinkNotFoundErrorMessage>Düzenleyici bağlantısı alınamadı - izin reddedildi.</EditorLinkNotFoundErrorMessage>
+    <StorageError>Depolama hatası oluştu.</StorageError>
+    <StorageErrorMessage>Depolama hataları nedeniyle düzenleyici bağlantısı alınamıyor.</StorageErrorMessage>
+    <InternalEditorError>Entegrasyon düzenleyici hatası.</InternalEditorError>
+    <InternalEditorErrorMessage>Dahili bir düzenleyici hatası nedeniyle düzenleyici bağlantısı alınamıyor.</InternalEditorErrorMessage>
     <CannotLoadViewerScript>Cannot load DocsAPI script. Please contact the administrator.</CannotLoadViewerScript>
     <!-- For Editor frame -->
-    <ErrorConfigNotDefined>The editor's configuration is not defined</ErrorConfigNotDefined>
-    <ErrorLinkNotFound>Editor's link not found</ErrorLinkNotFound>
-    <ErrorCreateConfig>Failed to create editor's configuration</ErrorCreateConfig>
-    <AnotherEditorIsOpen>Cannot create the editor. The document is being edited in another editor (provider)</AnotherEditorIsOpen>
-    <ErrorFileDeletedECMS>The file has been deleted. You can try to restore it from the Trash</ErrorFileDeletedECMS>
-    <ErrorFileDeletedEditor>The file has been deleted. You can save it by clicking on File -&gt; Save</ErrorFileDeletedEditor>
+    <ErrorConfigNotDefined>Düzenleyici yapılandırması tanımlanmadı</ErrorConfigNotDefined>
+    <ErrorLinkNotFound>Düzenleyici bağlantısı bulunamadı</ErrorLinkNotFound>
+    <ErrorCreateConfig>Düzenleyici yapılandırması oluşturulamadı</ErrorCreateConfig>
+    <AnotherEditorIsOpen>Düzenleyici oluşturulamıyor. Belge başka bir düzenleyicide (sağlayıcı) düzenleniyor</AnotherEditorIsOpen>
+    <ErrorFileDeletedECMS>Dosya silindi. Çöp Kutusu'ndan geri yüklemeyi deneyebilirsiniz</ErrorFileDeletedECMS>
+    <ErrorFileDeletedEditor>Dosya silindi. Dosya -&gt; Kaydet'e tıklayarak kaydedebilirsiniz</ErrorFileDeletedEditor>
     <TimeConvert>
       <Less_Than_A_Minute>bir dakikadan daha önce</Less_Than_A_Minute>
       <About_A_Minute>yaklaşık bir dakika önce</About_A_Minute>

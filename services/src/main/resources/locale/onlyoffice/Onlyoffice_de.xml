@@ -3,13 +3,13 @@
   <!-- For menu caption in Action Bar -->
   <UIActionBar>
     <tooltip>
-      <OnlyofficeOpen>Edit in OnlyOffice</OnlyofficeOpen>
+      <OnlyofficeOpen>In OnlyOffice bearbeiten</OnlyofficeOpen>
     </tooltip>
   </UIActionBar>
   <!-- Used in Administration-Content-Explorer in Views settings a popup with actions list -->
   <UITabForm>
     <label>
-      <onlyofficeOpen>Edit in OnlyOffice</onlyofficeOpen>
+      <onlyofficeOpen>In OnlyOffice bearbeiten</onlyofficeOpen>
     </label>
   </UITabForm>
   
@@ -17,9 +17,9 @@
   <UINewDocumentForm>
     <label>
       <option>
-        <MicrosoftOfficeDocument>Microsoft Word Document (*.docx)</MicrosoftOfficeDocument>
+        <MicrosoftOfficeDocument>Microsoft Word Dokument (*.docx)</MicrosoftOfficeDocument>
         <MicrosoftOfficeSpreadsheet>Microsoft Excel Workbook (*.xlsx)</MicrosoftOfficeSpreadsheet>
-        <MicrosoftOfficePresentation>Microsoft PowerPoint Presentation (*.pptx)</MicrosoftOfficePresentation>
+        <MicrosoftOfficePresentation>Microsoft PowerPoint Präsentation (*.pptx)</MicrosoftOfficePresentation>
       </option>
     </label>
   </UINewDocumentForm>  
@@ -27,16 +27,16 @@
   <!-- Messages -->
   <OnlyofficeEditor>
     <message>
-      <ViewerNotFound>OnlyOffice document editor not found</ViewerNotFound>
+      <ViewerNotFound>OnlyOffice Dokument-Editor nicht gefunden</ViewerNotFound>
     </message>
     <error>
-      <EditorCannotBeCreated>The editor cannot be created. Please retry.</EditorCannotBeCreated>
-      <CannotReadDocument>Cannot read the document. Please retry.</CannotReadDocument>
-      <CannotCreateEditor>Cannot create editor. Please retry.</CannotCreateEditor>
-      <CannotSendEditorConfiguration>Cannot send editor's configuration. Please retry.</CannotSendEditorConfiguration>
-      <CannotInitEditorConfiguration>Cannot initialize the editor's configuration. Please retry.</CannotInitEditorConfiguration>
-      <InitializationError>Error initializing the editor. Please retry.</InitializationError>
-      <DocumentIdRequired>Wrong request: document ID required.</DocumentIdRequired>
+      <EditorCannotBeCreated>Der Editor kann nicht erstellt werden. Bitte erneut versuchen.</EditorCannotBeCreated>
+      <CannotReadDocument>Unlesbares Dokument. Bitte erneut versuchen.</CannotReadDocument>
+      <CannotCreateEditor>Editor kann nicht erstellt werden. Bitte erneut versuchen.</CannotCreateEditor>
+      <CannotSendEditorConfiguration>Editorkonfiguration kann nicht gesendet werden. Bitte erneut versuchen.</CannotSendEditorConfiguration>
+      <CannotInitEditorConfiguration>Editorkonfiguration kann nicht initialisiert werden. Bitte erneut versuchen.</CannotInitEditorConfiguration>
+      <InitializationError>Fehler beim Initialisieren des Editors. Bitte erneut versuchen.</InitializationError>
+      <DocumentIdRequired>Falsche Anfrage: Dokument-ID erforderlich.</DocumentIdRequired>
     </error>
   </OnlyofficeEditor>
 </bundle>
