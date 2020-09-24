@@ -20,7 +20,7 @@
 
     <ErrorTitle>خطأ</ErrorTitle>
     <InfoTitle>معلومات:</InfoTitle>
-    <PreviewNotAvailable>OnlyOffice document preview is not available now.</PreviewNotAvailable>
+    <PreviewNotAvailable>معاينة وثيقة المكتب غير متوفرة الآن.</PreviewNotAvailable>
     
     <!-- For Explorer/Preview/Stream -->
     <EditorLinkNotFoundError>لم يتم العثور على رابط المحرر</EditorLinkNotFoundError>
@@ -29,7 +29,7 @@
     <StorageErrorMessage>لا يمكن الحصول على رابط المحرر بسبب أخطاء التخزين.</StorageErrorMessage>
     <InternalEditorError>خطأ في ادماج المحرر.</InternalEditorError>
     <InternalEditorErrorMessage>لا يمكن الحصول على رابط المحرر بسبب خطأ داخلي للمحرر.</InternalEditorErrorMessage>
-    <CannotLoadViewerScript>Cannot load DocsAPI script. Please contact the administrator.</CannotLoadViewerScript>
+    <CannotLoadViewerScript>لا يمكن تحميل البرنامج النصي DocsAPI. الرجاء الاتصال بالمسؤول.</CannotLoadViewerScript>
     <!-- For Editor frame -->
     <ErrorConfigNotDefined>لم يتم العثور على اعدادات المحرر</ErrorConfigNotDefined>
     <ErrorLinkNotFound>لم يتم العثور على رابط المحرر</ErrorLinkNotFound>
