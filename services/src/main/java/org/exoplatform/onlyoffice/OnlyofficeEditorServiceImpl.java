@@ -67,6 +67,8 @@ import javax.jcr.lock.Lock;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.io.input.AutoCloseInputStream;
 import org.apache.commons.lang.StringUtils;
+import org.exoplatform.commons.utils.CommonsUtils;
+import org.exoplatform.services.cms.mimetype.DMSMimeTypeResolver;
 import org.json.JSONObject;
 import org.picocontainer.Startable;
 
@@ -1540,13 +1542,23 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
    * @return the string
    * @throws RepositoryException the repository exception
    */
-  protected String fileType(Node node) throws RepositoryException {
+  protected String fileType(Node node) throws RepositoryException{
     String title = nodeTitle(node);
     int dotIndex = title.lastIndexOf('.');
     if (dotIndex >= 0 && dotIndex < title.length()) {
       String fileExt = title.substring(dotIndex + 1).trim().toLowerCase();
       if (fileTypes.containsKey(fileExt)) {
         return fileExt;
+      }
+    } else {
+      try {
+        String mimeType = getMimeType(node);
+        if (StringUtils.isNotBlank(mimeType)) {
+          return DMSMimeTypeResolver.getInstance().getExtension(mimeType);
+        }
+      } catch (Exception e) {
+        LOG.debug("Could not instantiate DMSMimeTypeResolver ");
+        return null;
       }
     }
     return null;
@@ -1559,13 +1571,34 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
    * @return the string
    */
   protected String documentType(String fileType) {
-    String docType = fileTypes.get(fileType);
-    if (docType != null) {
-      return docType;
+    if(StringUtils.isNotBlank(fileType)) {
+      String docType = fileTypes.get(fileType);
+      if (docType != null) {
+        return docType;
+      }
     }
     return TYPE_TEXT; // we assume text document by default
   }
 
+  /**
+   * Get the MimeType
+   *
+   * @param node the node
+   * @return the MimeType
+   */
+  public static String getMimeType(Node node) {
+    try {
+      if (node.getPrimaryNodeType().getName().equals(NodetypeConstant.NT_FILE)) {
+        if (node.hasNode(NodetypeConstant.JCR_CONTENT))
+          return node.getNode(NodetypeConstant.JCR_CONTENT)
+                  .getProperty(NodetypeConstant.JCR_MIME_TYPE)
+                  .getString();
+      }
+    } catch (RepositoryException e) {
+      LOG.error(e.getMessage(), e);
+    }
+    return "";
+  }
   /**
    * Node content.
    *
