@@ -1985,11 +1985,10 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
           String commentId = null;
           String versionSummary = null;
           if (status.getComment() != null && !status.getComment().trim().isEmpty()) {
-            String activityId = ActivityTypeUtils.getActivityId(node);
-            if (activityId != null) {
-              commentId = addComment(activityId, status.getComment(), userId);
-              versionSummary = status.getComment().trim();
-            }
+            ExoSocialActivity activity = org.exoplatform.wcm.ext.component.activity.listener.Utils
+                    .postFileActivity(node, status.getComment(), false, true,"","");
+            commentId = activity != null ? activity.getId() : null;
+            versionSummary = status.getComment().trim();
           }
 
           if (commentId != null) {
@@ -2073,6 +2072,8 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
             logError(userId, nodePath, config.getDocId(), config.getDocument().getKey(), "Error rolling back failed change");
           }
           throw e; // let the caller handle it further
+        } catch(Exception e) {
+          logError(userId, nodePath, config.getDocId(), config.getDocument().getKey(), "Failed to comment activity");
         } finally {
           // Remove values after usage in DocumentUdateActivityListener
           modifierConfig.setPreviousModified(null);
