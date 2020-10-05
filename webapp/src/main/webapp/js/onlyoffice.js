@@ -976,9 +976,6 @@
       } else {
         $bar.find("a[rel=tooltip]").not(".document-title a[rel=tooltip]").tooltip();
       }
-      if (!config.activity) {
-        $bar.find("#comment-box").prop("disabled", true);
-      }
       var $pathElem = $bar.find(".document-path");
       $pathElem.append("<span class='folder'>" + pathDocumentWithIcon + "</span>" + " <i class='uiIconArrowRight'></i> ");
 
