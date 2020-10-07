@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bundle>
+  <!-- For menu caption in Action Bar -->
+  <UIActionBar>
+    <tooltip>
+      <OnlyofficeOpen>Edit in OnlyOffice</OnlyofficeOpen>
+    </tooltip>
+  </UIActionBar>
+  <!-- Used in Administration-Content-Explorer in Views settings a popup with actions list -->
+  <UITabForm>
+    <label>
+      <onlyofficeOpen>Edit in OnlyOffice</onlyofficeOpen>
+    </label>
+  </UITabForm>
+  
+  <!-- For new document form -->
+  <UINewDocumentForm>
+    <label>
+      <option>
+        <MicrosoftOfficeDocument>Microsoft Word Document (*.docx)</MicrosoftOfficeDocument>
+        <MicrosoftOfficeSpreadsheet>Microsoft Excel Workbook (*.xlsx)</MicrosoftOfficeSpreadsheet>
+        <MicrosoftOfficePresentation>Microsoft PowerPoint Presentation (*.pptx)</MicrosoftOfficePresentation>
+      </option>
+    </label>
+  </UINewDocumentForm>  
+  
+  <!-- Messages -->
+  <OnlyofficeEditor>
+    <message>
+      <ViewerNotFound>OnlyOffice document editor not found</ViewerNotFound>
+    </message>
+    <error>
+      <EditorCannotBeCreated>The editor cannot be created. Please retry.</EditorCannotBeCreated>
+      <CannotReadDocument>Cannot read the document. Please retry.</CannotReadDocument>
+      <CannotCreateEditor>Cannot create editor. Please retry.</CannotCreateEditor>
+      <CannotSendEditorConfiguration>Cannot send editor's configuration. Please retry.</CannotSendEditorConfiguration>
+      <CannotInitEditorConfiguration>Cannot initialize the editor's configuration. Please retry.</CannotInitEditorConfiguration>
+      <InitializationError>Error initializing the editor. Please retry.</InitializationError>
+      <DocumentIdRequired>Wrong request: document ID required.</DocumentIdRequired>
+    </error>
+  </OnlyofficeEditor>
+</bundle>
