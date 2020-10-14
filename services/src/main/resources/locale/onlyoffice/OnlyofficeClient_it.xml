@@ -20,7 +20,7 @@
 
     <ErrorTitle>Errore</ErrorTitle>
     <InfoTitle>Informazione</InfoTitle>
-    <PreviewNotAvailable>OnlyOffice document preview is not available now.</PreviewNotAvailable>
+    <PreviewNotAvailable>L'anteprima del documento di OnlyOffice non è disponibile al momento.</PreviewNotAvailable>
     
     <!-- For Explorer/Preview/Stream -->
     <EditorLinkNotFoundError>Collegamento dell'editor non trovato</EditorLinkNotFoundError>
@@ -29,7 +29,7 @@
     <StorageErrorMessage>Impossibile ottenere il link dell'editor per degli errori d'archiviazione.</StorageErrorMessage>
     <InternalEditorError>Errore dell'editor di integrazione.</InternalEditorError>
     <InternalEditorErrorMessage>Impossibile ottenere il link dell'editor per un errore dell'editor interno.</InternalEditorErrorMessage>
-    <CannotLoadViewerScript>Cannot load DocsAPI script. Please contact the administrator.</CannotLoadViewerScript>
+    <CannotLoadViewerScript>Impossibile caricare lo script DocsAPI. Sei pregato di contattare l'amministratore.</CannotLoadViewerScript>
     <!-- For Editor frame -->
     <ErrorConfigNotDefined>La configurazione dell'editor non è definita.</ErrorConfigNotDefined>
     <ErrorLinkNotFound>Link dell'editor non trovato</ErrorLinkNotFound>
