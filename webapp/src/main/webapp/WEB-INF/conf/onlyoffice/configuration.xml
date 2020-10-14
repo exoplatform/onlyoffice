@@ -173,10 +173,12 @@
       <init-params>
         <object-param>
           <name>onlyoffice.EditorCache</name>
-          <description></description>
-          <object type="org.exoplatform.services.cache.ExoCacheConfig">
+          <object type="org.exoplatform.services.cache.impl.infinispan.generic.GenericExoCacheConfig">
             <field name="name">
               <string>onlyoffice.EditorCache</string>
+            </field>
+            <field name="strategy" profiles="cluster">
+              <string>${onlyoffice.EditorCache.strategy:LIRS}</string>
             </field>
             <field name="maxSize">
               <int>${onlyoffice.EditorCache.Capacity:5000}</int>
@@ -184,38 +186,19 @@
             <field name="liveTime">
               <long>${onlyoffice.EditorCache.TimeToLive:259200}</long>
             </field>
-            <field name="implementation">
-              <string>org.exoplatform.services.cache.concurrent.ConcurrentFIFOExoCache</string>
-            </field>
-          </object>
-        </object-param>
-        <object-param profiles="cluster">
-          <name>onlyoffice.EditorCache</name>
-          <description></description>
-          <object type="org.exoplatform.services.cache.impl.infinispan.generic.GenericExoCacheConfig">
-            <field name="name">
-              <string>onlyoffice.EditorCache</string>
-            </field>
-            <field name="strategy">
-              <string>${onlyoffice.EditorCache.strategy:LIRS}</string>
-            </field>
-            <field name="maxEntries">
-              <int>${onlyoffice.EditorCache.Capacity:5000}</int>
-            </field>
-            <field name="lifespan">
-              <long>${onlyoffice.EditorCache.TimeToLive:259200000}</long>
-            </field>
-            <field name="cacheMode">
+            <field name="cacheMode" profiles="cluster">
               <string>${onlyoffice.EditorCache.cacheMode:replication}</string>
             </field>
           </object>
         </object-param>
         <object-param>
           <name>onlyoffice.EditorStateCache</name>
-          <description></description>
-          <object type="org.exoplatform.services.cache.ExoCacheConfig">
+          <object type="org.exoplatform.services.cache.impl.infinispan.generic.GenericExoCacheConfig">
             <field name="name">
               <string>onlyoffice.EditorStateCache</string>
+            </field>
+            <field name="strategy" profiles="cluster">
+              <string>${onlyoffice.EditorCache.strategy:LIRS}</string>
             </field>
             <field name="maxSize">
               <int>${onlyoffice.EditorCache.Capacity:5000}</int>
@@ -223,28 +206,7 @@
             <field name="liveTime">
               <long>${onlyoffice.EditorCache.TimeToLive:259200}</long>
             </field>
-            <field name="implementation">
-              <string>org.exoplatform.services.cache.concurrent.ConcurrentFIFOExoCache</string>
-            </field>
-          </object>
-        </object-param>
-        <object-param profiles="cluster">
-          <name>onlyoffice.EditorStateCache</name>
-          <description></description>
-          <object type="org.exoplatform.services.cache.impl.infinispan.generic.GenericExoCacheConfig">
-            <field name="name">
-              <string>onlyoffice.EditorStateCache</string>
-            </field>
-            <field name="strategy">
-              <string>${onlyoffice.EditorCache.strategy:LIRS}</string>
-            </field>
-            <field name="maxEntries">
-              <int>${onlyoffice.EditorCache.Capacity:5000}</int>
-            </field>
-            <field name="lifespan">
-              <long>${onlyoffice.EditorCache.TimeToLive:259200000}</long>
-            </field>
-            <field name="cacheMode">
+            <field name="cacheMode" profiles="cluster">
               <string>${onlyoffice.EditorCache.cacheMode:replication}</string>
             </field>
           </object>
