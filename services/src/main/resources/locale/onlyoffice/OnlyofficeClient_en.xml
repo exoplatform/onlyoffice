@@ -14,6 +14,7 @@
     <ErrorSave>No more than 500 characters</ErrorSave>
     <UpdateBannerTitle>The document has been updated.</UpdateBannerTitle>
     <ReloadButtonTitle>Reload</ReloadButtonTitle>
+    <GoToDocument>Go to document</GoToDocument>
 
     <ErrorTitle>Error</ErrorTitle>
     <InfoTitle>Information</InfoTitle>

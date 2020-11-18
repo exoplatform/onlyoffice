@@ -450,7 +450,7 @@
           "compactToolbar" : true,
           "goback" : {
             "blank" : true,
-            "text" : "Go to Document",
+            "text": message("GoToDocument"),
             "url" : config.explorerUrl
           },
           "help" : true,
