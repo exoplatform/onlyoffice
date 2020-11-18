@@ -184,7 +184,7 @@
               <int>${onlyoffice.EditorCache.Capacity:5000}</int>
             </field>
             <field name="liveTime">
-              <long>${onlyoffice.EditorCache.TimeToLive:259200}</long>
+              <long>${onlyoffice.EditorCache.TimeToLive:-1}</long>
             </field>
             <field name="cacheMode" profiles="cluster">
               <string>${onlyoffice.EditorCache.cacheMode:replication}</string>
@@ -204,7 +204,7 @@
               <int>${onlyoffice.ViewerCache.Capacity:5000}</int>
             </field>
             <field name="liveTime">
-              <long>${onlyoffice.ViewerCache.TimeToLive:600}</long>
+              <long>${onlyoffice.ViewerCache.TimeToLive:-1}</long>
             </field>
             <field name="cacheMode" profiles="cluster">
               <string>${onlyoffice.ViewerCache.cacheMode:replication}</string>
@@ -224,7 +224,7 @@
               <int>${onlyoffice.EditorCache.Capacity:5000}</int>
             </field>
             <field name="liveTime">
-              <long>${onlyoffice.EditorCache.TimeToLive:259200}</long>
+              <long>${onlyoffice.EditorCache.TimeToLive:-1}</long>
             </field>
             <field name="cacheMode" profiles="cluster">
               <string>${onlyoffice.EditorCache.cacheMode:replication}</string>
