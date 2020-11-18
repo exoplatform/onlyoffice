@@ -1164,7 +1164,7 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
   }
 
   private <T> List<T> getPages(List<T> c, Integer pageSize, int nb) {
-    if (c == null)
+    if (c == null || c.isEmpty())
       return Collections.emptyList();
     List<T> list = new ArrayList<T>(c);
     if (pageSize == null || pageSize <= 0 || pageSize > list.size())
