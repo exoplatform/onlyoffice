@@ -1085,7 +1085,7 @@ public class Config implements Externalizable {
     writeUTF(out, documentserverJsUrl);
     out.writeUTF(platformRestUrl == null ? EMPTY : platformRestUrl.toString());
     writeUTF(out, editorUrl);
-    out.writeBoolean(isActivity);
+    writeBoolean(out, isActivity);
     out.writeObject(explorerUri);
 
     out.writeUTF(open != null ? open.toString() : EMPTY);
@@ -1097,7 +1097,7 @@ public class Config implements Externalizable {
     String value = editorPage.displayPath;
     writeUTF(out, value);
     writeUTF(out, editorPage.comment);
-    out.writeBoolean(editorPage.renameAllowed);
+    writeBoolean(out, editorPage.renameAllowed);
     writeUTF(out, editorPage.lastModifier);
     writeUTF(out, editorPage.lastModified);
 
@@ -1616,6 +1616,10 @@ public class Config implements Externalizable {
 
   private void writeUTF(ObjectOutput out, String value) throws IOException {
     out.writeUTF(value == null ? EMPTY : value);
+  }
+
+  private void writeBoolean(ObjectOutput out, Boolean value) throws IOException {
+    out.writeBoolean(value == null ? false : value);
   }
 
 }
