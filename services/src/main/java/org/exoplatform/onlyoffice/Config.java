@@ -26,6 +26,7 @@ import java.net.URI;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 
+import org.exoplatform.onlyoffice.Config.Document.Info;
 import org.exoplatform.services.log.ExoLogger;
 import org.exoplatform.services.log.Log;
 import org.exoplatform.ws.frameworks.json.impl.JsonException;
@@ -1076,20 +1077,18 @@ public class Config implements Externalizable {
   @Override
   public void writeExternal(ObjectOutput out) throws IOException {
     // Strings
-    out.writeUTF(workspace);
-    out.writeUTF(path);
-    out.writeUTF(downloadUrl);
-    out.writeUTF(documentType);
-    out.writeUTF(documentserverUrl);
-    out.writeUTF(documentserverJsUrl);
-    out.writeUTF(platformRestUrl.toString());
-    out.writeUTF(editorUrl);
-    out.writeBoolean(isActivity);
-    try {
-      out.writeObject(explorerUri);
-    } catch (Exception e) {
-      LOG.warn("Error serializing explorer URI for " + path, e);
-    }
+    writeUTF(out, workspace);
+    writeUTF(out, path);
+    writeUTF(out, docId);
+    writeUTF(out, token);
+    writeUTF(out, downloadUrl);
+    writeUTF(out, documentType);
+    writeUTF(out, documentserverUrl);
+    writeUTF(out, documentserverJsUrl);
+    out.writeUTF(platformRestUrl == null ? EMPTY : platformRestUrl.toString());
+    writeUTF(out, editorUrl);
+    writeBoolean(out, isActivity);
+    out.writeObject(explorerUri);
 
     out.writeUTF(open != null ? open.toString() : EMPTY);
     // Note: closing state isn't replicable
@@ -1097,28 +1096,29 @@ public class Config implements Externalizable {
 
     // Objects
     // EditorPage: displayPath, comment, renameAllowed, lastModifier, lastModified.
-    out.writeUTF(editorPage.displayPath);
-    out.writeUTF(editorPage.comment);
-    out.writeBoolean(editorPage.renameAllowed);
-    out.writeUTF(editorPage.lastModifier);
-    out.writeUTF(editorPage.lastModified);
+    writeUTF(out, editorPage.displayPath);
+    writeUTF(out, editorPage.comment);
+    writeBoolean(out, editorPage.renameAllowed);
+    writeUTF(out, editorPage.lastModifier);
+    writeUTF(out, editorPage.lastModified);
 
     // Document: key, fileType, title, url, info(owner, uploaded, folder)
-    out.writeUTF(document.getKey());
-    out.writeUTF(document.getFileType());
-    out.writeUTF(document.getTitle());
-    out.writeUTF(document.getUrl());
-    out.writeUTF(document.getInfo().getOwner());
-    out.writeUTF(document.getInfo().getUploaded());
-    out.writeUTF(document.getInfo().getFolder());
+    writeUTF(out, document.getKey());
+    writeUTF(out, document.getFileType());
+    writeUTF(out, document.getTitle());
+    writeUTF(out, document.getUrl());
+    Info documentInfo = document.getInfo();
+    writeUTF(out, documentInfo.getOwner());
+    writeUTF(out, documentInfo.getUploaded());
+    writeUTF(out, documentInfo.getFolder());
 
     // Editor: callbackUrl, lang, mode, user(userId, name)
-    out.writeUTF(editorConfig.getCallbackUrl());
+    writeUTF(out, editorConfig.getCallbackUrl());
     String elang = editorConfig.getLang();
-    out.writeUTF(elang != null ? elang : NO_LANG);
-    out.writeUTF(editorConfig.getMode());
-    out.writeUTF(editorConfig.getUser().getId());
-    out.writeUTF(editorConfig.getUser().getName());
+    writeUTF(out, elang != null ? elang : NO_LANG);
+    writeUTF(out, editorConfig.getMode());
+    writeUTF(out, editorConfig.getUser().getId());
+    writeUTF(out, editorConfig.getUser().getName());
     out.writeLong(editorConfig.getUser().getLastModified());
     out.writeLong(editorConfig.getUser().getLastSaved());
   }
@@ -1131,6 +1131,8 @@ public class Config implements Externalizable {
     // Strings
     this.workspace = in.readUTF();
     this.path = in.readUTF();
+    this.docId = in.readUTF();
+    this.token = in.readUTF();
     this.downloadUrl = in.readUTF();
     this.documentType = in.readUTF();
     this.documentserverUrl = in.readUTF();
@@ -1613,6 +1615,14 @@ public class Config implements Externalizable {
   public String toJSON() throws JsonException {
     JsonGeneratorImpl gen = new JsonGeneratorImpl();
     return gen.createJsonObject(this).toString();
+  }
+
+  private void writeUTF(ObjectOutput out, String value) throws IOException {
+    out.writeUTF(value == null ? EMPTY : value);
+  }
+
+  private void writeBoolean(ObjectOutput out, Boolean value) throws IOException {
+    out.writeBoolean(value == null ? false : value);
   }
 
 }

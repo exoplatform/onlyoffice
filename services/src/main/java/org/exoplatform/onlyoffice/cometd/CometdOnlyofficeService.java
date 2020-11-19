@@ -415,6 +415,7 @@ public class CometdOnlyofficeService implements Startable {
             while (events.hasNext()) {
               Event event = events.nextEvent();
               try {
+                javax.jcr.Session systemSession = jcrService.getCurrentRepository().getSystemSession(workspace);
                 Item item = systemSession.getItem(event.getPath());
                 Property property = (Property) item;
                 if (property.getName().equals(NodetypeConstant.JCR_DATA)) {

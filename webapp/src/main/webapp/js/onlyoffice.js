@@ -1189,7 +1189,7 @@
           $("#load-more-btn").show();
 
           // Disable load buton when no more versions
-          if ((pageNum >= (data[0].versionPageNumber - 1))) {
+          if (data && data.length && data[0].versionPageNumber && (pageNum >= (data[0].versionPageNumber - 1))) {
             $("#load-more-btn").prop("disabled", true);
           } else {
             $("#load-more-btn").prop("disabled", false);

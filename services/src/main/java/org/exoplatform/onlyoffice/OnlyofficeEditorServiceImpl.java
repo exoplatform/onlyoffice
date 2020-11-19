@@ -836,7 +836,9 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
 
           if (viewMode) {
             viewerCache.remove(key);
-            viewerCache.remove(config.getDocId());
+            if (config.getDocId() != null) {
+              viewerCache.remove(config.getDocId());
+            }
           }
 
           Node content = nodeContent(node);
@@ -1164,7 +1166,7 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
   }
 
   private <T> List<T> getPages(List<T> c, Integer pageSize, int nb) {
-    if (c == null)
+    if (c == null || c.isEmpty())
       return Collections.emptyList();
     List<T> list = new ArrayList<T>(c);
     if (pageSize == null || pageSize <= 0 || pageSize > list.size())
