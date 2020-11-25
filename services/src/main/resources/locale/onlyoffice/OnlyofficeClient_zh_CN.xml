@@ -21,7 +21,7 @@
     <ErrorTitle>错误</ErrorTitle>
     <InfoTitle>信息</InfoTitle>
     <PreviewNotAvailable>OnlyOffice document preview is not available now.</PreviewNotAvailable>
-    
+    <GoToDocument>Go to document</GoToDocument>
     <!-- For Explorer/Preview/Stream -->
     <EditorLinkNotFoundError>Editor's link not found</EditorLinkNotFoundError>
     <EditorLinkNotFoundErrorMessage>Cannot get the editor's link - permission denied.</EditorLinkNotFoundErrorMessage>

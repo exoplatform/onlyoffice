@@ -21,7 +21,7 @@
     <ErrorTitle>Fehler</ErrorTitle>
     <InfoTitle>Informationen</InfoTitle>
     <PreviewNotAvailable>OnlyOffice document preview is not available now.</PreviewNotAvailable>
-    
+    <GoToDocument>Go to document</GoToDocument>
     <!-- For Explorer/Preview/Stream -->
     <EditorLinkNotFoundError>Editorlink nicht gefunden</EditorLinkNotFoundError>
     <EditorLinkNotFoundErrorMessage>Editorlink kann nicht abgerufen werden - Berechtigung verweigert.</EditorLinkNotFoundErrorMessage>

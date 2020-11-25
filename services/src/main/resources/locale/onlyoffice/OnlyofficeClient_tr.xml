@@ -21,7 +21,7 @@
     <ErrorTitle>Hata</ErrorTitle>
     <InfoTitle>Bilgi</InfoTitle>
     <PreviewNotAvailable>OnlyOffice document preview is not available now.</PreviewNotAvailable>
-    
+    <GoToDocument>Go to document</GoToDocument>
     <!-- For Explorer/Preview/Stream -->
     <EditorLinkNotFoundError>Düzenleyici bağlantısı bulunamadı</EditorLinkNotFoundError>
     <EditorLinkNotFoundErrorMessage>Düzenleyici bağlantısı alınamadı - izin reddedildi.</EditorLinkNotFoundErrorMessage>

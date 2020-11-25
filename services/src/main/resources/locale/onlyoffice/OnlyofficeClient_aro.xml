@@ -21,7 +21,7 @@
     <ErrorTitle>خطأ</ErrorTitle>
     <InfoTitle>معلومات:</InfoTitle>
     <PreviewNotAvailable>معاينة وثيقة المكتب غير متوفرة الآن.</PreviewNotAvailable>
-    
+    <GoToDocument>الرجوع إلى المستند</GoToDocument>
     <!-- For Explorer/Preview/Stream -->
     <EditorLinkNotFoundError>لم يتم العثور على رابط المحرر</EditorLinkNotFoundError>
     <EditorLinkNotFoundErrorMessage>لا يمكن الحصول على رابط المحرر - اذن غير مسموح.</EditorLinkNotFoundErrorMessage>

@@ -21,7 +21,7 @@
     <ErrorTitle>Errore</ErrorTitle>
     <InfoTitle>Informazione</InfoTitle>
     <PreviewNotAvailable>L'anteprima del documento di OnlyOffice non è disponibile al momento.</PreviewNotAvailable>
-    
+    <GoToDocument>Go to document</GoToDocument>
     <!-- For Explorer/Preview/Stream -->
     <EditorLinkNotFoundError>Collegamento dell'editor non trovato</EditorLinkNotFoundError>
     <EditorLinkNotFoundErrorMessage>Impossibile ottenere il link dell'editor - permesso negato.</EditorLinkNotFoundErrorMessage>

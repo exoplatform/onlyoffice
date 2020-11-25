@@ -21,7 +21,7 @@
     <ErrorTitle>Erreur</ErrorTitle>
     <InfoTitle>Information:</InfoTitle>
     <PreviewNotAvailable>La visionneuse de documents OnlyOffice n'est pas disponible pour le moment.</PreviewNotAvailable>
-    
+    <GoToDocument>Accéder au document</GoToDocument>
     <!-- For Explorer/Preview/Stream -->
     <EditorLinkNotFoundError>Le lien de l’éditeur est introuvable</EditorLinkNotFoundError>
     <EditorLinkNotFoundErrorMessage>Impossible d’obtenir le lien de l’éditeur - autorisation refusée.</EditorLinkNotFoundErrorMessage>

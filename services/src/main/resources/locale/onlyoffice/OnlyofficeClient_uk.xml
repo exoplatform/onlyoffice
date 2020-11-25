@@ -21,7 +21,7 @@
     <ErrorTitle>Помилка</ErrorTitle>
     <InfoTitle>Інформація</InfoTitle>
     <PreviewNotAvailable>OnlyOffice document preview is not available now.</PreviewNotAvailable>
-    
+    <GoToDocument>Go to document</GoToDocument>
     <!-- For Explorer/Preview/Stream -->
     <EditorLinkNotFoundError>Посилання редактора не знайдено</EditorLinkNotFoundError>
     <EditorLinkNotFoundErrorMessage>Не вдається отримати посилання редактора - у дозволі відмовлено.</EditorLinkNotFoundErrorMessage>
