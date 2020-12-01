@@ -46,7 +46,7 @@
       <About_A_Day>hace un día</About_A_Day>
       <About_X_Days>hace {0} días</About_X_Days>
       <About_A_Month>hace un mes</About_A_Month>
-      <About_X_Months>hace alrededor de {0} meses</About_X_Months>
+      <About_X_Months>hace {0} meses</About_X_Months>
     </TimeConvert>
   </OnlyofficeEditorClient>
 </bundle>
