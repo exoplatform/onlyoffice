@@ -104,6 +104,9 @@ public class Config implements Externalizable {
     /** The comment.  */
     protected String       comment;
 
+    /** The drive.  */
+    protected String       drive;
+
     /** The rename allowed indicator. */
     protected Boolean      renameAllowed;
 
@@ -258,13 +261,24 @@ public class Config implements Externalizable {
     }
 
     /**
-     * Display path.
+     * Comment.
      *
      * @param comment the created comment
      * @return the builder
      */
     public Builder comment(String comment) {
       this.comment = comment;
+      return this;
+    }
+
+    /**
+     * Drive.
+     *
+     * @param drive the created drive
+     * @return the builder
+     */
+    public Builder drive(String drive) {
+      this.drive = drive;
       return this;
     }
 
@@ -424,7 +438,7 @@ public class Config implements Externalizable {
       Document document = new Document(key, fileType, title, url, info, permissions);
       Editor.User user = new Editor.User(userId, name);
       Editor editor = new Editor(callbackUrl, lang, mode, user);
-      EditorPage editorPage = new EditorPage(comment, renameAllowed, displayPath, lastModifier, lastModified);
+      EditorPage editorPage = new EditorPage(comment, renameAllowed, displayPath, lastModifier, lastModified,drive);
       Config config = new Config(documentserverUrl,
                                  platformRestUrl,
                                  editorUrl,
@@ -1095,12 +1109,13 @@ public class Config implements Externalizable {
     out.writeUTF(error != null ? error : EMPTY);
 
     // Objects
-    // EditorPage: displayPath, comment, renameAllowed, lastModifier, lastModified.
+    // EditorPage: displayPath, comment, renameAllowed, lastModifier, lastModified, drive.
     writeUTF(out, editorPage.displayPath);
     writeUTF(out, editorPage.comment);
     writeBoolean(out, editorPage.renameAllowed);
     writeUTF(out, editorPage.lastModifier);
     writeUTF(out, editorPage.lastModified);
+    writeUTF(out, editorPage.drive);
 
     // Document: key, fileType, title, url, info(owner, uploaded, folder)
     writeUTF(out, document.getKey());
@@ -1165,13 +1180,14 @@ public class Config implements Externalizable {
     }
 
     // Objects
-    // EditorPage: displayPath, comment, renameAllowed, lastModifier, lastModified.
+    // EditorPage: displayPath, comment, renameAllowed, lastModifier, lastModified, drive.
     String edisplayPath = in.readUTF();
     String ecomment = in.readUTF();
     Boolean erenameAllowed = in.readBoolean();
     String emodifier = in.readUTF();
     String emodified = in.readUTF();
-    this.editorPage = new EditorPage(ecomment, erenameAllowed, edisplayPath, emodifier, emodified);
+    String edrive = in.readUTF();
+    this.editorPage = new EditorPage(ecomment, erenameAllowed, edisplayPath, emodifier, emodified,edrive);
 
     // Document: key, fileType, title, url, info(owner, uploaded, folder)
     String dkey = in.readUTF();

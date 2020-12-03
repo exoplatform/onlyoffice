@@ -1083,7 +1083,7 @@
     this.initBar = function(config) {
       config.editorPage.displayPath = decodeURI(config.editorPage.displayPath);
       config.path = decodeURI(config.path);
-      var drive = config.editorPage.displayPath.split(':')[0].replace(/\  /g, ' ');
+      var drive = config.editorPage.drive;
       var $bar = $("#editor-drawer");
       if (drive.startsWith('spaces/')) {
         var folders = config.editorPage.displayPath.split(':')[1].split('/');
