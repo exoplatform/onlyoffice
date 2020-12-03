@@ -931,10 +931,6 @@
       config.editorPage.displayPath = decodeURI(config.editorPage.displayPath);
       config.path = decodeURI(config.path);
       var drive = config.editorPage.drive;
-      if (drive === null) {
-        UI.showError(message("ErrorTitle"), message("ErrorNameDriveNull"));
-        return;
-      }
       var $bar = $("#editor-drawer");
       if (drive.startsWith('spaces/')) {
         var folders = config.editorPage.displayPath.split(':')[1].split('/');
