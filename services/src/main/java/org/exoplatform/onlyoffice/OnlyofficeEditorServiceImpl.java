@@ -634,6 +634,7 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
           builder.uploaded(nodeCreated(node));
           builder.displayPath(getDisplayPath(node, userId));
           builder.comment(nodeComment(node));
+          builder.drive(getDrive(node));
           builder.renameAllowed(canRenameDocument(node));
           builder.isActivity(ActivityTypeUtils.getActivityId(node) != null);
           try {
@@ -2762,6 +2763,52 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
       return Collections.unmodifiableSet(allowedhosts);
     } else {
       return Collections.emptySet();
+    }
+  }
+
+  /**
+   * Gets drive.
+   *
+   * @param node the node
+   * @return the drive name
+   */
+  protected String getDrive(Node node) {
+    try {
+      DriveData driveData = documentService.getDriveOfNode(node.getPath());
+      String drive = "";
+      if (driveData != null) {
+        String driveName = driveData.getName();
+        // User's documents
+        if (node.getPath().startsWith(usersPath)) {
+          drive = driveName;
+          // Spaces's documents
+        } else if (driveName.startsWith(".spaces.")) {
+          String spacePrettyName = driveName.substring(driveName.lastIndexOf(".") + 1);
+          Space space = spaceService.getSpaceByPrettyName(spacePrettyName);
+          if (space != null) {
+            drive = "spaces/" + space.getPrettyName();
+          } else {
+            LOG.warn("Cannot find space by pretty name {}", spacePrettyName);
+            drive = spacePrettyName;
+          }
+          // Group's documents
+        } else if (driveName.startsWith(".platform.")) {
+          String groupId = driveName.replaceAll("\\.", "/");
+          Group group = organization.getGroupHandler().findGroupById(groupId);
+          if (group != null) {
+            drive = group.getLabel();
+          } else {
+            LOG.warn("Cannot find group by id {}", groupId);
+            drive = groupId;
+          }
+        } else {
+          drive = driveData.getName();
+        }
+      }
+      return drive;
+    } catch (Exception e) {
+      LOG.error("Error occured while getting drive", e);
+      return null;
     }
   }
 

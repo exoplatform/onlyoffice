@@ -3,11 +3,17 @@ package org.exoplatform.onlyoffice;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import javax.inject.Inject;
 import javax.jcr.Node;
 import javax.jcr.Session;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.ArrayUtils;
+import org.exoplatform.services.cms.documents.DocumentService;
+import org.exoplatform.services.cms.drives.DriveData;
+import org.exoplatform.services.cms.drives.ManageDriveService;
+import org.exoplatform.social.core.space.model.Space;
+import org.exoplatform.social.core.space.spi.SpaceService;
 import org.junit.Test;
 
 import org.exoplatform.commons.testing.BaseCommonsTestCase;
@@ -24,6 +30,8 @@ import org.exoplatform.services.security.*;
 
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
+import org.mockito.Mockito;
+import static org.mockito.Matchers.*;
 
 @ConfiguredBy({ @ConfigurationUnit(scope = ContainerScope.ROOT, path = "conf/test-configuration.xml"),
     @ConfigurationUnit(scope = ContainerScope.PORTAL, path = "conf/portal/configuration.xml"),
@@ -43,6 +51,12 @@ public class OnlyofficeEditorServiceTest extends BaseCommonsTestCase {
 
   protected Session                 session;
 
+  protected ManageDriveService      driveService;
+
+  protected OnlyofficeEditorServiceImpl onlyofficeEditorService;
+
+  protected DocumentService             documentService;
+
   /**
    * Before class.
    */
@@ -51,9 +65,33 @@ public class OnlyofficeEditorServiceTest extends BaseCommonsTestCase {
     super.beforeClass();
     ExoContainerContext.setCurrentContainer(container);
     this.editorService = getContainer().getComponentInstanceOfType(OnlyofficeEditorService.class);
+    this.onlyofficeEditorService = getContainer().getComponentInstanceOfType(OnlyofficeEditorServiceImpl.class);
     this.sessionProviderService = getContainer().getComponentInstanceOfType(SessionProviderService.class);
+    this.driveService = getContainer().getComponentInstanceOfType(ManageDriveService.class);
+    this.documentService = getContainer().getComponentInstanceOfType(DocumentService.class);
   }
+  /**
+   * Test get Drive
+   */
+  @Test
+  public void testGetDrive() throws Exception {
+    //Given
+    Node node = Mockito.mock(Node.class);
+    Space space = Mockito.mock(Space.class);
+    driveService.addDrive(".spaces.test", "collaboration", "*:/spaces/test",
+                 "/Groups/spaces/test/Documents", "admin-view, List, Icons", "", true, true, true, true, "nt:folder", "*");
+    DriveData driveData = driveService.getDriveByName(".spaces.test");
+    space.setPrettyName("test");
+    SpaceService spaceService = Mockito.mock(SpaceService.class);
+    Mockito.when(node.getPath()).thenReturn("/Groups/spaces/test/Documents/test.docx");
+    Mockito.when(spaceService.getSpaceByPrettyName(any())).thenReturn(space);
 
+    // When
+    String driveName = onlyofficeEditorService.getDrive(node);
+
+    //Then
+    assertNotNull(driveName);
+  }
   /**
    * Test add file preferences
    */
