@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bundle>
+  <!-- For client UI -->
+  <OnlyofficeEditorClient>
+    <EditButtonTitle>Редагувати Онлайн</EditButtonTitle>
+    <SaveVersionLavel>Зберегти версію</SaveVersionLavel>
+    <SeeMoreButton>Показати більше</SeeMoreButton>
+    <CloseButton>Закрити</CloseButton>
+    <SaveButton>Зберегти</SaveButton>
+    <PlaceHolderTextarea>Напишіть підсумок змін ...</PlaceHolderTextarea>
+    <TitleTooltip>Натисніть для редагування</TitleTooltip>
+    <OpenDrawerBtn>Додати нову версію</OpenDrawerBtn>
+    <AlertSave>Зміни збережено</AlertSave>
+    <ErrorSave>Не більше 500 символів</ErrorSave>
+    <UpdateBannerTitle>Документ був оновлений.</UpdateBannerTitle>
+    <ReloadButtonTitle>Перезавантажити</ReloadButtonTitle>
+    <GoToDocument>Перейти до документа</GoToDocument>
+
+    <ErrorTitle>Помилка</ErrorTitle>
+    <InfoTitle>Інформація</InfoTitle>
+
+    <ErrorConfigNotDefined>Конфігурація редактора не визначена</ErrorConfigNotDefined>
+    <ErrorCreateConfig>Не вдалося створити конфігурацію редактора</ErrorCreateConfig>
+    <ErrorFileDeletedECMS>Файл видалено. Ви можете спробувати відновити його з Кошика</ErrorFileDeletedECMS>
+    <ErrorFileDeletedEditor>Файл було видалено. Ви можете зберегти його використовуючи Файл -&gt; Зберегти</ErrorFileDeletedEditor>
+    <TimeConvert>
+      <Less_Than_A_Minute>менше хвилини тому</Less_Than_A_Minute>
+      <About_A_Minute>близько хвилини тому</About_A_Minute>
+      <About_X_Minutes>близько {0} хвилин тому</About_X_Minutes>
+      <About_An_Hour>близько години тому</About_An_Hour>
+      <About_X_Hours>близько {0} годин тому</About_X_Hours>
+      <About_A_Day>приблизно день</About_A_Day>
+      <About_X_Days>близько {0} днів тому</About_X_Days>
+      <About_A_Month>близько місяця тому</About_A_Month>
+      <About_X_Months>Близько {0} місяців тому</About_X_Months>
+    </TimeConvert>
+  </OnlyofficeEditorClient>
+</bundle>

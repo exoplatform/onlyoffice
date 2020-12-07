@@ -3,9 +3,7 @@
   <!-- For client UI -->
   <OnlyofficeEditorClient>
     <EditButtonTitle>Modifier en ligne</EditButtonTitle>
-    <UpdateBannerTitle>Le document a été mis à jour.</UpdateBannerTitle>
-    <ReloadButtonTitle>Recharger</ReloadButtonTitle>
-    <SaveVersionLavel> Enregistrer la version</SaveVersionLavel>
+    <SaveVersionLavel>Enregistrer la version</SaveVersionLavel>
     <SeeMoreButton>Voir plus</SeeMoreButton>
     <CloseButton>Fermer</CloseButton>
     <SaveButton>Enregistrer</SaveButton>
@@ -14,9 +12,17 @@
     <OpenDrawerBtn>Ajouter une nouvelle version</OpenDrawerBtn>
     <AlertSave>Changements sauvegardés</AlertSave>
     <ErrorSave>Pas plus de 500 caractères</ErrorSave>
+    <UpdateBannerTitle>Le document a été mis à jour.</UpdateBannerTitle>
+    <ReloadButtonTitle>Recharger</ReloadButtonTitle>
+    <GoToDocument>Accéder au document</GoToDocument>
 
     <ErrorTitle>Erreur</ErrorTitle>
     <InfoTitle>Information</InfoTitle>
+
+    <ErrorConfigNotDefined>La configuration de l’éditeur n’est pas définie</ErrorConfigNotDefined>
+    <ErrorCreateConfig>Impossible de créer la configuration de l'éditeur</ErrorCreateConfig>
+    <ErrorFileDeletedECMS>Le fichier a été supprimé. Vous pouvez essayer de le restaurer à partir de la corbeille</ErrorFileDeletedECMS>
+    <ErrorFileDeletedEditor>Le fichier a été supprimé. Vous pouvez le sauvegarder en cliquant sur Fichier -&gt; Enregistrer</ErrorFileDeletedEditor>
     <TimeConvert>
       <Less_Than_A_Minute>moins d'une minute</Less_Than_A_Minute>
       <About_A_Minute>about a minute ago</About_A_Minute>

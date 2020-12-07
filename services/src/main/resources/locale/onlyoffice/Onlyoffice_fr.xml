@@ -28,8 +28,22 @@
     <label>
       <titleTextBox>Nom du document:</titleTextBox>
       <typeSelectBox>Type de document:</typeSelectBox>
+      <option>
+        <MicrosoftOfficeDocument>Document Microsoft Word (*.docx)</MicrosoftOfficeDocument>
+        <MicrosoftOfficeSpreadsheet>Classeur Microsoft Excel (*.xlsx)</MicrosoftOfficeSpreadsheet>
+        <MicrosoftOfficePresentation>Présentation Microsoft PowerPoint (*.pptx)</MicrosoftOfficePresentation>
+      </option>
     </label>
-  </UINewDocumentForm>
+    <msg>
+      <name-invalid>Veuillez saisir le nom du document.</name-invalid>
+      <constraint-violation>Vous ne pouvez pas ajouter de document du type '{0}' ici.</constraint-violation>
+      <repository-exception>Une erreur s'est produite. Veuillez contacter votre administrateur pour plus de détails.</repository-exception>
+      <repository-exception-permission>Vous n'avez pas la permission d'ajouter un nouveau document ici.</repository-exception-permission>
+      <numberformat-exception>Vous ne pouvez pas enregistrer ce document. Le nom fourni doit être au format numérique.</numberformat-exception>
+      <!--DMS 2.4.x; ECM-3553-->
+      <not-allow-sameNameSibling>Vous ne pouvez pas enregistrer le document. Un élément portant le même nom existe déjà.</not-allow-sameNameSibling>
+    </msg>
+  </UINewDocumentForm>  
   <!-- Messages -->
   <OnlyofficeEditor>
     <message>
