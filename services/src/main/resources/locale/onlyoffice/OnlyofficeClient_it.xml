@@ -37,6 +37,7 @@
     <AnotherEditorIsOpen>Impossibile creare l'editor. Il documento è in fase di modifica in un altro editor (provider)</AnotherEditorIsOpen>
     <ErrorFileDeletedECMS>Il file è stato eliminato. Puoi provare a ripristinarlo dal Cestino</ErrorFileDeletedECMS>
     <ErrorFileDeletedEditor>Il file è stato eliminato. Puoi salvarlo cliccando su File -&gt; Salva</ErrorFileDeletedEditor>
+    <ErrorNameDriveNull>Could not determinate the drive of this file.</ErrorNameDriveNull>
     <TimeConvert>
       <Less_Than_A_Minute>meno di un minuto fa</Less_Than_A_Minute>
       <About_A_Minute>circa un minuto fa</About_A_Minute>

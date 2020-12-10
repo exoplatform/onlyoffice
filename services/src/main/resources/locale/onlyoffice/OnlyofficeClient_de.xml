@@ -37,6 +37,7 @@
     <AnotherEditorIsOpen>Editor kann nicht erstellt werden. Das Dokument wird in einem anderen Editor bearbeitet (Anbieter)</AnotherEditorIsOpen>
     <ErrorFileDeletedECMS>Die Datei wurde gelöscht. Sie können versuchen, sie aus dem Papierkorb wiederherzustellen.</ErrorFileDeletedECMS>
     <ErrorFileDeletedEditor>Die Datei wurde gelöscht. Sie können sie speichern indem Sie auf Datei -&gt; Speichern klicken</ErrorFileDeletedEditor>
+    <ErrorNameDriveNull>Could not determinate the drive of this file.</ErrorNameDriveNull>
     <TimeConvert>
       <Less_Than_A_Minute>Vor weniger als einer Minute</Less_Than_A_Minute>
       <About_A_Minute>Vor etwa einer Minute</About_A_Minute>
