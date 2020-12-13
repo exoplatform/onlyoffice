@@ -20,7 +20,7 @@
 
     <ErrorTitle>Помилка</ErrorTitle>
     <InfoTitle>Інформація</InfoTitle>
-    
+    <GoToDocument>Перейти до документа</GoToDocument>
     <!-- For Explorer/Preview/Stream -->
     <EditorLinkNotFoundError>Посилання редактора не знайдено</EditorLinkNotFoundError>
     <EditorLinkNotFoundErrorMessage>Не вдається отримати посилання редактора - у дозволі відмовлено.</EditorLinkNotFoundErrorMessage>

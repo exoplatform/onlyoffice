@@ -20,7 +20,7 @@
 
     <ErrorTitle>Error</ErrorTitle>
     <InfoTitle>Informació</InfoTitle>
-    
+    <GoToDocument>Go to document</GoToDocument>
     <!-- For Explorer/Preview/Stream -->
     <EditorLinkNotFoundError>Editor's link not found</EditorLinkNotFoundError>
     <EditorLinkNotFoundErrorMessage>Cannot get the editor's link - permission denied.</EditorLinkNotFoundErrorMessage>

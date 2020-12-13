@@ -20,7 +20,7 @@
 
     <ErrorTitle>Fehler</ErrorTitle>
     <InfoTitle>Informationen</InfoTitle>
-    
+    <GoToDocument>Sprung zu Dokument</GoToDocument>
     <!-- For Explorer/Preview/Stream -->
     <EditorLinkNotFoundError>Editorlink nicht gefunden</EditorLinkNotFoundError>
     <EditorLinkNotFoundErrorMessage>Editorlink kann nicht abgerufen werden - Berechtigung verweigert.</EditorLinkNotFoundErrorMessage>

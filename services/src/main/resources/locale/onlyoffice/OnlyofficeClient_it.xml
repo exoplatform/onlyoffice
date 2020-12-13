@@ -20,7 +20,7 @@
 
     <ErrorTitle>Errore</ErrorTitle>
     <InfoTitle>Informazione</InfoTitle>
-    
+    <GoToDocument>Go to document</GoToDocument>
     <!-- For Explorer/Preview/Stream -->
     <EditorLinkNotFoundError>Collegamento dell'editor non trovato</EditorLinkNotFoundError>
     <EditorLinkNotFoundErrorMessage>Impossibile ottenere il link dell'editor - permesso negato.</EditorLinkNotFoundErrorMessage>

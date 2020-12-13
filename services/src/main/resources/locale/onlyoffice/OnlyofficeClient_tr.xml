@@ -20,7 +20,7 @@
 
     <ErrorTitle>Hata</ErrorTitle>
     <InfoTitle>Bilgi</InfoTitle>
-    
+    <GoToDocument>Belgeye git</GoToDocument>
     <!-- For Explorer/Preview/Stream -->
     <EditorLinkNotFoundError>Düzenleyici bağlantısı bulunamadı</EditorLinkNotFoundError>
     <EditorLinkNotFoundErrorMessage>Düzenleyici bağlantısı alınamadı - izin reddedildi.</EditorLinkNotFoundErrorMessage>
