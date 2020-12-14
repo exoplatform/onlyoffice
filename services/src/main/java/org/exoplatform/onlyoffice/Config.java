@@ -1565,4 +1565,12 @@ public class Config implements Externalizable {
     return gen.createJsonObject(this).toString();
   }
 
+  private void writeUTF(ObjectOutput out, String value) throws IOException {
+    out.writeUTF(value == null ? EMPTY : value);
+  }
+
+  private void writeBoolean(ObjectOutput out, Boolean value) throws IOException {
+    out.writeBoolean(value == null ? false : value);
+  }
+
 }
