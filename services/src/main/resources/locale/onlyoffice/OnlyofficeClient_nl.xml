@@ -20,7 +20,7 @@
 
     <ErrorTitle>Foutmelding</ErrorTitle>
     <InfoTitle>Informatie</InfoTitle>
-    <GoToDocument>Go to document</GoToDocument>
+    <GoToDocument>Ga naar document</GoToDocument>
     <!-- For Explorer/Preview/Stream -->
     <EditorLinkNotFoundError>Editor's link not found</EditorLinkNotFoundError>
     <EditorLinkNotFoundErrorMessage>Cannot get the editor's link - permission denied.</EditorLinkNotFoundErrorMessage>
@@ -36,6 +36,7 @@
     <AnotherEditorIsOpen>Cannot create the editor. The document is being edited in another editor (provider)</AnotherEditorIsOpen>
     <ErrorFileDeletedECMS>The file has been deleted. You can try to restore it from the Trash</ErrorFileDeletedECMS>
     <ErrorFileDeletedEditor>The file has been deleted. You can save it by clicking on File -&gt; Save</ErrorFileDeletedEditor>
+    <ErrorNameDriveNull>De drive van dit bestand kon niet bepaald worden.</ErrorNameDriveNull>
     <TimeConvert>
       <Less_Than_A_Minute>minder dan een minuut geleden</Less_Than_A_Minute>
       <About_A_Minute>ongeveer een minuut geleden</About_A_Minute>

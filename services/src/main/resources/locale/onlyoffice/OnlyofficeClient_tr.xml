@@ -36,6 +36,7 @@
     <AnotherEditorIsOpen>Düzenleyici oluşturulamıyor. Belge başka bir düzenleyicide (sağlayıcı) düzenleniyor</AnotherEditorIsOpen>
     <ErrorFileDeletedECMS>Dosya silindi. Çöp Kutusu'ndan geri yüklemeyi deneyebilirsiniz</ErrorFileDeletedECMS>
     <ErrorFileDeletedEditor>Dosya silindi. Dosya -&gt; Kaydet'e tıklayarak kaydedebilirsiniz</ErrorFileDeletedEditor>
+    <ErrorNameDriveNull>Could not determinate the drive of this file.</ErrorNameDriveNull>
     <TimeConvert>
       <Less_Than_A_Minute>bir dakikadan daha önce</Less_Than_A_Minute>
       <About_A_Minute>yaklaşık bir dakika önce</About_A_Minute>

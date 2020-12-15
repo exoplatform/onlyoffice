@@ -36,6 +36,7 @@
     <AnotherEditorIsOpen>Impossible de créer l’éditeur. Le document est édité dans un autre éditeur (fournisseur)</AnotherEditorIsOpen>
     <ErrorFileDeletedECMS>Le fichier a été supprimé. Vous pouvez essayer de le restaurer à partir de la corbeille</ErrorFileDeletedECMS>
     <ErrorFileDeletedEditor>Le fichier a été supprimé. Vous pouvez le sauvegarder en cliquant sur Fichier -&gt; Enregistrer</ErrorFileDeletedEditor>
+    <ErrorNameDriveNull>Impossible de déterminer le lecteur de ce fichier.</ErrorNameDriveNull>
     <TimeConvert>
       <Less_Than_A_Minute>il y a moins d'une minute</Less_Than_A_Minute>
       <About_A_Minute>il y a une minute</About_A_Minute>
