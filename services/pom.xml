@@ -25,7 +25,7 @@
   <parent>
     <groupId>org.exoplatform.addons.onlyoffice</groupId>
     <artifactId>exo-onlyoffice-editor-parent</artifactId>
-    <version>2.3.x-SNAPSHOT</version>
+    <version>2.3.x-maintenance-SNAPSHOT</version>
   </parent>
   <artifactId>exo-onlyoffice-editor-services</artifactId>
   <packaging>jar</packaging>
