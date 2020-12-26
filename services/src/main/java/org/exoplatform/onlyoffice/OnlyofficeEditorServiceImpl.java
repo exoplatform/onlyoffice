@@ -1225,15 +1225,19 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
   @Override
   public void start() {
     InputStream is = null;
+    Session session = null;
     try {
       String workspace = jcrService.getCurrentRepository().getConfiguration().getDefaultWorkspaceName();
-      Session session = jcrService.getCurrentRepository().getSystemSession(workspace);
+      session = jcrService.getCurrentRepository().getSystemSession(workspace);
       ExtendedNodeTypeManager nodeTypeManager = (ExtendedNodeTypeManager) session.getWorkspace().getNodeTypeManager();
       is = OnlyofficeEditorService.class.getResourceAsStream("/conf/portal/jcr/onlyoffice-nodetypes.xml");
       nodeTypeManager.registerNodeTypes(is, ExtendedNodeTypeManager.REPLACE_IF_EXISTS, NodeTypeDataManager.TEXT_XML);
     } catch (Exception e) {
       LOG.error("Cannot update nodetypes.", e);
     } finally {
+      if(session != null) {
+        session.logout();
+      }
       if (is != null) {
         try {
           is.close();
