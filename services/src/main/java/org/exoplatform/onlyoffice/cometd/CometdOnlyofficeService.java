@@ -404,9 +404,10 @@ public class CometdOnlyofficeService implements Startable {
         }
 
       });
+      javax.jcr.Session systemSession = null;
       try {
         String workspace = jcrService.getCurrentRepository().getConfiguration().getDefaultWorkspaceName();
-        javax.jcr.Session systemSession = jcrService.getCurrentRepository().getSystemSession(workspace);
+        systemSession = jcrService.getCurrentRepository().getSystemSession(workspace);
         ObservationManager observation = systemSession.getWorkspace().getObservationManager();
         observation.addEventListener(new EventListener() {
 
@@ -435,6 +436,10 @@ public class CometdOnlyofficeService implements Startable {
 
       } catch (RepositoryException e) {
         LOG.error("Cannot observe files changes for refreshing preview", e);
+      } finally {
+        if(systemSession != null) {
+          systemSession.logout();
+        }
       }
 
     }
