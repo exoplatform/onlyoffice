@@ -49,8 +49,8 @@
     <maven.compiler.target>1.8</maven.compiler.target>
 
     <!-- eXo Modules -->
-    <org.exoplatform.social.version>6.2.x-SNAPSHOT</org.exoplatform.social.version>
-    <addon.exo.ecms.version>6.2.x-SNAPSHOT</addon.exo.ecms.version>
+    <org.exoplatform.social.version>6.2.0-20210201</org.exoplatform.social.version>
+    <addon.exo.ecms.version>6.2.0-20210201</addon.exo.ecms.version>
 
     <!-- for tests -->
     <junit.version>4.12</junit.version>
