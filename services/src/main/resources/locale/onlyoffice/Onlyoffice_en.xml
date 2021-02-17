@@ -19,11 +19,7 @@
         <MicrosoftOfficeDocument>Microsoft Word Document (*.docx)</MicrosoftOfficeDocument>
         <MicrosoftOfficeSpreadsheet>Microsoft Excel Workbook (*.xlsx)</MicrosoftOfficeSpreadsheet>
         <MicrosoftOfficePresentation>Microsoft PowerPoint Presentation (*.pptx)</MicrosoftOfficePresentation>
-<<<<<<< HEAD
         <MicrosoftOfficeNewSheet>Sheet</MicrosoftOfficeNewSheet>
-=======
-        <MicrosoftfficeNewSheet>Sheet</MicrosoftfficeNewSheet>
->>>>>>> 00e0f96 (TASK-37045: Update languages of default documents for onlyOffice (#71))
       </option>
     </label>
   </UINewDocumentForm>  
