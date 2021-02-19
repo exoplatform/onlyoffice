@@ -562,7 +562,7 @@ public class EditorService implements ResourceContainer {
       if (StringUtils.isBlank(key)) {
         return Response.status(Response.Status.BAD_REQUEST).build();
       }
-      itemParPage = itemParPage < 0 ? 0 : itemParPage;
+      itemParPage = itemParPage <= 0 ? 3 : itemParPage;
       pageNum = pageNum < 0 ? 0 : pageNum;
 
       List<Version> versions = editors.getVersions(workspace, key, itemParPage, pageNum);
