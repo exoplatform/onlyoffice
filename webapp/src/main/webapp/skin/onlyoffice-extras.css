@@ -65,9 +65,13 @@
 
 .onlyofficeViewerContainer {
   width: 100%;
-  height: calc(100vh - 335px )!important;
-  position: relative;
+  height: 100%;
+  position: relative;	
   min-width: 665px;
+}
+
+#UIDocumentContainer .onlyofficeViewerContainer {
+  height: calc(100vh - 335px )!important;
 }
 
 .onlyofficeViewerContainer .viewer {
