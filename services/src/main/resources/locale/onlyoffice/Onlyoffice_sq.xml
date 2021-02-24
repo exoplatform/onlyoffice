@@ -14,12 +14,12 @@
   </UITabForm>
   
   <!-- For new document form -->
-  <UINewDocumentForm>
-    <label>
+  <UINewDocumentForm>    <label>
       <option>
         <MicrosoftOfficeDocument>crwdns6935286:0crwdne6935286:0</MicrosoftOfficeDocument>
         <MicrosoftOfficeSpreadsheet>crwdns6935288:0crwdne6935288:0</MicrosoftOfficeSpreadsheet>
         <MicrosoftOfficePresentation>crwdns6935290:0crwdne6935290:0</MicrosoftOfficePresentation>
+        <MicrosoftOfficeNewSheet>crwdns6988940:0crwdne6988940:0</MicrosoftOfficeNewSheet>
       </option>
     </label>
   </UINewDocumentForm>  
