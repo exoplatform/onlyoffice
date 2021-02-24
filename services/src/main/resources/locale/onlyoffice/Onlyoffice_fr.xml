@@ -14,8 +14,7 @@
   </UITabForm>
   
   <!-- For new document form -->
-  <UINewDocumentForm>
-    <label>
+  <UINewDocumentForm>    <label>
       <option>
         <MicrosoftOfficeDocument>Document Microsoft Word (*.docx)</MicrosoftOfficeDocument>
         <MicrosoftOfficeSpreadsheet>Classeur Microsoft Excel (*.xlsx)</MicrosoftOfficeSpreadsheet>

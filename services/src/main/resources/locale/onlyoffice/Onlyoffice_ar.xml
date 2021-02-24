@@ -14,12 +14,12 @@
   </UITabForm>
   
   <!-- For new document form -->
-  <UINewDocumentForm>
-    <label>
+  <UINewDocumentForm>    <label>
       <option>
         <MicrosoftOfficeDocument>ملف Microsoft Word</MicrosoftOfficeDocument>
         <MicrosoftOfficeSpreadsheet>ملف Microsoft Excel</MicrosoftOfficeSpreadsheet>
         <MicrosoftOfficePresentation>ملف عرض Microsoft PowerPoint</MicrosoftOfficePresentation>
+        <MicrosoftOfficeNewSheet>ورقة</MicrosoftOfficeNewSheet>
       </option>
     </label>
   </UINewDocumentForm>  
