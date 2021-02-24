@@ -71,7 +71,8 @@
 }
 
 #UIDocumentContainer .onlyofficeViewerContainer {
-  height: calc(100vh - 335px )!important;
+  height: 100vh!important;
+  min-height: 600px;
 }
 
 .onlyofficeViewerContainer .viewer {
