@@ -3,23 +3,23 @@
   <!-- For menu caption in Action Bar -->
   <UIActionBar>
     <tooltip>
-      <OnlyofficeOpen>Edit in OnlyOffice</OnlyofficeOpen>
+      <OnlyofficeOpen>تحرير بواسطة OnlyOffice</OnlyofficeOpen>
     </tooltip>
   </UIActionBar>
   <!-- Used in Administration-Content-Explorer in Views settings a popup with actions list -->
   <UITabForm>
     <label>
-      <onlyofficeOpen>Edit in OnlyOffice</onlyofficeOpen>
+      <onlyofficeOpen>تحرير بواسطة OnlyOffice</onlyofficeOpen>
     </label>
   </UITabForm>
   
   <!-- For new document form -->
   <UINewDocumentForm>    <label>
       <option>
-        <MicrosoftOfficeDocument>Microsoft Word Document (*.docx)</MicrosoftOfficeDocument>
-        <MicrosoftOfficeSpreadsheet>Microsoft Excel Workbook (*.xlsx)</MicrosoftOfficeSpreadsheet>
-        <MicrosoftOfficePresentation>Microsoft PowerPoint Presentation (*.pptx)</MicrosoftOfficePresentation>
-        <MicrosoftOfficeNewSheet>Sheet</MicrosoftOfficeNewSheet>
+        <MicrosoftOfficeDocument>ملف Microsoft Word</MicrosoftOfficeDocument>
+        <MicrosoftOfficeSpreadsheet>ملف Microsoft Excel</MicrosoftOfficeSpreadsheet>
+        <MicrosoftOfficePresentation>ملف عرض Microsoft PowerPoint</MicrosoftOfficePresentation>
+        <MicrosoftOfficeNewSheet>ورقة</MicrosoftOfficeNewSheet>
       </option>
     </label>
   </UINewDocumentForm>  
@@ -27,16 +27,16 @@
   <!-- Messages -->
   <OnlyofficeEditor>
     <message>
-      <ViewerNotFound>OnlyOffice document editor not found</ViewerNotFound>
+      <ViewerNotFound>المحرر OnlyOffice غير موجود</ViewerNotFound>
     </message>
     <error>
-      <EditorCannotBeCreated>The editor cannot be created. Please retry.</EditorCannotBeCreated>
-      <CannotReadDocument>Cannot read the document. Please retry.</CannotReadDocument>
-      <CannotCreateEditor>Cannot create editor. Please retry.</CannotCreateEditor>
-      <CannotSendEditorConfiguration>Cannot send editor's configuration. Please retry.</CannotSendEditorConfiguration>
-      <CannotInitEditorConfiguration>Cannot initialize the editor's configuration. Please retry.</CannotInitEditorConfiguration>
-      <InitializationError>Error initializing the editor. Please retry.</InitializationError>
-      <DocumentIdRequired>Wrong request: document ID required.</DocumentIdRequired>
+      <EditorCannotBeCreated>لا يمكن إنشاء المحرر. الرجاء إعادة المحاولة.</EditorCannotBeCreated>
+      <CannotReadDocument>لا يمكن قراءة الملف. الرجاء إعادة المحاولة.</CannotReadDocument>
+      <CannotCreateEditor>لا يمكن إنشاء محرر. الرجاء إعادة المحاولة.</CannotCreateEditor>
+      <CannotSendEditorConfiguration>لا يمكن إرسال اعدادات المحرر. الرجاء إعادة المحاولة.</CannotSendEditorConfiguration>
+      <CannotInitEditorConfiguration>لا يمكن تهيئة إعدادات المحرر. الرجاء إعادة المحاولة.</CannotInitEditorConfiguration>
+      <InitializationError>خطأ في تهيئة المحرر. الرجاء إعادة المحاولة.</InitializationError>
+      <DocumentIdRequired>طلب خاطئ: معرف الملف مطلوب.</DocumentIdRequired>
     </error>
   </OnlyofficeEditor>
 </bundle>
