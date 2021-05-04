@@ -131,6 +131,10 @@ public class Config implements Externalizable {
     /** The user. */
     // Editor.User
     protected String       userId, name;
+    
+  
+  
+    protected boolean allowEdition = true;
 
     /**
      * Instantiates a new builder.
@@ -413,6 +417,17 @@ public class Config implements Externalizable {
       this.downloadUrl = downloadUrl;
       return this;
     }
+  
+    /**
+     * Allow edition
+     *
+     * @param allowEdition the allowEdition
+     * @return the builder
+     */
+    public Builder setAllowEdition(boolean allowEdition) {
+      this.allowEdition = allowEdition;
+      return this;
+    }
 
     /**
      * Builds the.
@@ -434,7 +449,12 @@ public class Config implements Externalizable {
       }
 
       Document.Info info = new Document.Info(owner, uploaded, folder);
-      Document.Permissions permissions = new Document.EditPermissions();
+      Document.Permissions permissions;
+      if (this.allowEdition) {
+        permissions = new Document.EditPermissions();
+      } else {
+        permissions = new Document.NoPermissions();
+      }
       Document document = new Document(key, fileType, title, url, info, permissions);
       Editor.User user = new Editor.User(userId, name);
       Editor editor = new Editor(callbackUrl, lang, mode, user);
@@ -540,16 +560,22 @@ public class Config implements Externalizable {
 
       /** The edit. */
       protected final boolean edit;
+  
+      /** The print. */
+      protected final boolean print;
 
       /**
        * Instantiates a new permissions.
        *
        * @param download the download
        * @param edit the edit
+       * @param print the print
        */
-      protected Permissions(boolean download, boolean edit) {
+  
+      protected Permissions(boolean download, boolean edit, boolean print) {
         this.download = download;
         this.edit = edit;
+        this.print=print;
       }
 
       /**
@@ -569,6 +595,14 @@ public class Config implements Externalizable {
       public boolean isEdit() {
         return edit;
       }
+      /**
+       * Checks if is print the.
+       *
+       * @return the print
+       */
+      public boolean isPrint() {
+        return print;
+      }
 
     }
 
@@ -581,7 +615,17 @@ public class Config implements Externalizable {
        * Instantiates a new edits the permissions.
        */
       protected EditPermissions() {
-        super(true, true);
+        super(true, true,true);
+      }
+    }
+  
+    public static class NoPermissions extends Permissions {
+    
+      /**
+       * Instantiates a new views the permissions.
+       */
+      protected NoPermissions() {
+        super(false, false,false);
       }
     }
 

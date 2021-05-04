@@ -67,6 +67,10 @@ import javax.jcr.lock.Lock;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.io.input.AutoCloseInputStream;
 import org.apache.commons.lang.StringUtils;
+import org.exoplatform.commons.api.settings.SettingService;
+import org.exoplatform.commons.api.settings.SettingValue;
+import org.exoplatform.commons.api.settings.data.Context;
+import org.exoplatform.commons.api.settings.data.Scope;
 import org.exoplatform.commons.utils.CommonsUtils;
 import org.exoplatform.services.cms.mimetype.DMSMimeTypeResolver;
 import org.json.JSONObject;
@@ -777,21 +781,26 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
     builder.generateUrls(new StringBuilder(platformUrl).append('/')
                                                        .append(PortalContainer.getCurrentRestContextName())
                                                        .toString());
-    // editor page URL
-    builder.editorUrl(new StringBuilder(platformUrl).append(editorURLPath(docId))
-                                                    .append("&mode=")
-                                                    .append(OnlyofficeEditorService.VIEW_MODE)
-                                                    .toString());
+
     // ECMS explorer page URL
     String ecmsPageLink = explorerLink(path);
     builder.explorerUri(explorerUri(schema, host, port, ecmsPageLink));
     builder.secret(documentserverSecret);
-
-    try {
-      String downloadUrl = Utils.getDownloadRestServiceLink(node);
-      builder.downloadUrl(new StringBuilder(platformUrl).append(downloadUrl).toString());
-    } catch (Exception e) {
-      LOG.warn("Cannot get download link for node " + docId, e.getMessage());
+    if(!isSuspendDownloadDocument()) {
+      // editor page URL
+      builder.editorUrl(new StringBuilder(platformUrl).append(editorURLPath(docId))
+                                                      .append("&mode=")
+                                                      .append(OnlyofficeEditorService.VIEW_MODE)
+                                                      .toString());
+  
+      try {
+        String downloadUrl = Utils.getDownloadRestServiceLink(node);
+        builder.downloadUrl(new StringBuilder(platformUrl).append(downloadUrl).toString());
+      } catch (Exception e) {
+        LOG.warn("Cannot get download link for node " + docId, e.getMessage());
+      }
+    } else {
+      builder.setAllowEdition(false);
     }
 
     Config config = builder.build();
@@ -3105,6 +3114,14 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
       }
     }
     return null;
+  }
+
+  protected boolean isSuspendDownloadDocument() {
+    SettingService settingService = CommonsUtils.getService(SettingService.class);
+    SettingValue<?> settingValue = settingService.get(Context.GLOBAL.id("downloadDocumentStatus"),
+            Scope.APPLICATION.id("downloadDocumentStatus"),
+            "exo:downloadDocumentStatus");
+    return settingValue != null && !settingValue.getValue().toString().isEmpty() ? Boolean.valueOf(settingValue.getValue().toString()) : false;
   }
 
 }
