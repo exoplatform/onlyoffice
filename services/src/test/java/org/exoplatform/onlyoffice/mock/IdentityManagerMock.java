@@ -124,7 +124,7 @@ public class IdentityManagerMock implements IdentityManager {
   }
 
   @Override
-  public void updateProfile(Profile specificProfile) throws MessageException {
+  public void updateProfile(Profile specificProfile) {
     // empty
   }
 
@@ -230,7 +230,7 @@ public class IdentityManagerMock implements IdentityManager {
   }
 
   @Override
-  public void updateAvatar(Profile p) throws MessageException {
+  public void updateAvatar(Profile p) {
     throw new UnsupportedOperationException();
   }
 
