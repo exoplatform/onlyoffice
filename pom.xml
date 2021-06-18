@@ -43,19 +43,9 @@
   </scm>
 
   <properties>
-    <!-- Defaut compiler settings -->
-    <maven.compiler.optimize>true</maven.compiler.optimize>
-    <maven.compiler.source>1.8</maven.compiler.source>
-    <maven.compiler.target>1.8</maven.compiler.target>
-
     <!-- eXo Modules -->
     <org.exoplatform.social.version>6.2.x-SNAPSHOT</org.exoplatform.social.version>
     <addon.exo.ecms.version>6.2.x-SNAPSHOT</addon.exo.ecms.version>
-
-    <!-- for tests -->
-    <junit.version>4.12</junit.version>
-
-    <io.jsonwebtoken.version>0.10.5</io.jsonwebtoken.version>
   </properties>
 
   <dependencyManagement>
@@ -88,30 +78,6 @@
         <artifactId>exo-onlyoffice-editor-webapp</artifactId>
         <version>${project.version}</version>
         <type>war</type>
-      </dependency>
-
-      <!-- for tests -->
-      <dependency>
-        <groupId>junit</groupId>
-        <artifactId>junit</artifactId>
-        <version>${junit.version}</version>
-        <scope>test</scope>
-      </dependency>
-
-      <dependency>
-        <groupId>io.jsonwebtoken</groupId>
-        <artifactId>jjwt-api</artifactId>
-        <version>${io.jsonwebtoken.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>io.jsonwebtoken</groupId>
-        <artifactId>jjwt-impl</artifactId>
-        <version>${io.jsonwebtoken.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>io.jsonwebtoken</groupId>
-        <artifactId>jjwt-jackson</artifactId>
-        <version>${io.jsonwebtoken.version}</version>
       </dependency>
     </dependencies>
   </dependencyManagement>
