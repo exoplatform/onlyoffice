@@ -748,10 +748,10 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
     Node node = getDocumentById(workspace, docId);
     String path = node.getPath();
 
-    // only nt:file are supported for online edition
-    if (!node.isNodeType("nt:file")) {
-      throw new OnlyofficeEditorException("Document should be a nt:file node: " + nodePath(workspace, path));
-    }
+    // only nt:file node or FrozenType node are supported for online edition
+   if (!WCMCoreUtils.isNodeTypeOrFrozenType(node, NodetypeConstant.NT_FILE)) {
+     throw new OnlyofficeEditorException("Document should be a nt:file node or FrozenType node: " + nodePath(workspace, path));
+   }
 
     // Build a new editor config and document key
     User user = getUser(userId);
