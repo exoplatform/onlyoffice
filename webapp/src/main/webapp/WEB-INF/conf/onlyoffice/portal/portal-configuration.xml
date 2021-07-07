@@ -52,7 +52,7 @@
               <boolean>${exo.onlyoffice.portalConfig.metadata.override:true}</boolean>
             </field>
             <field name="importMode">
-              <string>${exo.onlyoffice.portalConfig.metadata.importmode:insert}</string>
+              <string>${exo.onlyoffice.portalConfig.metadata.importmode:merge}</string>
             </field>
           </object>
         </object-param>
