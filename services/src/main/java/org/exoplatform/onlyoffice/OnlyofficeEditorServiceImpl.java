@@ -1645,12 +1645,11 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
       title = node.getProperty("exo:name").getString();
     }
     if (title == null) {
-      title = node.getName();
-    }
-    try {
-      title = URLDecoder.decode(node.getName(), UTF_8);
-    } catch (UnsupportedEncodingException e) {
-      LOG.warn("Cannot decode node name using URLDecoder. {}", e.getMessage());
+      try {
+        title = URLDecoder.decode(node.getName(), UTF_8);
+      } catch (UnsupportedEncodingException e) {
+        LOG.warn("Cannot decode node name using URLDecoder. {}", e.getMessage());
+      }
     }
     return title;
   }
