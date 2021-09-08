@@ -156,7 +156,13 @@
   };
 
   const DESKTOP_MODE = "desktop";
-  const EMBEDDED_MODE = "embedded";
+  let EMBEDDED_MODE = "";
+  if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
+    EMBEDDED_MODE = "mobile";
+  } else {
+    EMBEDDED_MODE = "embedded";
+  }
+
 
   /**
    * Editor core class.
