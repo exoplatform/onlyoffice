@@ -72,6 +72,7 @@ import org.exoplatform.commons.api.settings.SettingValue;
 import org.exoplatform.commons.api.settings.data.Context;
 import org.exoplatform.commons.api.settings.data.Scope;
 import org.exoplatform.commons.utils.CommonsUtils;
+import org.exoplatform.onlyoffice.jpa.storage.cache.CachedEditorConfigStorage;
 import org.exoplatform.services.cms.mimetype.DMSMimeTypeResolver;
 import org.json.JSONObject;
 import org.picocontainer.Startable;
@@ -91,8 +92,6 @@ import org.exoplatform.onlyoffice.Config.Editor;
 import org.exoplatform.onlyoffice.jcr.NodeFinder;
 import org.exoplatform.portal.Constants;
 import org.exoplatform.portal.webui.util.Util;
-import org.exoplatform.services.cache.CacheListener;
-import org.exoplatform.services.cache.CacheListenerContext;
 import org.exoplatform.services.cache.CacheService;
 import org.exoplatform.services.cache.ExoCache;
 import org.exoplatform.services.cms.BasePath;
@@ -350,7 +349,7 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
   protected final ManageDriveService                              manageDriveService;
 
   /** Cache of Editing documents. */
-  protected final ExoCache<String, ConcurrentMap<String, Config>> editorCache;
+  protected final CachedEditorConfigStorage cachedEditorConfigStorage;
 
   /** Cache of Viewing documents. */
   protected final ExoCache<String, ConcurrentMap<String, Config>> viewerCache;
@@ -434,6 +433,7 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
                                      ActivityManager activityManager,
                                      ManageDriveService manageDriveService,
                                      NodeHierarchyCreator hierarchyCreator,
+                                     CachedEditorConfigStorage cachedEditorConfigStorage,
                                      InitParams params)
       throws ConfigurationException {
     this.jcrService = jcrService;
@@ -448,13 +448,11 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
     this.trashService = trashService;
     this.spaceService = spaceService;
     this.activityManager = activityManager;
-    this.editorCache = cacheService.getCacheInstance(CACHE_NAME);
+    this.cachedEditorConfigStorage = cachedEditorConfigStorage;
     this.viewerCache = cacheService.getCacheInstance(VIEWER_CACHE_NAME);
     this.hierarchyCreator = hierarchyCreator;
     this.manageDriveService = manageDriveService;
-    if (LOG.isDebugEnabled()) {
-      addDebugCacheListener();
-    }
+
     initFileTypes();
     // configuration
     PropertiesParam param = params.getPropertiesParam("editor-configuration");
@@ -517,8 +515,8 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
    * {@inheritDoc}
    */
   public Config getEditorByKey(String userId, String key) throws OnlyofficeEditorException, RepositoryException {
-    ConcurrentMap<String, Config> configs = editorCache.get(key);
-    if (configs != null) {
+    Map<String, Config> configs = cachedEditorConfigStorage.getConfigsByKey(key);
+    if (configs != null && !configs.isEmpty()) {
       Config config = configs.get(userId);
       if (config != null) {
         validateUser(userId, config);
@@ -542,8 +540,8 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
    */
   protected Config getEditor(String userId, String docId, boolean createCoEditing) throws OnlyofficeEditorException,
                                                                                    RepositoryException {
-    ConcurrentMap<String, Config> configs = editorCache.get(docId);
-    if (configs != null) {
+    Map<String, Config> configs = cachedEditorConfigStorage.getConfigsByDocId(docId);
+    if (configs != null && !configs.isEmpty()) {
       Config config = configs.get(userId);
       DocumentStatus.Builder statusBuilder = new DocumentStatus.Builder();
       statusBuilder.users(new String[] { userId });
@@ -557,8 +555,7 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
             Config existing = configs.putIfAbsent(userId, config);
             if (existing == null) {
               // need update the configs in the cache (for replicated cache)
-              editorCache.put(config.getDocument().getKey(), configs);
-              editorCache.put(config.getDocId(), configs);
+              cachedEditorConfigStorage.saveConfig(List.of(config.getDocument().getKey(),config.getDocId()), config, true);
             } else {
               config = existing;
             }
@@ -620,8 +617,8 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
       // we should care about concurrent calls here
       activeLock.lock();
       try {
-        ConcurrentMap<String, Config> configs = editorCache.get(docId);
-        if (configs != null) {
+        Map<String, Config> configs = cachedEditorConfigStorage.getConfigsByDocId(docId);
+        if (configs != null && !configs.isEmpty()) {
           config = getEditor(userId, docId, true);
           if (config == null) {
             // it's unexpected state as existing map SHOULD contain a config and
@@ -692,13 +689,9 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
           builder.secret(documentserverSecret);
 
           config = builder.build();
-          // Create users' config map and add first user
-          configs = new ConcurrentHashMap<String, Config>();
-          configs.put(userId, config);
 
           // mapping by unique file key for updateDocument()
-          editorCache.put(key, configs);
-          editorCache.put(docId, configs);
+          cachedEditorConfigStorage.saveConfig(List.of(key,docId),config,true);
         }
       } finally {
         activeLock.unlock();
@@ -717,6 +710,10 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
       config.getEditorPage().setComment(nodeComment(node));
       config.getEditorPage().setLastModifier(getLastModifier(node));
       config.getEditorPage().setLastModified(getLastModified(node));
+
+      cachedEditorConfigStorage.saveConfig(config.getDocument().getKey(), config,false);
+      cachedEditorConfigStorage.saveConfig(config.getDocId(),config,false);
+
     }
     return config;
   }
@@ -819,13 +816,13 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
    */
   @Override
   public DocumentContent getContent(String userId, String key) throws OnlyofficeEditorException, RepositoryException {
-    ConcurrentMap<String, Config> configs = editorCache.get(key);
+    Map<String, Config> configs = cachedEditorConfigStorage.getConfigsByKey(key);
     boolean viewMode = false;
-    if (configs == null) {
+    if (configs == null || configs.isEmpty()) {
       configs = viewerCache.get(key);
       viewMode = true;
     }
-    if (configs != null) {
+    if (configs != null && !configs.isEmpty()) {
       Config config = configs.get(userId);
       if (config != null) {
         validateUser(userId, config);
@@ -895,8 +892,8 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
    */
   @Override
   public ChangeState getState(String userId, String key) throws OnlyofficeEditorException {
-    ConcurrentMap<String, Config> configs = editorCache.get(key);
-    if (configs != null) {
+    Map<String, Config> configs = cachedEditorConfigStorage.getConfigsByKey(key);
+    if (configs != null && !configs.isEmpty()) {
       Config config = configs.get(userId);
       if (config != null) {
         validateUser(userId, config);
@@ -917,8 +914,8 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
   @Override
   public void updateDocument(DocumentStatus status) throws OnlyofficeEditorException, RepositoryException {
     String key = status.getKey();
-    ConcurrentMap<String, Config> configs = editorCache.get(key);
-    if (configs != null) {
+    Map<String, Config> configs = cachedEditorConfigStorage.getConfigsByKey(key);
+    if (configs != null && !configs.isEmpty()) {
       Config config = configs.get(status.getUserId());
       if (config != null) {
         status.setConfig(config);
@@ -945,8 +942,7 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
         if (statusCode == 0) {
           // Onlyoffice doesn't know about such document: we clean our records
           // and raise an error
-          editorCache.remove(key);
-          editorCache.remove(config.getDocId());
+          cachedEditorConfigStorage.deleteConfig(List.of(key,config.getDocId()), config);
           LOG.warn("Received Onlyoffice status: no document with the key identifier could be found. Key: " + key + ". Document: "
               + nodePath);
           throw new OnlyofficeEditorException("Error editing document: document ID not found");
@@ -962,8 +958,7 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
           // configs of gone users
           if (syncUsers(configs, status.getUsers())) {
             // Update cached (for replicated cache)
-            editorCache.put(key, configs);
-            editorCache.put(config.getDocId(), configs);
+            cachedEditorConfigStorage.saveConfig(List.of(key,config.getDocId()), config,false);
           }
         } else if (statusCode == 2) {
           Editor.User lastUser = getUser(key, status.getLastUser());
@@ -975,8 +970,7 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
             config.closed();
             broadcastEvent(status, OnlyofficeEditorService.EDITOR_CLOSED_EVENT);
           }
-          editorCache.remove(key);
-          editorCache.remove(config.getDocId());
+          cachedEditorConfigStorage.deleteConfig(List.of(key,config.getDocId()), config);
         } else if (statusCode == 3) {
           // it's an error of saving in Onlyoffice
           // we sync to remote editors list first
@@ -988,8 +982,7 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
               // if URL available then we can download it assuming it's last
               // successful modification the same behaviour as for status (2)
               downloadClosed(status);
-              editorCache.remove(key);
-              editorCache.remove(config.getDocId());
+              cachedEditorConfigStorage.deleteConfig(List.of(key,config.getDocId()), config);
               config.setError("Error in editor (" + status.getError() + "). Last change was successfully saved");
               fireError(status);
               broadcastEvent(status, OnlyofficeEditorService.EDITOR_ERROR_EVENT);
@@ -1002,8 +995,7 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
                   + Arrays.toString(status.getUsers()) + ". Document: " + nodePath + ". Error: " + status.getError());
               config.setError("Error in editor (" + status.getError() + "). No changes saved");
               // Update cached (for replicated cache)
-              editorCache.put(key, configs);
-              editorCache.put(config.getDocId(), configs);
+              cachedEditorConfigStorage.saveConfig(List.of(key,config.getDocId()), config,false);
               fireError(status);
               broadcastEvent(status, OnlyofficeEditorService.EDITOR_ERROR_EVENT);
               // No sense to throw an ex here: it will be caught by the
@@ -1017,8 +1009,7 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
                 + Arrays.toString(status.getUsers()) + ". Document: " + nodePath);
             config.setError("Error in editor. Document still in editing state");
             // Update cached (for replicated cache)
-            editorCache.put(key, configs);
-            editorCache.put(config.getDocId(), configs);
+            cachedEditorConfigStorage.saveConfig(List.of(key,config.getDocId()), config,false);
             fireError(status);
             broadcastEvent(status, OnlyofficeEditorService.EDITOR_ERROR_EVENT);
           }
@@ -1027,8 +1018,7 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
           // fire onLeaved event(s)
           syncUsers(configs, status.getUsers());
           // and remove this document from active configs
-          editorCache.remove(key);
-          editorCache.remove(config.getDocId());
+          cachedEditorConfigStorage.deleteConfig(List.of(key,config.getDocId()), config);
         } else if (statusCode == 6) {
           // forcedsave done, save the version with its URL
           if (LOG.isDebugEnabled()) {
@@ -1368,9 +1358,9 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
    */
   @Override
   public Editor.User getLastModifier(String key) {
-    ConcurrentMap<String, Config> configs = editorCache.get(key);
+    Map<String, Config> configs = cachedEditorConfigStorage.getConfigsByKey(key);
     Editor.User lastUser = null;
-    if (configs != null) {
+    if (configs != null && !configs.isEmpty()) {
       long maxLastModified = 0;
       for (Entry<String, Config> entry : configs.entrySet()) {
         Editor.User user = entry.getValue().getEditorConfig().getUser();
@@ -1389,12 +1379,11 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
    */
   @Override
   public void setLastModifier(String key, String userId) {
-    ConcurrentMap<String, Config> configs = editorCache.get(key);
-    if (configs != null) {
+    Map<String, Config> configs = cachedEditorConfigStorage.getConfigsByKey(key);
+    if (configs != null && !configs.isEmpty()) {
       Config config = configs.get(userId);
       config.getEditorConfig().getUser().setLastModified(System.currentTimeMillis());
-      editorCache.put(key, configs);
-      editorCache.put(config.getDocId(), configs);
+      cachedEditorConfigStorage.saveConfig(List.of(key,config.getDocId()),config,false);
     }
   }
 
@@ -1403,7 +1392,7 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
    */
   @Override
   public Editor.User getUser(String key, String userId) {
-    ConcurrentMap<String, Config> configs = editorCache.get(key);
+    Map<String, Config> configs = cachedEditorConfigStorage.getConfigsByKey(key);
     if (configs != null && configs.containsKey(userId)) {
       return configs.get(userId).getEditorConfig().getUser();
     }
@@ -1580,6 +1569,11 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
     node.save();
   }
 
+  @Override
+  public String getDocumentServiceSecret() {
+    return documentserverSecret;
+  }
+
   // *********************** implementation level ***************
 
   /**
@@ -1590,13 +1584,12 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
    * @param url the url
    */
   protected void saveLink(String userId, String key, String url) {
-    ConcurrentMap<String, Config> configs = editorCache.get(key);
-    if (configs != null) {
+    Map<String, Config> configs = cachedEditorConfigStorage.getConfigsByKey(key);
+    if (configs != null && !configs.isEmpty()) {
       Config config = configs.get(userId);
       config.getEditorConfig().getUser().setDownloadLink(url);
       config.getEditorConfig().getUser().setLinkSaved(System.currentTimeMillis());
-      editorCache.put(key, configs);
-      editorCache.put(config.getDocId(), configs);
+      cachedEditorConfigStorage.saveConfig(List.of(key,config.getDocId()), config, false);
     }
   }
 
@@ -1807,7 +1800,7 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
    * @param users the users
    * @return true, if actually changed editor config user(s)
    */
-  protected boolean syncUsers(ConcurrentMap<String, Config> configs, String[] users) {
+  protected boolean syncUsers(Map<String, Config> configs, String[] users) {
     Set<String> editors = new HashSet<String>(Arrays.asList(users));
     // remove gone editors
     boolean updated = false;
@@ -1852,7 +1845,7 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
    * @param configs the configs
    * @return the current users
    */
-  protected String[] getActiveUsers(ConcurrentMap<String, Config> configs) {
+  protected String[] getActiveUsers(Map<String, Config> configs) {
     // copy key set to avoid confuses w/ concurrency
     Set<String> userIds = new LinkedHashSet<String>(configs.keySet());
     // remove not existing locally (just removed), not yet open (created) or
@@ -2171,10 +2164,9 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
    * @param config the config
    */
   protected void updateCache(Config config) {
-    ConcurrentMap<String, Config> configs = editorCache.get(config.getDocument().getKey());
-    if (configs != null) {
-      editorCache.put(config.getDocument().getKey(), configs);
-      editorCache.put(config.getDocId(), configs);
+    Map<String, Config> configs = cachedEditorConfigStorage.getConfigsByKey(config.getDocument().getKey());
+    if (configs != null && !configs.isEmpty()) {
+      cachedEditorConfigStorage.saveConfig(List.of(config.getDocument().getKey(), config.getDocId()), config,false);
     }
   }
 
@@ -2805,39 +2797,6 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
     fileTypes.put("ppsx", TYPE_PRESENTATION);
     fileTypes.put("pps", TYPE_PRESENTATION);
     fileTypes.put("odp", TYPE_PRESENTATION);
-  }
-
-  /**
-   * Adds debug listener to active cache
-   */
-  protected void addDebugCacheListener() {
-    editorCache.addCacheListener(new CacheListener<String, ConcurrentMap<String, Config>>() {
-
-      @Override
-      public void onExpire(CacheListenerContext context, String key, ConcurrentMap<String, Config> obj) throws Exception {
-        LOG.debug(CACHE_NAME + " onExpire > " + key + ": " + obj);
-      }
-
-      @Override
-      public void onRemove(CacheListenerContext context, String key, ConcurrentMap<String, Config> obj) throws Exception {
-        LOG.debug(CACHE_NAME + " onRemove > " + key + ": " + obj);
-      }
-
-      @Override
-      public void onPut(CacheListenerContext context, String key, ConcurrentMap<String, Config> obj) throws Exception {
-        LOG.debug(CACHE_NAME + " onPut > " + key + ": " + obj);
-      }
-
-      @Override
-      public void onGet(CacheListenerContext context, String key, ConcurrentMap<String, Config> obj) throws Exception {
-        LOG.debug(CACHE_NAME + " onGet > " + key + ": " + obj);
-      }
-
-      @Override
-      public void onClearCache(CacheListenerContext context) throws Exception {
-        LOG.debug(CACHE_NAME + " onClearCache");
-      }
-    });
   }
 
   /**

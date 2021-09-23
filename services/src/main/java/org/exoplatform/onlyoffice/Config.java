@@ -23,6 +23,7 @@ import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 
@@ -56,6 +57,16 @@ public class Config implements Externalizable {
 
   /** The Constant EMPTY. */
   protected static final String           EMPTY           = "".intern();
+
+  protected Long databaseId;
+
+  public Long getDatabaseId() {
+    return databaseId;
+  }
+
+  public void setDatabaseId(Long databaseId) {
+    this.databaseId = databaseId;
+  }
 
   /**
    * The Class Builder.
@@ -187,6 +198,16 @@ public class Config implements Externalizable {
       return this;
     }
 
+    public Builder explorerUri(String url) {
+      try {
+        this.explorerUri(new URI(url));
+      } catch (URISyntaxException e) {
+        LOG.error("Unable to create URI from url {}", url);
+        this.explorerUri=null;
+      }
+      return this;
+    }
+
     /**
      * Title.
      *
@@ -253,6 +274,10 @@ public class Config implements Externalizable {
       return this;
     }
 
+    public Builder uploaded(String date) {
+      this.uploaded = date;
+      return this;
+    }
     /**
      * Display path.
      *
@@ -977,7 +1002,7 @@ public class Config implements Externalizable {
    * @param docId the document ID
    * @return the builder
    */
-  protected static Builder editor(String documentserverUrl, String documentType, String workspace, String path, String docId) {
+  public static Builder editor(String documentserverUrl, String documentType, String workspace, String path, String docId) {
     return new Builder(documentserverUrl, documentType, workspace, path, docId);
   }
 
@@ -1007,6 +1032,10 @@ public class Config implements Externalizable {
 
   /** The Document Server URL. */
   private String                          documentserverUrl, documentserverJsUrl;
+
+  public String getPlatformRestUrl() {
+    return platformRestUrl;
+  }
 
   /** The Platform REST URL base (to generate file URLs for users). */
   private String                          platformRestUrl;
@@ -1419,7 +1448,7 @@ public class Config implements Externalizable {
    *
    * @param openedTime the openedTime
    */
-  protected void setOpenedTime(Long openedTime) {
+  public void setOpenedTime(Long openedTime) {
     this.openedTime = openedTime;
   }
 
@@ -1428,7 +1457,7 @@ public class Config implements Externalizable {
    *
    * @param closedTime the closedTime
    */
-  protected void setClosedTime(Long closedTime) {
+  public void setClosedTime(Long closedTime) {
     this.closedTime = closedTime;
   }
 
@@ -1612,7 +1641,7 @@ public class Config implements Externalizable {
    *
    * @param error the new error
    */
-  protected void setError(String error) {
+  public void setError(String error) {
     this.error = error;
   }
 

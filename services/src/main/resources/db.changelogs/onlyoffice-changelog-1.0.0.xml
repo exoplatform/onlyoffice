@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This file is part of the Meeds project (https://meeds.io/).
+Copyright (C) 2020 Meeds Association
+contact@meeds.io
+This program is free software; you can redistribute it and/or
+modify it under the terms of the GNU Lesser General Public
+License as published by the Free Software Foundation; either
+version 3 of the License, or (at your option) any later version.
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+Lesser General Public License for more details.
+You should have received a copy of the GNU Lesser General Public License
+along with this program; if not, write to the Free Software Foundation,
+Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+
+-->
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                      http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.4.xsd">
+
+    <!-- Managing both DB that use sequences and db that use auto increment -->
+  <property name="autoIncrement" value="true" dbms="mysql,mssql,h2,sybase,db2,hsqldb" />
+  <property name="autoIncrement" value="false" dbms="oracle,postgresql" />
+
+    <!-- Managing auto generation of timestamp by Database -->
+  <property name="now" value="now()" dbms="mysql,hsqldb,postgresql,h2" />
+  <property name="now" value="sysdate" dbms="oracle" />
+  <property name="now" value="CURRENT_TIMESTAMP" dbms="mssql" />
+
+  <changeSet author="onlyoffice" id="1.0.0-1" onValidationFail="MARK_RAN">
+    <preConditions onFail="MARK_RAN" onError="MARK_RAN">
+      <not>
+        <tableExists tableName="OO_EDITOR_CONFIG" />
+      </not>
+    </preConditions>
+    <createTable tableName="OO_EDITOR_CONFIG">
+      <column name="ID" type="BIGINT" autoIncrement="${autoIncrement}" startWith="1">
+        <constraints nullable="false" primaryKey="true" primaryKeyName="PK_OO_EDITOR_CONFIG_ID" />
+      </column>
+      <column name="DOCUMENT_ID" type="VARCHAR(64)">
+      </column>
+      <column name="WORKSPACE" type="VARCHAR(250)">
+      </column>
+      <column name="PATH" type="VARCHAR(500)">
+      </column>
+      <column name="DOCUMENT_TYPE" type="VARCHAR(100)">
+      </column>
+      <column name="DOCUMENT_SERVER_URL" type="VARCHAR(250)">
+      </column>
+      <column name="PLATFORM_REST_URL" type="VARCHAR(250)">
+      </column>
+      <column name="EDITOR_URL" type="VARCHAR(250)">
+      </column>
+      <column name="DOWNLOAD_URL" type="VARCHAR(250)">
+      </column>
+      <column name="EXPLORER_URL" type="VARCHAR(250)">
+      </column>
+      <column name="IS_ACTIVITY" type="BOOLEAN" defaultValueBoolean="false">
+      </column>
+      <column name="ERROR" type="VARCHAR(500)">
+      </column>
+      <column name="OPEN" type="BOOLEAN">
+      </column>
+      <column name="CLOSING" type="BOOLEAN">
+      </column>
+      <column name="OPENED_TIME" type="BIGINT">
+      </column>
+      <column name="CLOSED_TIME" type="BIGINT">
+      </column>
+      <column name="EDITOR_PAGE_LAST_MODIFIER" type="VARCHAR(250)">
+      </column>
+      <column name="EDITOR_PAGE_LAST_MODIFIED" type="VARCHAR(250)">
+      </column>
+      <column name="EDITOR_PAGE_DISPLAY_PATH" type="VARCHAR(250)">
+      </column>
+      <column name="EDITOR_PAGE_COMMENT" type="VARCHAR(250)">
+      </column>
+      <column name="EDITOR_PAGE_DRIVE" type="VARCHAR(250)">
+      </column>
+      <column name="EDITOR_PAGE_RENAMED_ALLOWED" type="BOOLEAN">
+      </column>
+      <column name="DOCUMENT_FILETYPE" type="VARCHAR(250)">
+      </column>
+      <column name="DOCUMENT_KEY" type="VARCHAR(250)">
+      </column>
+      <column name="DOCUMENT_TITLE" type="VARCHAR(250)">
+      </column>
+      <column name="DOCUMENT_URL" type="VARCHAR(250)">
+      </column>
+      <column name="DOCUMENT_INFO_OWNER" type="VARCHAR(250)">
+      </column>
+      <column name="DOCUMENT_INFO_UPLOADED" type="VARCHAR(250)">
+      </column>
+      <column name="DOCUMENT_INFO_FOLDER" type="VARCHAR(250)">
+      </column>
+      <column name="PERMISSION_ALLOWEDIT" type="BOOLEAN">
+      </column>
+      <column name="EDITOR_CALLBACKURL" type="VARCHAR(250)">
+      </column>
+      <column name="EDITOR_LANG" type="VARCHAR(250)">
+      </column>
+      <column name="EDITOR_MODE" type="VARCHAR(250)">
+      </column>
+      <column name="EDITOR_USER_USERID" type="VARCHAR(250)">
+      </column>
+      <column name="EDITOR_USER_NAME" type="VARCHAR(250)">
+      </column>
+      <column name="EDITOR_USER_LASTMODIFIED" type="BIGINT">
+      </column>
+      <column name="EDITOR_USER_LASTSAVED" type="BIGINT">
+      </column>
+      <column name="EDITOR_USER_LINKSAVED" type="BIGINT">
+      </column>
+      <column name="EDITOR_USER_DOWNLOAD_LINK" type="VARCHAR(250)">
+      </column>
+    </createTable>
+  </changeSet>
+
+  <changeSet author="onlyoffice" id="1.0.0-2" dbms="oracle,postgresql">
+    <createSequence sequenceName="SEQ_OO_EDITOR_CONFIG_ID" startValue="1"/>
+  </changeSet>
+
+</databaseChangeLog>
