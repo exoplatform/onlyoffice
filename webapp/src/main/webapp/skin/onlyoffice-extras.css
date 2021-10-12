@@ -91,4 +91,5 @@
 }
 iframe[name="frameEditor"] {
   position: relative !important;
+  height: inherit !important;
 }
