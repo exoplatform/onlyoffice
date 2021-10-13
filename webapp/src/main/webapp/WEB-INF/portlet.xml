@@ -35,4 +35,31 @@
       <short-title>Onlyoffice editor</short-title>
     </portlet-info>
   </portlet>
+
+  <portlet>
+    <portlet-name>NewDocumentExtension</portlet-name>
+    <portlet-class>org.exoplatform.commons.api.portlet.GenericDispatchedViewPortlet</portlet-class>
+    <init-param>
+      <name>portlet-view-dispatched-file-path</name>
+      <value>/html/newDocumentExtension.html</value>
+    </init-param>
+    <init-param>
+      <name>preload.resource.bundles</name>
+      <value>locale.navigation.portal.global</value>
+    </init-param>
+    <supports>
+      <mime-type>text/html</mime-type>
+    </supports>
+    <supported-locale>en</supported-locale>
+    <resource-bundle>locale.navigation.portal.global</resource-bundle>
+    <portlet-info>
+      <title>New Document Extension</title>
+    </portlet-info>
+    <portlet-preferences>
+      <preference>
+        <name>jsModule</name>
+        <value>onlyoffice/NewDocumentExtension</value>
+      </preference>
+    </portlet-preferences>
+  </portlet>
 </portlet-app>
