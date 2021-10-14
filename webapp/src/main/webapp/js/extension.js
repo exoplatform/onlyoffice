@@ -3,7 +3,7 @@
     {
       id: 'docs',
       rank: 10,
-      label: 'documents.type.slides',
+      label: 'documents.type.docs',
       extension: '.docx',
       type: 'MicrosoftOfficeDocument',
       icon: 'uiIconFileTypeapplicationvndopenxmlformats-officedocumentwordprocessingmldocument uiIconFileTypeDefault'
@@ -11,7 +11,7 @@
     {
       id: 'sheets',
       rank: 20,
-      label: 'documents.type.slides',
+      label: 'documents.type.sheets',
       extension: '.xlsx',
       type: 'MicrosoftOfficeSpreadsheet',
       icon: 'uiIconFileTypeapplicationvndopenxmlformats-officedocumentspreadsheetmlsheet uiIconFileTypeDefault'
@@ -30,5 +30,5 @@
 
   exoi18n.loadLanguageAsync(lang, url).then(i18n => new Vue({i18n}));
   newDocumentTypeExtensionOptions.forEach(extension => extensionRegistry.registerExtension('attachment', 'new-document-action', extension));
-  document.dispatchEvent(new CustomEvent('new-document-action-updated'));
+  document.dispatchEvent(new CustomEvent('attachment-new-document-action-updated'));
 })();
