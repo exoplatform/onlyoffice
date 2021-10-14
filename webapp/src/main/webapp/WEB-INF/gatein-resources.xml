@@ -99,6 +99,25 @@
     </depends>
   </module>
 
+  <portlet>
+    <name>NewDocumentExtension</name>
+    <module>
+      <script>
+        <minify>false</minify>
+        <path>/js/extension.js</path>
+      </script>
+      <depends>
+        <module>vue</module>
+      </depends>
+      <depends>
+        <module>eXoVueI18n</module>
+      </depends>
+      <depends>
+        <module>extensionRegistry</module>
+      </depends>
+    </module>
+  </portlet>
+
   <portlet-skin>
     <application-name>onlyoffice</application-name>
     <portlet-name>OnlyofficeEditorPortlet</portlet-name>
