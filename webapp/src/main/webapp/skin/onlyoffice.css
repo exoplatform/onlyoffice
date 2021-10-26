@@ -6,7 +6,7 @@
 }
 
 .onlyofficeEditorBody #RightBody, .onlyofficeEditorBody .onlyofficeContainer>.editor {
-  height: calc(100vh - 35px);
+  height: 100%;
   display: table;
   width: 100%;
 }
