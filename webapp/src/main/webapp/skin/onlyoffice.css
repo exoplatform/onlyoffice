@@ -350,7 +350,7 @@ a.icon-place {
 .onlyofficeContainer>#editor>iframe, .onlyofficeContainer>.editor>iframe {
   position: fixed;
   width: 100%;
-  height: 100%;
+  height: 100vh;
 }
 
 .waitThrobber {
