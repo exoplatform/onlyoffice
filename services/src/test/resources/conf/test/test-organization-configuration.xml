@@ -337,6 +337,28 @@
                     </field>
                   </object>
                 </value>
+                <value>
+                  <object type="org.exoplatform.services.organization.OrganizationConfig$User">
+                    <field name="userName">
+                      <string>mary</string>
+                    </field>
+                    <field name="password">
+                      <string>gtn</string>
+                    </field>
+                    <field name="firstName">
+                      <string>Mary</string>
+                    </field>
+                    <field name="lastName">
+                      <string>Smith</string>
+                    </field>
+                    <field name="email">
+                      <string>mary@exo.com</string>
+                    </field>
+                    <field name="groups">
+                      <string>member:/platform/users</string>
+                    </field>
+                  </object>
+                </value>
               </collection>
             </field>
           </object>
