@@ -6,6 +6,20 @@
 
 
   <component>
+    <key>org.exoplatform.onlyoffice.jpa.EditorConfigDAO</key>
+    <type>org.exoplatform.onlyoffice.jpa.dao.EditorConfigDAOImpl</type>
+  </component>
+
+  <component>
+    <type>org.exoplatform.onlyoffice.jpa.storage.impl.RDBMSEditorConfigStorageImpl</type>
+  </component>
+
+  <component>
+    <key>org.exoplatform.onlyoffice.jpa.EditorConfigStorage</key>
+    <type>org.exoplatform.onlyoffice.jpa.storage.cache.CachedEditorConfigStorage</type>
+  </component>
+
+  <component>
     <key>org.exoplatform.services.cms.documents.DocumentService</key>
     <type>org.exoplatform.onlyoffice.mock.DocumentServiceMock</type>
   </component>

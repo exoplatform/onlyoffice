@@ -380,4 +380,7 @@ public interface OnlyofficeEditorService {
    */
   void addFilePreferences(Node node, String userId, String path) throws RepositoryException;
 
+  String getDocumentServiceSecret();
+
+  void closeWithoutModification(String userId, String key);
 }
