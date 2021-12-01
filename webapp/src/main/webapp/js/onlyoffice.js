@@ -500,7 +500,6 @@
         config.height = "100%";
         config.width = "100%";
         config.editorConfig.embedded = {
-          fullscreenUrl: config.editorUrl,
           saveUrl: config.downloadUrl,
           toolbarDocked: "top"
         };
