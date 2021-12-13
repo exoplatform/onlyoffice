@@ -465,27 +465,36 @@ public class CometdOnlyofficeService implements Startable {
 
       Map<String, Object> data = message.getDataAsMap();
       String type = (String) data.get("type");
+      eventsHandlers.submit(new ContainerCommand(PortalContainer.getCurrentPortalContainerName()) {
+        @Override
+        void onContainerError(String error) {
+          LOG.error("An error has occured in container: {}", containerName);
+        }
 
-      switch (type) {
-      case DOCUMENT_CHANGED_EVENT:
-        handleDocumentChangeEvent(data, docId);
-        break;
-      case DOCUMENT_VERSION_EVENT:
-        handleDocumentVersionEvent(data, docId);
-        break;
-      case DOCUMENT_LINK_EVENT:
-        handleDocumentLinkEvent(data, docId);
-        break;
-      case DOCUMENT_TITLE_UPDATED:
-        handleDocumentTitleUpdatedEvent(data, docId);
-        break;
-      case DOCUMENT_USERSAVED:
-        handleDocumentUsersavedEvent(data, docId);
-        break;
-      case EDITOR_CLOSED_EVENT:
-        handleEditorClosedEvent(data, docId);
-        break;
-      }
+        @Override
+        void execute(ExoContainer exoContainer) {
+          switch (type) {
+          case DOCUMENT_CHANGED_EVENT:
+            handleDocumentChangeEvent(data, docId);
+            break;
+          case DOCUMENT_VERSION_EVENT:
+            handleDocumentVersionEvent(data, docId);
+            break;
+          case DOCUMENT_LINK_EVENT:
+            handleDocumentLinkEvent(data, docId);
+            break;
+          case DOCUMENT_TITLE_UPDATED:
+            handleDocumentTitleUpdatedEvent(data, docId);
+            break;
+          case DOCUMENT_USERSAVED:
+            handleDocumentUsersavedEvent(data, docId);
+            break;
+          case EDITOR_CLOSED_EVENT:
+            handleEditorClosedEvent(data, docId);
+            break;
+          }
+        }
+      });
       if (LOG.isDebugEnabled()) {
         LOG.debug("Event published in " + message.getChannel() + ", docId: " + docId + ", data: " + message.getJSON());
       }
@@ -514,17 +523,7 @@ public class CometdOnlyofficeService implements Startable {
       String userId = (String) data.get("userId");
       String title = (String) data.get("title");
       String workspace = (String) data.get("workspace");
-      eventsHandlers.submit(new ContainerCommand(PortalContainer.getCurrentPortalContainerName()) {
-        @Override
-        void onContainerError(String error) {
-          LOG.error("An error has occured in container: {}", containerName);
-        }
-
-        @Override
-        void execute(ExoContainer exoContainer) {
-          editors.updateTitle(workspace, docId, title, userId);
-        }
-      });
+      editors.updateTitle(workspace, docId, title, userId);
     }
 
     /**
@@ -552,29 +551,18 @@ public class CometdOnlyofficeService implements Startable {
         // user. In that case the Command Service will respond with error 3,
         // and we just ignore it
         if (users.length > 0) {
-          eventsHandlers.submit(new ContainerCommand(PortalContainer.getCurrentPortalContainerName()) {
-            @Override
-            void onContainerError(String error) {
-              LOG.error("An error has occured in container: {}", containerName);
+          if (lastUser.getLinkSaved() >= lastUser.getLastModified()) {
+            if (LOG.isDebugEnabled()) {
+              LOG.debug("Downloading from existing link. User: {}, Key: {}, Link: {}",
+                        lastUser.getId(),
+                        key,
+                        lastUser.getDownloadLink());
             }
-
-            @Override
-            void execute(ExoContainer exoContainer) {
-              if (lastUser.getLinkSaved() >= lastUser.getLastModified()) {
-                if (LOG.isDebugEnabled()) {
-                  LOG.debug("Downloading from existing link. User: {}, Key: {}, Link: {}",
-                            lastUser.getId(),
-                            key,
-                            lastUser.getDownloadLink());
-                }
-                editors.downloadVersion(lastUser.getId(), key, false, false, null, lastUser.getDownloadLink());
-              } else {
-                editors.forceSave(lastUser.getId(), key, true, false, false, null);
-              }
-            }
-          });
+            editors.downloadVersion(lastUser.getId(), key, false, false, null, lastUser.getDownloadLink());
+          } else {
+            editors.forceSave(lastUser.getId(), key, true, false, false, null);
+          }
         }
-
       }
     }
 
@@ -600,25 +588,15 @@ public class CometdOnlyofficeService implements Startable {
         }
       }
 
-      eventsHandlers.submit(new ContainerCommand(PortalContainer.getCurrentPortalContainerName()) {
-        @Override
-        void onContainerError(String error) {
-          LOG.error("An error has occured in container: {}", containerName);
+      Editor.User user = editors.getUser(key, userId);
+      if (user.getLinkSaved() >= user.getLastModified()) {
+        if (LOG.isDebugEnabled()) {
+          LOG.debug("Downloading from existing link. User: {}, Key: {}, Link: {}", user.getId(), key, user.getDownloadLink());
         }
-
-        @Override
-        void execute(ExoContainer exoContainer) {
-          Editor.User user = editors.getUser(key, userId);
-          if (user.getLinkSaved() >= user.getLastModified()) {
-            if (LOG.isDebugEnabled()) {
-              LOG.debug("Downloading from existing link. User: {}, Key: {}, Link: {}", user.getId(), key, user.getDownloadLink());
-            }
-            editors.downloadVersion(userId, key, false, false, null, user.getDownloadLink());
-          } else {
-            editors.forceSave(userId, key, true, false, false, null);
-          }
-        }
-      });
+        editors.downloadVersion(userId, key, false, false, null, user.getDownloadLink());
+      } else {
+        editors.forceSave(userId, key, true, false, false, null);
+      }
     }
 
     /**
@@ -633,34 +611,24 @@ public class CometdOnlyofficeService implements Startable {
       Editor.User lastUser = editors.getLastModifier(key);
 
       // We download user version if another user started changing the document
+
       if (lastUser != null && !userId.equals(lastUser.getId()) && lastUser.getLastModified() > lastUser.getLastSaved()) {
-        eventsHandlers.submit(new ContainerCommand(PortalContainer.getCurrentPortalContainerName()) {
-          @Override
-          void onContainerError(String error) {
-            LOG.error("An error has occured in container: {}", containerName);
+        // If we have an actual link, download from it. Otherwise - ask the
+        // command server for the link.
+        if (lastUser.getLinkSaved() >= lastUser.getLastModified()) {
+          if (LOG.isDebugEnabled()) {
+            LOG.debug("Downloading from existing link. User: {}, Key: {}, Link: {}",
+                      lastUser.getId(),
+                      key,
+                      lastUser.getDownloadLink());
           }
-
-          @Override
-          void execute(ExoContainer exoContainer) {
-            // If we have an actual link, download from it. Otherwise - ask the
-            // command server for the link.
-            if (lastUser.getLinkSaved() >= lastUser.getLastModified()) {
-              if (LOG.isDebugEnabled()) {
-                LOG.debug("Downloading from existing link. User: {}, Key: {}, Link: {}",
-                          lastUser.getId(),
-                          key,
-                          lastUser.getDownloadLink());
-              }
-              editors.downloadVersion(lastUser.getId(), key, true, false, null, lastUser.getDownloadLink());
-            } else {
-              if (LOG.isDebugEnabled()) {
-                LOG.debug("Download a new version of document: user " + lastUser.getId() + ", docId: " + docId);
-              }
-              editors.forceSave(lastUser.getId(), key, true, true, false, null);
-            }
-
+          editors.downloadVersion(lastUser.getId(), key, true, false, null, lastUser.getDownloadLink());
+        } else {
+          if (LOG.isDebugEnabled()) {
+            LOG.debug("Download a new version of document: user " + lastUser.getId() + ", docId: " + docId);
           }
-        });
+          editors.forceSave(lastUser.getId(), key, true, true, false, null);
+        }
         if (LOG.isDebugEnabled()) {
           LOG.debug("Started collecting changes for: " + userId + ", docId: " + docId);
         }
@@ -681,28 +649,19 @@ public class CometdOnlyofficeService implements Startable {
       String userId = (String) data.get("userId");
       String key = (String) data.get("key");
       String comment = (String) data.get("comment");
-      eventsHandlers.submit(new ContainerCommand(PortalContainer.getCurrentPortalContainerName()) {
-        @Override
-        void onContainerError(String error) {
-          LOG.error("An error has occured in container: {}", containerName);
-        }
 
-        @Override
-        void execute(ExoContainer exoContainer) {
-          Editor.User lastModifier = editors.getLastModifier(key);
-          // If there were changes after last saving
-          if (lastModifier != null && lastModifier.getLastModified() > lastModifier.getLastSaved()) {
-            // If there is relevant link
-            if (lastModifier.getLinkSaved() >= lastModifier.getLastModified()) {
-              editors.downloadVersion(userId, key, true, true, comment, lastModifier.getDownloadLink());
-            } else {
-              editors.forceSave(userId, key, true, false, true, comment);
-            }
-          } else {
-            editors.downloadVersion(userId, key, true, true, comment, null);
-          }
+      Editor.User lastModifier = editors.getLastModifier(key);
+      // If there were changes after last saving
+      if (lastModifier != null && lastModifier.getLastModified() > lastModifier.getLastSaved()) {
+        // If there is relevant link
+        if (lastModifier.getLinkSaved() >= lastModifier.getLastModified()) {
+          editors.downloadVersion(userId, key, true, true, comment, lastModifier.getDownloadLink());
+        } else {
+          editors.forceSave(userId, key, true, false, true, comment);
         }
-      });
+      } else {
+        editors.downloadVersion(userId, key, true, true, comment, null);
+      }
     }
 
     /**
