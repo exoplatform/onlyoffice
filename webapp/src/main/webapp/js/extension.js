@@ -6,7 +6,8 @@
       label: 'documents.type.docs',
       extension: '.docx',
       type: 'MicrosoftOfficeDocument',
-      icon: 'uiIconFileTypeapplicationvndopenxmlformats-officedocumentwordprocessingmldocument uiIconFileTypeDefault'
+      icon: 'fas fa-file-word',
+      color: '#2A5699',
     },
     {
       id: 'sheets',
@@ -14,7 +15,8 @@
       label: 'documents.type.sheets',
       extension: '.xlsx',
       type: 'MicrosoftOfficeSpreadsheet',
-      icon: 'uiIconFileTypeapplicationvndopenxmlformats-officedocumentspreadsheetmlsheet uiIconFileTypeDefault'
+      icon: 'fas fa-file-excel',
+      color: '#217345',
     },
     {
       id: 'slides',
@@ -22,7 +24,8 @@
       label: 'documents.type.slides',
       extension: '.pptx',
       type: 'MicrosoftOfficePresentation',
-      icon: 'uiIconFileTypeapplicationvndopenxmlformats-officedocumentpresentationmlpresentation uiIconFileTypeDefault'
+      icon: 'fas fa-file-powerpoint',
+      color: '#CB4B32',
     }
   ];
   const lang = eXo.env.portal.language || 'en';
