@@ -106,9 +106,7 @@
   </changeSet>
 
   <changeSet author="onlyoffice" id="1.0.0-3">
-    <modifyDataType columnName="EXPLORER_URL"
-                    newDataType="NVARCHAR(1000)"
-                    tableName="OO_EDITOR_CONFIG"/>
+    <modifyDataType columnName="EXPLORER_URL" newDataType="NVARCHAR(1000)" tableName="OO_EDITOR_CONFIG"/>
   </changeSet>
 
 </databaseChangeLog>
