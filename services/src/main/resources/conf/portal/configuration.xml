@@ -19,7 +19,7 @@
     <external-component-plugins>
         <target-component>org.exoplatform.commons.api.persistence.DataInitializer</target-component>
         <component-plugin>
-            <name>AppCenterChangeLogsPlugin</name>
+            <name>Only Office ChangeLogsPlugin</name>
             <set-method>addChangeLogsPlugin</set-method>
             <type>org.exoplatform.commons.persistence.impl.ChangeLogsPlugin</type>
             <init-params>

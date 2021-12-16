@@ -109,4 +109,8 @@
     <modifyDataType columnName="EXPLORER_URL" newDataType="NVARCHAR(1000)" tableName="OO_EDITOR_CONFIG"/>
   </changeSet>
 
+  <changeSet author="onlyoffice" id="1.0.0-4">
+    <modifyDataType columnName="EDITOR_PAGE_COMMENT" newDataType="NVARCHAR(2000)" tableName="OO_EDITOR_CONFIG"/>
+  </changeSet>
+
 </databaseChangeLog>
