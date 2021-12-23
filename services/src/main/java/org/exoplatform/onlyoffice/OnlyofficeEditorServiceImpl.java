@@ -2825,6 +2825,7 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
     fileTypes.put("ppsx", TYPE_PRESENTATION);
     fileTypes.put("pps", TYPE_PRESENTATION);
     fileTypes.put("odp", TYPE_PRESENTATION);
+    fileTypes.put("potx", TYPE_PRESENTATION);
   }
 
   /**

@@ -354,6 +354,9 @@
                         <value>
                           <string>application/vnd.openxmlformats-officedocument.presentationml.presentation</string>
                         </value>
+                        <value>
+                          <string>application/vnd.openxmlformats-officedocument.presentationml.template</string>
+                        </value>
                       </collection>
                     </field>
                   </object>
