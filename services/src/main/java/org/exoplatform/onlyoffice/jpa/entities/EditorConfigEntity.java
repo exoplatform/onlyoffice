@@ -21,7 +21,7 @@ import org.exoplatform.commons.api.persistence.ExoEntity;
 })
 public class EditorConfigEntity {
   @Id
-  @SequenceGenerator(name = "SEQ_OO_EDITOR_CONFIG_ID", sequenceName = "SEQ_OO_EDITOR_CONFIG_ID")
+  @SequenceGenerator(name = "SEQ_OO_EDITOR_CONFIG_ID", sequenceName = "SEQ_OO_EDITOR_CONFIG_ID", allocationSize = 1)
   @GeneratedValue(strategy = GenerationType.AUTO, generator = "SEQ_OO_EDITOR_CONFIG_ID")
   @Column(name = "ID")
   private Long id;
