@@ -113,4 +113,8 @@
     <modifyDataType columnName="EDITOR_PAGE_COMMENT" newDataType="NVARCHAR(2000)" tableName="OO_EDITOR_CONFIG"/>
   </changeSet>
 
+  <changeSet author="onlyoffice" id="1.0.0-5" dbms="hsqldb">
+    <createSequence sequenceName="SEQ_OO_EDITOR_CONFIG_ID" startValue="1"/>
+  </changeSet>
+
 </databaseChangeLog>
