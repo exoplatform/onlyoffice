@@ -2815,6 +2815,8 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
     fileTypes.put("pdf", TYPE_TEXT);
     fileTypes.put("djvu", TYPE_TEXT);
     fileTypes.put("xps", TYPE_TEXT);
+    fileTypes.put("docxf", TYPE_TEXT);
+    fileTypes.put("oform", TYPE_TEXT);
     // Speadsheet formats
     fileTypes.put("xlsx", TYPE_SPREADSHEET);
     fileTypes.put("xls", TYPE_SPREADSHEET);
