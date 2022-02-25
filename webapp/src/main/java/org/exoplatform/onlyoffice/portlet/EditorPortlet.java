@@ -89,7 +89,7 @@ public class EditorPortlet extends GenericPortlet {
                                                             "locale.onlyoffice.OnlyofficeClient" },
                                                         request.getLocale());
 
-    Config config = getConfig(request, response, i18n, OnlyofficeEditorService.EDIT_MODE);
+    Config config = getConfig(request, response, i18n, OnlyofficeEditorService.VIEW_MODE);
 
     if (config != null) {
       Element onlyOfficeJavascript = response.createElement("script");
