@@ -111,6 +111,22 @@
                     </field>
                   </object>
                 </value>
+                <value>
+                  <object type="org.exoplatform.services.cms.documents.NewDocumentTemplateConfig">
+                    <field name="extension">
+                      <string>.docxf</string>
+                    </field>
+                    <field name="path">
+                      <string>classpath:files/template.docxf</string>
+                    </field>
+                    <field name="name">
+                      <string>OnlyOfficeDocumentForm</string>
+                    </field>
+                    <field name="mimeType">
+                      <string>application/vnd.openxmlformats-officedocument.wordprocessingml.document</string>
+                    </field>
+                  </object>
+                </value>
               </collection>
             </field>
           </object>

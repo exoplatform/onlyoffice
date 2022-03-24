@@ -192,6 +192,7 @@
           <include>**/*.docx</include>
           <include>**/*.pptx</include>
           <include>**/*.xlsx</include>
+          <include>**/*.docxf</include>
         </includes>
       </resource>
     </resources>
