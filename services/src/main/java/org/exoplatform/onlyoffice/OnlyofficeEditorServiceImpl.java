@@ -2050,13 +2050,13 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
             node.setProperty("exo:dateModified", editedTime);
           }
 
-          // Add comment to the FileActivity with current file
+          // Add comment to the FileActivity
           String commentId = null;
           String versionSummary = null;
           if (status.getComment() != null && !status.getComment().trim().isEmpty()) {
-            ExoSocialActivity activity = org.exoplatform.wcm.ext.component.activity.listener.Utils
-                    .postFileActivity(node, status.getComment(), false, true,"","");
-            commentId = activity != null ? activity.getId() : null;
+            commentId = org.exoplatform.wcm.ext.component.activity.listener.Utils.addVersionComment(node,
+                                                                                                    status.getComment(),
+                                                                                                    userId);
             versionSummary = status.getComment().trim();
           }
 
