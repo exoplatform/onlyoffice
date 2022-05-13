@@ -379,6 +379,9 @@
                         <value>
                           <string>application/vnd.openxmlformats-officedocument.wordprocessingml.document.form</string>
                         </value>
+                        <value>
+                          <string>application/pdf</string>
+                        </value>
                       </collection>
                     </field>
                   </object>
