@@ -584,6 +584,7 @@
         createViewer(config).done(function(localConfig) {
           if (localConfig) {
             currentConfig = localConfig;
+            currentConfig.document.title = decodeURI(decodeURI(currentConfig.document.title));
             $(function() {
               try {
                 new DocsAPI.DocEditor("onlyoffice", localConfig);
