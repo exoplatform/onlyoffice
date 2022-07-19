@@ -42,11 +42,12 @@ import javax.jcr.observation.EventListener;
 import javax.jcr.observation.ObservationManager;
 
 import org.cometd.annotation.Param;
-import org.cometd.annotation.ServerAnnotationProcessor;
+import org.cometd.annotation.server.ServerAnnotationProcessor;
 import org.cometd.annotation.Service;
 import org.cometd.annotation.Session;
 import org.cometd.annotation.Subscription;
 import org.cometd.bayeux.Message;
+import org.cometd.bayeux.Promise;
 import org.cometd.bayeux.server.BayeuxServer;
 import org.cometd.bayeux.server.LocalSession;
 import org.cometd.bayeux.server.ServerChannel;
@@ -292,7 +293,7 @@ public class CometdOnlyofficeService implements Startable {
     // start-dependent logic worked before us
     final AtomicReference<ServerAnnotationProcessor> processor = new AtomicReference<>();
     // need initiate process after Bayeux server starts
-    exoBayeux.addLifeCycleListener(new LifeCycle.Listener() {
+    exoBayeux.addEventListener(new LifeCycle.Listener() {
       @Override
       public void lifeCycleStarted(LifeCycle event) {
         ServerAnnotationProcessor p = new ServerAnnotationProcessor(exoBayeux);
@@ -328,7 +329,7 @@ public class CometdOnlyofficeService implements Startable {
       // This listener not required for work, just for info during development
       exoBayeux.addListener(new BayeuxServer.SessionListener() {
         @Override
-        public void sessionRemoved(ServerSession session, boolean timedout) {
+        public void sessionRemoved(ServerSession session, ServerMessage message, boolean timedout) {
           if (LOG.isDebugEnabled()) {
             LOG.debug("sessionRemoved: " + session.getId() + " timedout:" + timedout + " channels: "
                 + channelsAsString(session.getSubscriptions()));
@@ -496,7 +497,7 @@ public class CometdOnlyofficeService implements Startable {
         }
       });
       if (LOG.isDebugEnabled()) {
-        LOG.debug("Event published in " + message.getChannel() + ", docId: " + docId + ", data: " + message.getJSON());
+        LOG.debug("Event published in " + message.getChannel() + ", docId: " + docId + ", data: " + data);
       }
     }
 
@@ -694,7 +695,7 @@ public class CometdOnlyofficeService implements Startable {
         }
         data.append("\"");
         data.append('}');
-        channel.publish(localSession, data.toString());
+        channel.publish(localSession, data.toString(), Promise.noop());
       }
     }
 
@@ -722,7 +723,7 @@ public class CometdOnlyofficeService implements Startable {
         data.append("\"userId\": \"");
         data.append(userId);
         data.append("\"}");
-        channel.publish(localSession, data.toString());
+        channel.publish(localSession, data.toString(), Promise.noop());
       }
     }
 
@@ -743,7 +744,7 @@ public class CometdOnlyofficeService implements Startable {
         data.append(docId);
         data.append("\"");
         data.append('}');
-        channel.publish(localSession, data.toString());
+        channel.publish(localSession, data.toString(), Promise.noop());
       }
     }
 
