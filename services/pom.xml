@@ -33,6 +33,10 @@
   <description>eXo OnlyOffice Editor services of portal extension</description>
 
   <properties>
+    <rest.api.doc.title>Onlyoffice Rest Api</rest.api.doc.title>
+    <rest.api.doc.version>1.0</rest.api.doc.version>
+    <rest.api.doc.description>OnlyOffice addon rest endpoints</rest.api.doc.description>
+
     <exo.test.coverage.ratio>0.39</exo.test.coverage.ratio>
   </properties>
 
@@ -198,6 +202,27 @@
     </resources>
 
     <plugins>
+      <plugin>
+        <groupId>io.openapitools.swagger</groupId>
+        <artifactId>swagger-maven-plugin</artifactId>
+        <configuration>
+          <useResourcePackagesChildren>true</useResourcePackagesChildren>
+          <resourcePackages>
+            <locations>org.exoplatform.onlyoffice.rest</locations>
+          </resourcePackages>
+          <swaggerConfig>
+            <info>
+              <title>${rest.api.doc.title}</title>
+              <version>${rest.api.doc.version}</version>
+              <description>${rest.api.doc.description}</description>
+              <license>
+                <url>https://www.gnu.org/licenses/agpl-3.0.en.html</url>
+                <name>AGPL</name>
+              </license>
+            </info>
+          </swaggerConfig>
+        </configuration>
+      </plugin>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-surefire-plugin</artifactId>
