@@ -3,51 +3,51 @@
   <!-- For client UI -->
   <OnlyofficeEditorClient>
 
-    <EditButtonTitle>crwdns6935308:0crwdne6935308:0</EditButtonTitle>
-    <SaveVersionLabel>crwdns6935310:0crwdne6935310:0</SaveVersionLabel>
-    <SeeMoreButton>crwdns6935312:0crwdne6935312:0</SeeMoreButton>
-    <LoadMoreButton>crwdns6935314:0crwdne6935314:0</LoadMoreButton>
-    <CloseButton>crwdns6935316:0crwdne6935316:0</CloseButton>
-    <SaveButton>crwdns6935318:0crwdne6935318:0</SaveButton>
-    <PlaceHolderTextarea>crwdns6935320:0crwdne6935320:0</PlaceHolderTextarea>
-    <TitleTooltip>crwdns6935322:0crwdne6935322:0</TitleTooltip>
-    <OpenDrawerBtn>crwdns6935324:0crwdne6935324:0</OpenDrawerBtn>
-    <NoVersions>crwdns6935326:0crwdne6935326:0</NoVersions>
-    <AlertSave>crwdns6935328:0crwdne6935328:0</AlertSave>
-    <ErrorSave>crwdns6935330:0crwdne6935330:0</ErrorSave>
-    <UpdateBannerTitle>crwdns6935332:0crwdne6935332:0</UpdateBannerTitle>
-    <ReloadButtonTitle>crwdns6935334:0crwdne6935334:0</ReloadButtonTitle>
+    <EditButtonTitle>Edit in OnlyOffice</EditButtonTitle>
+    <SaveVersionLabel>Save version</SaveVersionLabel>
+    <SeeMoreButton>Go to full version history</SeeMoreButton>
+    <LoadMoreButton>Load more</LoadMoreButton>
+    <CloseButton>Close</CloseButton>
+    <SaveButton>Save</SaveButton>
+    <PlaceHolderTextarea>Write your summary of changes ...</PlaceHolderTextarea>
+    <TitleTooltip>Click to edit</TitleTooltip>
+    <OpenDrawerBtn>Add new version</OpenDrawerBtn>
+    <NoVersions>No versions</NoVersions>
+    <AlertSave>Changes saved</AlertSave>
+    <ErrorSave>No more than 500 characters</ErrorSave>
+    <UpdateBannerTitle>The document has been updated.</UpdateBannerTitle>
+    <ReloadButtonTitle>Reload</ReloadButtonTitle>
 
-    <ErrorTitle>crwdns6935336:0crwdne6935336:0</ErrorTitle>
-    <InfoTitle>crwdns6935338:0crwdne6935338:0</InfoTitle>
-    <PreviewNotAvailable>crwdns6965914:0crwdne6965914:0</PreviewNotAvailable>
-    <GoToDocument>crwdns6966872:0crwdne6966872:0</GoToDocument>
+    <ErrorTitle>Error</ErrorTitle>
+    <InfoTitle>Information</InfoTitle>
+    <PreviewNotAvailable>OnlyOffice document preview is not available now.</PreviewNotAvailable>
+    <GoToDocument>Go to document</GoToDocument>
     <!-- For Explorer/Preview/Stream -->
-    <EditorLinkNotFoundError>crwdns6936560:0crwdne6936560:0</EditorLinkNotFoundError>
-    <EditorLinkNotFoundErrorMessage>crwdns6936562:0crwdne6936562:0</EditorLinkNotFoundErrorMessage>
-    <StorageError>crwdns6936564:0crwdne6936564:0</StorageError>
-    <StorageErrorMessage>crwdns6936566:0crwdne6936566:0</StorageErrorMessage>
-    <InternalEditorError>crwdns6936568:0crwdne6936568:0</InternalEditorError>
-    <InternalEditorErrorMessage>crwdns6936570:0crwdne6936570:0</InternalEditorErrorMessage>
-    <CannotLoadViewerScript>crwdns6965916:0crwdne6965916:0</CannotLoadViewerScript>
+    <EditorLinkNotFoundError>Editor's link not found</EditorLinkNotFoundError>
+    <EditorLinkNotFoundErrorMessage>Cannot get the editor's link - permission denied.</EditorLinkNotFoundErrorMessage>
+    <StorageError>Storage error occurred.</StorageError>
+    <StorageErrorMessage>Cannot get the editor's link because of storage errors.</StorageErrorMessage>
+    <InternalEditorError>Integration editor error.</InternalEditorError>
+    <InternalEditorErrorMessage>Cannot get the editor's link because of an internal editor error.</InternalEditorErrorMessage>
+    <CannotLoadViewerScript>Cannot load DocsAPI script. Please contact the administrator.</CannotLoadViewerScript>
     <!-- For Editor frame -->
-    <ErrorConfigNotDefined>crwdns6935340:0crwdne6935340:0</ErrorConfigNotDefined>
-    <ErrorLinkNotFound>crwdns6935342:0crwdne6935342:0</ErrorLinkNotFound>
-    <ErrorCreateConfig>crwdns6935344:0crwdne6935344:0</ErrorCreateConfig>
-    <AnotherEditorIsOpen>crwdns6936758:0crwdne6936758:0</AnotherEditorIsOpen>
-    <ErrorFileDeletedECMS>crwdns6935346:0crwdne6935346:0</ErrorFileDeletedECMS>
-    <ErrorFileDeletedEditor>crwdns6935348:0crwdne6935348:0</ErrorFileDeletedEditor>
-    <ErrorNameDriveNull>crwdns6967088:0crwdne6967088:0</ErrorNameDriveNull>
+    <ErrorConfigNotDefined>The editor's configuration is not defined</ErrorConfigNotDefined>
+    <ErrorLinkNotFound>Editor's link not found</ErrorLinkNotFound>
+    <ErrorCreateConfig>Failed to create editor's configuration</ErrorCreateConfig>
+    <AnotherEditorIsOpen>Cannot create the editor. The document is being edited in another editor (provider)</AnotherEditorIsOpen>
+    <ErrorFileDeletedECMS>The file has been deleted. You can try to restore it from the Trash</ErrorFileDeletedECMS>
+    <ErrorFileDeletedEditor>The file has been deleted. You can save it by clicking on File -&gt; Save</ErrorFileDeletedEditor>
+    <ErrorNameDriveNull>Could not determinate the drive of this file.</ErrorNameDriveNull>
     <TimeConvert>
-      <Less_Than_A_Minute>crwdns6935350:0crwdne6935350:0</Less_Than_A_Minute>
-      <About_A_Minute>crwdns6935352:0crwdne6935352:0</About_A_Minute>
-      <About_X_Minutes>crwdns6935354:0{0}crwdne6935354:0</About_X_Minutes>
-      <About_An_Hour>crwdns6935356:0crwdne6935356:0</About_An_Hour>
-      <About_X_Hours>crwdns6935358:0{0}crwdne6935358:0</About_X_Hours>
-      <About_A_Day>crwdns6935360:0crwdne6935360:0</About_A_Day>
-      <About_X_Days>crwdns6935362:0{0}crwdne6935362:0</About_X_Days>
-      <About_A_Month>crwdns6935364:0crwdne6935364:0</About_A_Month>
-      <About_X_Months>crwdns6935366:0{0}crwdne6935366:0</About_X_Months>
+      <Less_Than_A_Minute>less than a minute ago</Less_Than_A_Minute>
+      <About_A_Minute>about a minute ago</About_A_Minute>
+      <About_X_Minutes>about {0} minutes ago</About_X_Minutes>
+      <About_An_Hour>about an hour ago</About_An_Hour>
+      <About_X_Hours>about {0} hours ago</About_X_Hours>
+      <About_A_Day>about a day ago</About_A_Day>
+      <About_X_Days>about {0} days ago</About_X_Days>
+      <About_A_Month>about a month ago</About_A_Month>
+      <About_X_Months>about {0} months ago</About_X_Months>
     </TimeConvert>
   </OnlyofficeEditorClient>
 </bundle>
