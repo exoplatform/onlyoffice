@@ -60,6 +60,7 @@ import javax.jcr.PathNotFoundException;
 import javax.jcr.Property;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
+import org.exoplatform.services.jcr.core.ExtendedSession;
 import javax.jcr.Value;
 import javax.jcr.ValueFormatException;
 import javax.jcr.lock.Lock;
@@ -2305,8 +2306,8 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
    */
   protected Node nodeByUUID(String workspace, String uuid) throws RepositoryException {
     SessionProvider sp = sessionProviders.getSessionProvider(null);
-    Session userSession = sp.getSession(workspace, jcrService.getCurrentRepository());
-    return userSession.getNodeByUUID(uuid);
+    ExtendedSession userSession = (ExtendedSession) sp.getSession(workspace, jcrService.getCurrentRepository());
+    return userSession.getNodeByIdentifier(uuid);
   }
 
   /**
