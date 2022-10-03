@@ -203,6 +203,7 @@ a.icon-place {
 }
 
 .onlyofficeEditorBody #editor-drawer .seeMoreLink{
+  display: none;
   float: right;
   margin-right: 10px;
   cursor: pointer;
