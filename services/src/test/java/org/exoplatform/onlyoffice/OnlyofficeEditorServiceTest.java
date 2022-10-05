@@ -1356,20 +1356,14 @@ public class OnlyofficeEditorServiceTest extends BaseCommonsTestCase {
 
     // Then
     assertNotNull(versions);
-    assertEquals(2, versions.size());
+    assertEquals(1, versions.size());
     Version version1 = versions.get(0);
     assertEquals("john", version1.getAuthor());
     assertEquals(1, version1.getVersionPageNumber());
     assertEquals("John Anthony", version1.getFullName());
     assertNotNull(version1.getVersionLabels());
-    assertEquals(0, version1.getVersionLabels().length);
-    Version version2 = versions.get(1);
-    assertEquals("john", version2.getAuthor());
-    assertEquals("John Anthony", version2.getFullName());
-    assertNotNull(version2.getVersionLabels());
-    assertEquals(1, version2.getVersionLabels().length);
-    assertEquals("Document updated", version2.getVersionLabels()[0]);
-
+    assertEquals(1, version1.getVersionLabels().length);
+    assertEquals("Document updated", version1.getVersionLabels()[0]);
     node.remove();
   }
 
