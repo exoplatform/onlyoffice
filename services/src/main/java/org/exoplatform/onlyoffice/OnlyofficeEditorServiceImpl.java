@@ -2025,17 +2025,6 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
           modifierConfig.setSameModifier(sameModifier);
           modifierConfig.setPreviousModified(content.getProperty("jcr:lastModified").getDate());
 
-          Boolean onlyofficeVersion = false;
-          if (frozen.hasProperty("eoo:onlyofficeVersion")) {
-            onlyofficeVersion = frozen.getProperty("eoo:onlyofficeVersion").getBoolean();
-          }
-          Calendar lastModified = node.getProperty("exo:lastModifiedDate").getDate();
-          Calendar versionDate = frozen.getProperty("exo:lastModifiedDate").getDate();
-          // Create a version of the manually uploaded draft if exists
-          if (versionDate.getTimeInMillis() <= lastModified.getTimeInMillis() && !onlyofficeVersion) {
-            createVersionOfDraft(node);
-          }
-
           content.setProperty("jcr:lastModified", editedTime);
           if (content.hasProperty("exo:dateModified")) {
             content.setProperty("exo:dateModified", editedTime);
