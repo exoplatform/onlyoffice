@@ -474,7 +474,7 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
     documentserverUrl.append(dsHost);
 
     this.uploadUrl = new StringBuilder(documentserverUrl).append("/FileUploader.ashx").toString();
-    this.documentserverUrl = new StringBuilder(documentserverUrl).append("/OfficeWeb/").toString();
+    this.documentserverUrl = new StringBuilder(documentserverUrl).append("/web-apps/").toString();
     this.commandServiceUrl = new StringBuilder(documentserverUrl).append("/coauthoring/CommandService.ashx").toString();
     this.documentserverAccessOnly = Boolean.parseBoolean(config.get(CONFIG_DS_ACCESS_ONLY));
     this.documentserverSecret = config.get(CONFIG_DS_SECRET);
