@@ -44,8 +44,8 @@
 
   <properties>
     <!-- eXo Modules -->
-    <org.exoplatform.social.version>6.4.x-exo-SNAPSHOT</org.exoplatform.social.version>
-    <addon.exo.ecms.version>6.4.x-SNAPSHOT</addon.exo.ecms.version>
+    <org.exoplatform.social.version>6.4.0-exo-M22</org.exoplatform.social.version>
+    <addon.exo.ecms.version>6.4.0-M22</addon.exo.ecms.version>
   
     <!-- Sonar properties -->
     <sonar.organization>exoplatform</sonar.organization>
