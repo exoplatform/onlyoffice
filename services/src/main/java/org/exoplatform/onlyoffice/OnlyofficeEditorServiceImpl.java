@@ -60,6 +60,9 @@ import javax.jcr.PathNotFoundException;
 import javax.jcr.Property;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
+
+import org.exoplatform.container.ExoContainerContext;
+import org.exoplatform.portal.localization.LocaleContextInfoUtils;
 import org.exoplatform.services.jcr.core.ExtendedSession;
 import javax.jcr.Value;
 import javax.jcr.ValueFormatException;
@@ -75,6 +78,8 @@ import org.exoplatform.commons.api.settings.data.Scope;
 import org.exoplatform.commons.utils.CommonsUtils;
 import org.exoplatform.onlyoffice.jpa.storage.cache.CachedEditorConfigStorage;
 import org.exoplatform.services.cms.mimetype.DMSMimeTypeResolver;
+import org.exoplatform.services.resources.LocaleContextInfo;
+import org.exoplatform.services.resources.LocalePolicy;
 import org.json.JSONObject;
 import org.picocontainer.Startable;
 
@@ -187,13 +192,13 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
   protected static final String  LAST_EDITED_DATE_FORMAT  = "dd.MM.yyyy HH:mm";
 
   /** The Constant TYPE_TEXT. */
-  protected static final String  TYPE_TEXT                = "text";
+  protected static final String  TYPE_TEXT                = "word";
 
   /** The Constant TYPE_SPREADSHEET. */
-  protected static final String  TYPE_SPREADSHEET         = "spreadsheet";
+  protected static final String  TYPE_SPREADSHEET         = "cell";
 
   /** The Constant TYPE_PRESENTATION. */
-  protected static final String  TYPE_PRESENTATION        = "presentation";
+  protected static final String  TYPE_PRESENTATION        = "slide";
 
   /** The Constant DEFAULT_NAME. **/
   protected static final String  DEFAULT_NAME             = "untitled";
@@ -552,7 +557,7 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
           Config another = configs.values().iterator().next();
           User user = getUser(userId); // and use this user language
           if (user != null) {
-            config = another.forUser(user.getUserName(), user.getDisplayName(), getUserLang(userId), documentserverSecret);
+            config = another.forUser(user.getUserName(), user.getDisplayName(), getUserLanguage(userId), documentserverSecret);
             Config existing = configs.putIfAbsent(userId, config);
             if (existing == null) {
               // need update the configs in the cache (for replicated cache)
@@ -665,7 +670,7 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
             builder.folder(EMPTY_TEXT); // can be empty for Onlyoffice, will
                                         // mean a root folder
           }
-          builder.lang(getUserLang(userId));
+          builder.lang(getUserLanguage(userId));
           builder.mode(OnlyofficeEditorService.EDIT_MODE);
           builder.title(nodeTitle(node));
           builder.userId(user.getUserName());
@@ -765,7 +770,7 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
 
     builder.owner(userId);
     builder.fileType(fileType);
-    builder.lang(getUserLang(userId));
+    builder.lang(getUserLanguage(userId));
     builder.mode(OnlyofficeEditorService.VIEW_MODE);
     builder.title(nodeTitle(node));
     builder.userId(user.getUserName());
@@ -2439,37 +2444,20 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
   }
 
   /**
-   * Gets the user lang.
+   * Gets platform language of user. In case of any errors return null.
    *
-   * @param userId the user id
-   * @return the lang can be <code>null</code> if user has no profile or
-   *         language in it or user profile error
+   * @param userId user Id
+   * @return the platform language
    */
-  protected String getUserLang(String userId) {
-    UserProfileHandler hanlder = organization.getUserProfileHandler();
-    try {
-      UserProfile userProfile = hanlder.findUserProfileByName(userId);
-      if (userProfile != null) {
-        String lang = userProfile.getAttribute(Constants.USER_LANGUAGE);
-        if (lang != null) {
-          // XXX Onlyoffice doesn't support country codes (as of Apr 6, 2016)
-          // All supported langauges here
-          // http://helpcenter.onlyoffice.com/tipstricks/available-languages.aspx
-          int cci = lang.indexOf("_");
-          if (cci > 0) {
-            lang = lang.substring(0, cci);
-          }
-        } else {
-          lang = null;
-        }
-        return lang;
-      } else {
-        return null;
-      }
-    } catch (Exception e) {
-      LOG.warn("Error searching user profile " + userId, e);
-      return null;
+  public static String getUserLanguage(String userId) {
+    LocaleContextInfo localeCtx = LocaleContextInfoUtils.buildLocaleContextInfo(userId);
+    LocalePolicy localePolicy = ExoContainerContext.getCurrentContainer().getComponentInstanceOfType(LocalePolicy.class);
+    String lang = Locale.getDefault().getLanguage();
+    if(localePolicy != null) {
+      Locale locale = localePolicy.determineLocale(localeCtx);
+      lang = locale.getLanguage() + "-" + locale.getCountry();
     }
+    return lang;
   }
 
   /**
