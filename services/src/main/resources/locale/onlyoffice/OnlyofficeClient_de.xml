@@ -20,8 +20,8 @@
 
     <ErrorTitle>Fehler</ErrorTitle>
     <InfoTitle>Informationen</InfoTitle>
-    <PreviewNotAvailable>OnlyOffice document preview is not available now.</PreviewNotAvailable>
-    <GoToDocument>Go to document</GoToDocument>
+    <PreviewNotAvailable>OnlyOffice-Dokumentvorschau ist derzeit nicht verfügbar.</PreviewNotAvailable>
+    <GoToDocument>Zum Dokument</GoToDocument>
     <!-- For Explorer/Preview/Stream -->
     <EditorLinkNotFoundError>Editorlink nicht gefunden</EditorLinkNotFoundError>
     <EditorLinkNotFoundErrorMessage>Editorlink kann nicht abgerufen werden - Berechtigung verweigert.</EditorLinkNotFoundErrorMessage>
@@ -29,7 +29,7 @@
     <StorageErrorMessage>Editorlink kann nicht abgerufen werden aufgrund Speicherfehler.</StorageErrorMessage>
     <InternalEditorError>Integration-Editor-Fehler</InternalEditorError>
     <InternalEditorErrorMessage>Editorlink kann nicht abgerufen werden aufgrund eines internen Editorfehlers.</InternalEditorErrorMessage>
-    <CannotLoadViewerScript>Cannot load DocsAPI script. Please contact the administrator.</CannotLoadViewerScript>
+    <CannotLoadViewerScript>Das DocsAPI-Skript kann nicht geladen werden. Bitte kontaktieren Sie den Verwalter.</CannotLoadViewerScript>
     <!-- For Editor frame -->
     <ErrorConfigNotDefined>Die Editorkonfiguration ist nicht definiert</ErrorConfigNotDefined>
     <ErrorLinkNotFound>Editorlink nicht gefunden</ErrorLinkNotFound>
@@ -37,7 +37,7 @@
     <AnotherEditorIsOpen>Editor kann nicht erstellt werden. Das Dokument wird in einem anderen Editor bearbeitet (Anbieter)</AnotherEditorIsOpen>
     <ErrorFileDeletedECMS>Die Datei wurde gelöscht. Sie können versuchen, sie aus dem Papierkorb wiederherzustellen.</ErrorFileDeletedECMS>
     <ErrorFileDeletedEditor>Die Datei wurde gelöscht. Sie können sie speichern indem Sie auf Datei -&gt; Speichern klicken</ErrorFileDeletedEditor>
-    <ErrorNameDriveNull>Could not determinate the drive of this file.</ErrorNameDriveNull>
+    <ErrorNameDriveNull>Der Drive dieser Datei konnte nicht bestimmt werden.</ErrorNameDriveNull>
     <TimeConvert>
       <Less_Than_A_Minute>Vor weniger als einer Minute</Less_Than_A_Minute>
       <About_A_Minute>Vor etwa einer Minute</About_A_Minute>

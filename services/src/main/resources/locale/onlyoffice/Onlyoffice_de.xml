@@ -19,7 +19,7 @@
         <MicrosoftOfficeDocument>Microsoft Word Dokument (*.docx)</MicrosoftOfficeDocument>
         <MicrosoftOfficeSpreadsheet>Microsoft Excel Workbook (*.xlsx)</MicrosoftOfficeSpreadsheet>
         <MicrosoftOfficePresentation>Microsoft PowerPoint Präsentation (*.pptx)</MicrosoftOfficePresentation>
-        <MicrosoftOfficeNewSheet>Sheet</MicrosoftOfficeNewSheet>
+        <MicrosoftOfficeNewSheet>Blatt</MicrosoftOfficeNewSheet>
       </option>
     </label>
   </UINewDocumentForm>  
