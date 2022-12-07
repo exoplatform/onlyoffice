@@ -7,8 +7,8 @@
     <SaveVersionLabel>Save version</SaveVersionLabel>
     <SeeMoreButton>Go to full version history</SeeMoreButton>
     <LoadMoreButton>Load more</LoadMoreButton>
-    <CloseButton>Lukk</CloseButton>
-    <SaveButton>Lagre</SaveButton>
+    <CloseButton>Close</CloseButton>
+    <SaveButton>Save</SaveButton>
     <PlaceHolderTextarea>Write your summary of changes ...</PlaceHolderTextarea>
     <TitleTooltip>Click to edit</TitleTooltip>
     <OpenDrawerBtn>Add new version</OpenDrawerBtn>
@@ -18,8 +18,8 @@
     <UpdateBannerTitle>The document has been updated.</UpdateBannerTitle>
     <ReloadButtonTitle>Reload</ReloadButtonTitle>
 
-    <ErrorTitle>Feil</ErrorTitle>
-    <InfoTitle>Informasjon</InfoTitle>
+    <ErrorTitle>Error</ErrorTitle>
+    <InfoTitle>Information</InfoTitle>
     <PreviewNotAvailable>OnlyOffice document preview is not available now.</PreviewNotAvailable>
     <GoToDocument>Go to document</GoToDocument>
     <!-- For Explorer/Preview/Stream -->
@@ -39,15 +39,15 @@
     <ErrorFileDeletedEditor>The file has been deleted. You can save it by clicking on File -&gt; Save</ErrorFileDeletedEditor>
     <ErrorNameDriveNull>Could not determinate the drive of this file.</ErrorNameDriveNull>
     <TimeConvert>
-      <Less_Than_A_Minute>mindre enn ett minutt siden</Less_Than_A_Minute>
-      <About_A_Minute>omtrent et minutt siden</About_A_Minute>
-      <About_X_Minutes>for {0} minutter siden</About_X_Minutes>
-      <About_An_Hour>for en time siden</About_An_Hour>
-      <About_X_Hours>for {0} timer siden</About_X_Hours>
-      <About_A_Day>for en dag siden</About_A_Day>
-      <About_X_Days>for {0} dager siden</About_X_Days>
-      <About_A_Month>for en måned siden</About_A_Month>
-      <About_X_Months>for {0} måneder siden</About_X_Months>
+      <Less_Than_A_Minute>less than a minute ago</Less_Than_A_Minute>
+      <About_A_Minute>about a minute ago</About_A_Minute>
+      <About_X_Minutes>about {0} minutes ago</About_X_Minutes>
+      <About_An_Hour>about an hour ago</About_An_Hour>
+      <About_X_Hours>about {0} hours ago</About_X_Hours>
+      <About_A_Day>about a day ago</About_A_Day>
+      <About_X_Days>about {0} days ago</About_X_Days>
+      <About_A_Month>about a month ago</About_A_Month>
+      <About_X_Months>about {0} months ago</About_X_Months>
     </TimeConvert>
   </OnlyofficeEditorClient>
 </bundle>
