@@ -7,10 +7,10 @@
     <SaveVersionLabel>Save version</SaveVersionLabel>
     <SeeMoreButton>Go to full version history</SeeMoreButton>
     <LoadMoreButton>Load more</LoadMoreButton>
-    <CloseButton>Close</CloseButton>
-    <SaveButton>Save</SaveButton>
+    <CloseButton>关闭</CloseButton>
+    <SaveButton>保存</SaveButton>
     <PlaceHolderTextarea>Write your summary of changes ...</PlaceHolderTextarea>
-    <TitleTooltip>Click to edit</TitleTooltip>
+    <TitleTooltip>点击编辑</TitleTooltip>
     <OpenDrawerBtn>Add new version</OpenDrawerBtn>
     <NoVersions>No versions</NoVersions>
     <AlertSave>Changes saved</AlertSave>
@@ -18,8 +18,8 @@
     <UpdateBannerTitle>The document has been updated.</UpdateBannerTitle>
     <ReloadButtonTitle>Reload</ReloadButtonTitle>
 
-    <ErrorTitle>Error</ErrorTitle>
-    <InfoTitle>Information</InfoTitle>
+    <ErrorTitle>错误</ErrorTitle>
+    <InfoTitle>信息</InfoTitle>
     <PreviewNotAvailable>OnlyOffice document preview is not available now.</PreviewNotAvailable>
     <GoToDocument>Go to document</GoToDocument>
     <!-- For Explorer/Preview/Stream -->
@@ -39,15 +39,15 @@
     <ErrorFileDeletedEditor>The file has been deleted. You can save it by clicking on File -&gt; Save</ErrorFileDeletedEditor>
     <ErrorNameDriveNull>Could not determinate the drive of this file.</ErrorNameDriveNull>
     <TimeConvert>
-      <Less_Than_A_Minute>less than a minute ago</Less_Than_A_Minute>
-      <About_A_Minute>about a minute ago</About_A_Minute>
-      <About_X_Minutes>about {0} minutes ago</About_X_Minutes>
-      <About_An_Hour>about an hour ago</About_An_Hour>
-      <About_X_Hours>about {0} hours ago</About_X_Hours>
-      <About_A_Day>about a day ago</About_A_Day>
-      <About_X_Days>about {0} days ago</About_X_Days>
-      <About_A_Month>about a month ago</About_A_Month>
-      <About_X_Months>about {0} months ago</About_X_Months>
+      <Less_Than_A_Minute>少于一分钟前</Less_Than_A_Minute>
+      <About_A_Minute>大约一分钟前</About_A_Minute>
+      <About_X_Minutes>关于 {0} 分钟前</About_X_Minutes>
+      <About_An_Hour>大约一小时前</About_An_Hour>
+      <About_X_Hours>大约 {0} 个小时前</About_X_Hours>
+      <About_A_Day>大约一天前</About_A_Day>
+      <About_X_Days>大约 {0} 天前</About_X_Days>
+      <About_A_Month>大约一个月前</About_A_Month>
+      <About_X_Months>大约 {0} 个月前</About_X_Months>
     </TimeConvert>
   </OnlyofficeEditorClient>
 </bundle>

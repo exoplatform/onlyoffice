@@ -8,9 +8,9 @@
     <SeeMoreButton>Go to full version history</SeeMoreButton>
     <LoadMoreButton>Load more</LoadMoreButton>
     <CloseButton>Close</CloseButton>
-    <SaveButton>Save</SaveButton>
+    <SaveButton>Saxla</SaveButton>
     <PlaceHolderTextarea>Write your summary of changes ...</PlaceHolderTextarea>
-    <TitleTooltip>Click to edit</TitleTooltip>
+    <TitleTooltip>Klik edərək redaktə edin</TitleTooltip>
     <OpenDrawerBtn>Add new version</OpenDrawerBtn>
     <NoVersions>No versions</NoVersions>
     <AlertSave>Changes saved</AlertSave>

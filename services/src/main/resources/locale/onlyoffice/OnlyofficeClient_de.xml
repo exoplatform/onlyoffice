@@ -3,14 +3,14 @@
   <!-- For client UI -->
   <OnlyofficeEditorClient>
 
-    <EditButtonTitle>Edit in OnlyOffice</EditButtonTitle>
+    <EditButtonTitle>In OnlyOffice bearbeiten</EditButtonTitle>
     <SaveVersionLabel>Version speichern</SaveVersionLabel>
     <SeeMoreButton>Zur vollen Versionsverlauf</SeeMoreButton>
     <LoadMoreButton>Weiter laden</LoadMoreButton>
-    <CloseButton>Close</CloseButton>
-    <SaveButton>Save</SaveButton>
+    <CloseButton>Schließen</CloseButton>
+    <SaveButton>Speichern</SaveButton>
     <PlaceHolderTextarea>Schreiben Sie Ihre Zusammenfassung der Änderungen...</PlaceHolderTextarea>
-    <TitleTooltip>Click to edit</TitleTooltip>
+    <TitleTooltip>Klicken, um zu ändern</TitleTooltip>
     <OpenDrawerBtn>Neue Version hinzufügen</OpenDrawerBtn>
     <NoVersions>Keine Versionen</NoVersions>
     <AlertSave>Änderungen gespeichert</AlertSave>
@@ -18,8 +18,8 @@
     <UpdateBannerTitle>Das Dokument wurde aktualisiert</UpdateBannerTitle>
     <ReloadButtonTitle>Neuladen</ReloadButtonTitle>
 
-    <ErrorTitle>Error</ErrorTitle>
-    <InfoTitle>Information</InfoTitle>
+    <ErrorTitle>Fehler</ErrorTitle>
+    <InfoTitle>Informationen</InfoTitle>
     <PreviewNotAvailable>OnlyOffice-Dokumentvorschau ist derzeit nicht verfügbar.</PreviewNotAvailable>
     <GoToDocument>Zum Dokument</GoToDocument>
     <!-- For Explorer/Preview/Stream -->
@@ -39,15 +39,15 @@
     <ErrorFileDeletedEditor>Die Datei wurde gelöscht. Sie können sie speichern indem Sie auf Datei -&gt; Speichern klicken</ErrorFileDeletedEditor>
     <ErrorNameDriveNull>Der Drive dieser Datei konnte nicht bestimmt werden.</ErrorNameDriveNull>
     <TimeConvert>
-      <Less_Than_A_Minute>less than a minute ago</Less_Than_A_Minute>
-      <About_A_Minute>about a minute ago</About_A_Minute>
-      <About_X_Minutes>about {0} minutes ago</About_X_Minutes>
-      <About_An_Hour>about an hour ago</About_An_Hour>
-      <About_X_Hours>about {0} hours ago</About_X_Hours>
-      <About_A_Day>about a day ago</About_A_Day>
-      <About_X_Days>about {0} days ago</About_X_Days>
-      <About_A_Month>about a month ago</About_A_Month>
-      <About_X_Months>about {0} months ago</About_X_Months>
+      <Less_Than_A_Minute>Vor weniger als einer Minute</Less_Than_A_Minute>
+      <About_A_Minute>Vor etwa einer Minute</About_A_Minute>
+      <About_X_Minutes>Vor {0} Minuten</About_X_Minutes>
+      <About_An_Hour>Vor etwa einer Stunde</About_An_Hour>
+      <About_X_Hours>Vor {0} Stunden</About_X_Hours>
+      <About_A_Day>vor etwa einem Tag</About_A_Day>
+      <About_X_Days>vor etwa {0} Tagen</About_X_Days>
+      <About_A_Month>vor etwa einem Monat</About_A_Month>
+      <About_X_Months>vor {0} Monaten</About_X_Months>
     </TimeConvert>
   </OnlyofficeEditorClient>
 </bundle>

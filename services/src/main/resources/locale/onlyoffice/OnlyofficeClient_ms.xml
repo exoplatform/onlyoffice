@@ -8,7 +8,7 @@
     <SeeMoreButton>Go to full version history</SeeMoreButton>
     <LoadMoreButton>Load more</LoadMoreButton>
     <CloseButton>Close</CloseButton>
-    <SaveButton>Save</SaveButton>
+    <SaveButton>Simpan</SaveButton>
     <PlaceHolderTextarea>Write your summary of changes ...</PlaceHolderTextarea>
     <TitleTooltip>Click to edit</TitleTooltip>
     <OpenDrawerBtn>Add new version</OpenDrawerBtn>

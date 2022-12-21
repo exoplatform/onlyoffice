@@ -10,7 +10,7 @@
     <CloseButton>اغلاق</CloseButton>
     <SaveButton>حفظ</SaveButton>
     <PlaceHolderTextarea>اكتب ملخصك حول التغييرات...</PlaceHolderTextarea>
-    <TitleTooltip>Click to edit</TitleTooltip>
+    <TitleTooltip>انقر للتغيير</TitleTooltip>
     <OpenDrawerBtn>إضافة إصدار جديد</OpenDrawerBtn>
     <NoVersions>لا توجد إصدارات</NoVersions>
     <AlertSave>تم حفظ التغييرات</AlertSave>
@@ -18,8 +18,8 @@
     <UpdateBannerTitle>تم تحديث الملف.</UpdateBannerTitle>
     <ReloadButtonTitle>إعادة التحميل</ReloadButtonTitle>
 
-    <ErrorTitle>Error</ErrorTitle>
-    <InfoTitle>Information</InfoTitle>
+    <ErrorTitle>خطأ</ErrorTitle>
+    <InfoTitle>معلومات:</InfoTitle>
     <PreviewNotAvailable>معاينة وثيقة المكتب غير متوفرة الآن.</PreviewNotAvailable>
     <GoToDocument>الرجوع إلى المستند</GoToDocument>
     <!-- For Explorer/Preview/Stream -->
@@ -39,15 +39,15 @@
     <ErrorFileDeletedEditor>تم حذف الملف. يمكنك حفظه بالنقر على الملف -&gt; حفظ</ErrorFileDeletedEditor>
     <ErrorNameDriveNull>تعذر تحديد محرك أقراص هذا الملف.</ErrorNameDriveNull>
     <TimeConvert>
-      <Less_Than_A_Minute>less than a minute ago</Less_Than_A_Minute>
-      <About_A_Minute>about a minute ago</About_A_Minute>
-      <About_X_Minutes>about {0} minutes ago</About_X_Minutes>
-      <About_An_Hour>about an hour ago</About_An_Hour>
-      <About_X_Hours>about {0} hours ago</About_X_Hours>
-      <About_A_Day>about a day ago</About_A_Day>
-      <About_X_Days>about {0} days ago</About_X_Days>
-      <About_A_Month>about a month ago</About_A_Month>
-      <About_X_Months>about {0} months ago</About_X_Months>
+      <Less_Than_A_Minute>منذ أقل من دقيقة</Less_Than_A_Minute>
+      <About_A_Minute>منذ نحو دقيقة</About_A_Minute>
+      <About_X_Minutes>منذ حوالي {0} دقائق</About_X_Minutes>
+      <About_An_Hour>منذ حوالي ساعة</About_An_Hour>
+      <About_X_Hours>منذ حوالي {0} ساعات</About_X_Hours>
+      <About_A_Day>منذ حوالي يوم</About_A_Day>
+      <About_X_Days>منذ حوالي {0} أيـّام</About_X_Days>
+      <About_A_Month>منذ حوالي شهر</About_A_Month>
+      <About_X_Months>منذ حوالي {0} أشهر</About_X_Months>
     </TimeConvert>
   </OnlyofficeEditorClient>
 </bundle>
