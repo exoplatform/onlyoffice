@@ -20,6 +20,10 @@
           <name>printInformation</name>
           <value>true</value>
         </value-param>
+        <value-param>
+          <name>updateUsers</name>
+          <value>true</value>
+        </value-param>
         <object-param>
           <name>configuration</name>
           <object type="org.exoplatform.services.organization.OrganizationConfig">
@@ -250,7 +254,7 @@
                       <string>Mary</string>
                     </field>
                     <field name="lastName">
-                      <string>Smith</string>
+                      <string>Kelly</string>
                     </field>
                     <field name="email">
                       <string>mary@exo.com</string>

@@ -21,53 +21,36 @@
   xsi:schemaLocation="http://www.exoplatform.org/xml/ns/kernel_1_2.xsd http://www.exoplatform.org/xml/ns/kernel_1_2.xsd"
   xmlns="http://www.exoplatform.org/xml/ns/kernel_1_2.xsd">
 
-  <!-- Root container configuration -->
+  <component>
+    <key>org.exoplatform.services.document.DocumentReaderService</key>
+    <type>org.exoplatform.services.document.impl.DocumentReaderServiceImpl</type>
+  </component>
 
   <component>
-    <key>org.exoplatform.container.PropertyConfigurator</key>
-    <type>org.exoplatform.container.PropertyConfigurator</type>
+    <key>org.exoplatform.services.jcr.ext.hierarchy.NodeHierarchyCreator</key>
+    <type>org.exoplatform.services.jcr.ext.hierarchy.impl.NodeHierarchyCreatorImpl</type>
+  </component>
+
+  <component>
+    <key>org.exoplatform.services.jcr.ext.distribution.DataDistributionManager</key>
+    <type>org.exoplatform.services.jcr.ext.distribution.impl.DataDistributionManagerImpl</type>
+  </component>
+
+  <component>
+    <type>org.exoplatform.groovyscript.text.TemplateService</type>
+  </component>
+
+  <component>
+    <type>org.exoplatform.groovyscript.text.TemplateStatisticService</type>
     <init-params>
       <value-param>
-        <name>properties.url</name>
-        <!-- Override portal's defaults -->
-        <value>jar:/conf/exo.properties</value>
+        <name>name</name>
+        <value>false</value>
       </value-param>
     </init-params>
   </component>
 
-  <component>
-    <key>org.exoplatform.container.configuration.ConfigurationManager</key>
-    <type>org.exoplatform.container.configuration.ConfigurationManagerImpl</type>
-  </component>
-
-  <component>
-    <key>org.exoplatform.services.naming.InitialContextInitializer</key>
-    <type>org.exoplatform.services.naming.InitialContextInitializer</type>
-    <init-params>
-      <properties-param>
-        <name>default-properties</name>
-        <description>Default initial context properties</description>
-        <property name="java.naming.factory.initial" value="org.exoplatform.services.naming.SimpleContextFactory" />
-      </properties-param>
-    </init-params>
-  </component>
-
-  <component><!-- Overrides 'commons-component-common-x.x.x.jar!/conf/configuration.xml' -->
-    <key>org.exoplatform.commons.api.persistence.DataInitializer</key>
-    <type>org.exoplatform.onlyoffice.test.StandaloneLiquibaseDataInitializer</type>
-    <init-params>
-      <value-param>
-        <name>liquibase.datasource</name>
-        <value>java:/comp/env/exo-jpa_portal</value>
-      </value-param>
-      <value-param>
-        <name>liquibase.contexts</name>
-        <value>production</value>
-      </value-param>
-    </init-params>
-  </component>
-
-  <!-- Bind datasource -->
+  <!-- Bind datasource for Portal container -->
   <external-component-plugins>
     <target-component>org.exoplatform.services.naming.InitialContextInitializer</target-component>
     <component-plugin>
@@ -77,7 +60,7 @@
       <init-params>
         <value-param>
           <name>bind-name</name>
-          <value>java:/comp/env/exo-jpa_portal</value>
+          <value>jdbcjcr</value>
         </value-param>
         <value-param>
           <name>class-name</name>
@@ -87,27 +70,41 @@
           <name>factory</name>
           <value>org.apache.commons.dbcp.BasicDataSourceFactory</value>
         </value-param>
-        <properties-param profiles="hsqldb">
+        <properties-param>
           <name>ref-addresses</name>
           <description>ref-addresses</description>
           <!-- HSQL in memory -->
           <property name="driverClassName" value="org.hsqldb.jdbcDriver" />
-          <property name="url" value="jdbc:hsqldb:mem:db1" />
+          <property name="url" value="jdbc:hsqldb:mem:jdbcjcr" />
           <property name="username" value="sa" />
           <property name="password" value="" />
-        </properties-param>
-        <properties-param profiles="mysql">
-          <!-- MySQL local -->
-          <name>ref-addresses</name>
-          <description>ref-addresses</description>
-          <property name="driverClassName" value="com.mysql.jdbc.Driver" />
-          <property name="url"
-            value="jdbc:mysql://localhost:3306/test52?createDatabaseIfNotExist=true&amp;autoReconnect=true&amp;useSSL=false&amp;characterEncoding=utf8" />
-          <property name="username" value="exo" />
-          <property name="password" value="exo" />
         </properties-param>
       </init-params>
     </component-plugin>
   </external-component-plugins>
 
+  <external-component-plugins>
+    <target-component>org.exoplatform.services.jcr.RepositoryService</target-component>
+    <component-plugin>
+      <name>add.namespaces</name>
+      <set-method>addPlugin</set-method>
+      <type>org.exoplatform.services.jcr.impl.AddNamespacesPlugin</type>
+      <init-params>
+        <properties-param>
+          <name>namespaces</name>
+          <property name="soc" value="http://www.social.org/jcr/soc/1.0/" />
+          <property name="dc" value="http://purl.org/dc/elements/1.1/" />
+          <property name="metadata" value="http://www.exoplatform.com/jcr/metadata/1.1/" />
+          <property name="jos" value="http://www.exoplatform.com/jcr-services/organization-service/1.0/" />
+        </properties-param>
+      </init-params>
+    </component-plugin>
+  </external-component-plugins>
+
+  <import>jar:/conf/test/test-organization-configuration.xml</import>
+  <import>jar:/conf/test/test-jcr-configuration.xml</import>
+  <import>jar:/conf/test/test-ecms-configuration.xml</import>
+  <import>jar:/conf/test/test-onlyoffice-configuration.xml</import>
+
+  <remove-configuration>org.exoplatform.wcm.ext.component.document.service.ContentViewerRESTService</remove-configuration>
 </configuration>

@@ -63,6 +63,8 @@ import javax.jcr.Session;
 
 import org.exoplatform.container.ExoContainerContext;
 import org.exoplatform.portal.localization.LocaleContextInfoUtils;
+import org.exoplatform.portal.mop.SiteType;
+import org.exoplatform.portal.mop.service.LayoutService;
 import org.exoplatform.services.jcr.core.ExtendedSession;
 import javax.jcr.Value;
 import javax.jcr.ValueFormatException;
@@ -97,6 +99,10 @@ import org.exoplatform.ecm.webui.utils.Utils;
 import org.exoplatform.onlyoffice.Config.Editor;
 import org.exoplatform.onlyoffice.jcr.NodeFinder;
 import org.exoplatform.portal.Constants;
+import org.exoplatform.portal.application.PortalRequestContext;
+import org.exoplatform.portal.config.UserACL;
+import org.exoplatform.portal.config.UserPortalConfigService;
+import org.exoplatform.portal.config.model.PortalConfig;
 import org.exoplatform.portal.webui.util.Util;
 import org.exoplatform.services.cache.CacheService;
 import org.exoplatform.services.cache.ExoCache;
@@ -137,6 +143,8 @@ import org.exoplatform.social.core.manager.ActivityManager;
 import org.exoplatform.social.core.manager.IdentityManager;
 import org.exoplatform.social.core.space.model.Space;
 import org.exoplatform.social.core.space.spi.SpaceService;
+import org.exoplatform.web.application.RequestContext;
+import org.exoplatform.webui.application.WebuiRequestContext;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jws;
@@ -2133,11 +2141,11 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
           try {
             node.refresh(false); // rollback JCR modifications
           } catch (Throwable re) {
-            logError(userId, nodePath, config.getDocId(), config.getDocument().getKey(), "Error rolling back failed change");
+            logError(userId, nodePath, config.getDocId(), config.getDocument().getKey(), "Error rolling back failed change", e);
           }
           throw e; // let the caller handle it further
         } catch(Exception e) {
-          logError(userId, nodePath, config.getDocId(), config.getDocument().getKey(), "Failed to comment activity");
+          logError(userId, nodePath, config.getDocId(), config.getDocument().getKey(), "Failed to comment activity", e);
         } finally {
           // Remove values after usage in DocumentUdateActivityListener
           modifierConfig.setPreviousModified(null);
@@ -2150,7 +2158,8 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
                        nodePath,
                        config.getDocId(),
                        config.getDocument().getKey(),
-                       "Error closing exported content stream");
+                       "Error closing exported content stream",
+                       e);
             }
           }
           if (connection != null) {
@@ -2169,7 +2178,8 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
                      config.getPath(),
                      config.getDocId(),
                      config.getDocument().getKey(),
-                     "Error unlocking edited document");
+                     "Error unlocking edited document",
+                     e);
           }
         }
       } else {
@@ -2722,7 +2732,7 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
   protected String editorURLPath(String docId) throws EditorLinkNotFoundException {
     String portalName;
     try {
-      portalName = WCMCoreUtils.getCurrentPortalName();
+      portalName = getCurrentPortalName();
     } catch (Exception e) {
       LOG.error("Cannot get current portal owner {}", e.getMessage());
       throw new EditorLinkNotFoundException("Editor link not found - cannot get current portal owner");
@@ -2742,6 +2752,11 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
   protected void logError(String userId, String path, String docId, String key, String reason) {
     LOG.error("Editor error: " + reason + " [UserId: " + userId + ", docId: " + docId + ", path: " + path + ", key: " + key
         + "]");
+  }
+
+  protected void logError(String userId, String path, String docId, String key, String reason, Throwable e) {
+    LOG.error("Editor error: " + reason + " [UserId: " + userId + ", docId: " + docId + ", path: " + path + ", key: " + key
+              + "]", e);
   }
 
   /**
@@ -3046,12 +3061,18 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
   protected String getLastModified(Node node) throws ValueFormatException, PathNotFoundException, RepositoryException {
     if (node.hasProperty("exo:lastModifiedDate")) {
       Calendar date = node.getProperty("exo:lastModifiedDate").getDate();
-      Locale locale;
+      Locale locale = null;
       try {
-        locale = Util.getPortalRequestContext().getLocale();
+        PortalRequestContext portalRequestContext = getPortalRequestContext();
+        if (portalRequestContext != null) {
+          locale = portalRequestContext.getLocale();
+        }
       } catch (Exception e) {
-        LOG.warn("Cannot get locale from portal request context. {}", e.getMessage());
+        LOG.debug("Cannot get locale from portal request context", e);
+      }
+      if (locale == null) {
         locale = Locale.getDefault();
+        LOG.debug("Not a WebUI context request, using default one: {}", locale.getDisplayLanguage());
       }
       SimpleDateFormat dateFormat = new SimpleDateFormat(LAST_EDITED_DATE_FORMAT, locale);
       return dateFormat.format(date.getTimeInMillis());
@@ -3089,6 +3110,51 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
             Scope.APPLICATION.id("downloadDocumentStatus"),
             "exo:downloadDocumentStatus");
     return settingValue != null && !settingValue.getValue().toString().isEmpty() ? Boolean.valueOf(settingValue.getValue().toString()) : false;
+  }
+
+  private String getCurrentPortalName() {
+    PortalRequestContext portalRequestContext = getPortalRequestContext();
+    if (portalRequestContext != null) {
+      return portalRequestContext.getPortalOwner();
+    } else {
+      LayoutService layoutService = WCMCoreUtils.getService(LayoutService.class);
+      UserPortalConfigService userPortalConfigService = ExoContainerContext.getService(UserPortalConfigService.class);
+      String defaultPortal = userPortalConfigService.getDefaultPortal();
+
+      UserACL userACL = ExoContainerContext.getService(UserACL.class);
+
+      // Retrieve the list of accessible portals by current user (defined in
+      // ConservationState.getCurrent())
+      PortalConfig portalConfig = layoutService.getPortalConfig(SiteType.PORTAL.key(defaultPortal));
+      if (portalConfig != null && userACL.hasPermission(portalConfig)) {
+        return defaultPortal;
+      } else {
+        int offset = 0;
+        int limit = 20;
+        List<String> portalNames;
+        do {
+          portalNames = layoutService.getSiteNames(SiteType.PORTAL, offset, limit);
+          String defaultUserPortalName = portalNames.stream().filter(portalName -> {
+            PortalConfig userPortalConfig = layoutService.getPortalConfig(SiteType.PORTAL.key(portalName));
+            return userPortalConfig != null && userACL.hasPermission(userPortalConfig);
+          }).findFirst().orElse(null);
+          if (defaultUserPortalName != null) {
+            return defaultUserPortalName;
+          } else {
+            offset += limit;
+          }
+        } while (portalNames.size() == limit);
+        return null;
+      }
+    }
+  }
+
+  private PortalRequestContext getPortalRequestContext() {
+    RequestContext currentInstance = RequestContext.getCurrentInstance();
+    while (currentInstance != null && !(currentInstance instanceof PortalRequestContext)) {
+      currentInstance = currentInstance.getParentAppRequestContext();
+    }
+    return (PortalRequestContext) currentInstance;
   }
 
 }

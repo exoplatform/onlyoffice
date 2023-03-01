@@ -40,11 +40,14 @@ import io.jsonwebtoken.security.Keys;
 import org.mockito.Mockito;
 import static org.mockito.Matchers.*;
 
-@ConfiguredBy({ @ConfigurationUnit(scope = ContainerScope.ROOT, path = "conf/test-configuration.xml"),
-    @ConfigurationUnit(scope = ContainerScope.PORTAL, path = "conf/portal/configuration.xml"),
-    @ConfigurationUnit(scope = ContainerScope.PORTAL, path = "conf/exo.portal.component.portal-configuration.xml"),
-    @ConfigurationUnit(scope = ContainerScope.PORTAL, path = "conf/test/test-configuration.xml") })
+@ConfiguredBy({
+  @ConfigurationUnit(scope = ContainerScope.PORTAL, path = "conf/test/exo-onlyoffice-editor-services-test-configuration.xml")
+})
 public class OnlyofficeEditorServiceTest extends BaseCommonsTestCase {
+
+  private static final String           USER_FULL_NAME = "John Anthony";
+
+  private static final String           USER_USERNAME  = "john";
 
   /** The Constant LOG. */
   protected static final Log        LOG        = ExoLogger.getLogger(OnlyofficeEditorServiceTest.class);
@@ -112,7 +115,7 @@ public class OnlyofficeEditorServiceTest extends BaseCommonsTestCase {
     Boolean nodePreference = node.hasNode("eoo:preferences");
 
     // When
-    editorService.addFilePreferences(node, "john", "path");
+    editorService.addFilePreferences(node, USER_USERNAME, "path");
 
     // Then
     assertFalse(ArrayUtils.contains(initialMixinNodeTypes, "eoo:onlyofficeFile"));
@@ -121,9 +124,9 @@ public class OnlyofficeEditorServiceTest extends BaseCommonsTestCase {
     String[] newMixinNodeTypes = ((NodeImpl) node).getMixinTypeNames();
     assertTrue(ArrayUtils.contains(newMixinNodeTypes, "eoo:onlyofficeFile"));
     assertTrue(node.hasNode("eoo:preferences"));
-    assertTrue(node.getNode("eoo:preferences").hasNode("john"));
-    assertTrue(node.getNode("eoo:preferences").getNode("john").hasProperty("path"));
-    assertEquals(node.getNode("eoo:preferences").getNode("john").getProperty("path").getValue().getString(), "path");
+    assertTrue(node.getNode("eoo:preferences").hasNode(USER_USERNAME));
+    assertTrue(node.getNode("eoo:preferences").getNode(USER_USERNAME).hasProperty("path"));
+    assertEquals(node.getNode("eoo:preferences").getNode(USER_USERNAME).getProperty("path").getValue().getString(), "path");
     node.remove();
   }
 
@@ -131,7 +134,7 @@ public class OnlyofficeEditorServiceTest extends BaseCommonsTestCase {
   protected NodeImpl createDocument(String title, String type, String data, Boolean createAtRoot) throws Exception {
     startSessionAs("root");
     NodeImpl rootNode = (NodeImpl) session.getRootNode();
-    rootNode.setPermission("john", new String[] { PermissionType.ADD_NODE, PermissionType.SET_PROPERTY });
+    rootNode.setPermission(USER_USERNAME, new String[] { PermissionType.ADD_NODE, PermissionType.SET_PROPERTY });
 
     NodeImpl node = createAtRoot ? (NodeImpl) rootNode.addNode(title, type)
                                  : (NodeImpl) rootNode.addNode("Users", "nt:folder").addNode(title, type);
@@ -142,7 +145,7 @@ public class OnlyofficeEditorServiceTest extends BaseCommonsTestCase {
     node.addMixin("exo:sortable");
     node.setProperty("exo:activityId", Calendar.getInstance());
     node.setProperty("exo:dateModified", Calendar.getInstance());
-    node.setProperty("exo:lastModifier", "john");
+    node.setProperty("exo:lastModifier", USER_USERNAME);
     node.setProperty("exo:lastModifiedDate", Calendar.getInstance());
     if (type.equals("nt:file")) {
       Node contentNode = node.addNode("jcr:content", "nt:unstructured");
@@ -166,7 +169,7 @@ public class OnlyofficeEditorServiceTest extends BaseCommonsTestCase {
   @Test
   public void testCallListenerOnCreateWhenAddingListener() throws Exception {
     // Given
-    startSessionAs("john");
+    startSessionAs(USER_USERNAME);
     Node node = createDocument("Test Document.docx", "nt:file", "testContent", true);
     AtomicBoolean onCreateCalled = new AtomicBoolean(false);
     OnlyofficeEditorListener listener = new OnlyofficeEditorListener() {
@@ -204,7 +207,7 @@ public class OnlyofficeEditorServiceTest extends BaseCommonsTestCase {
     editorService.addListener(listener);
 
     // When
-    editorService.createEditor("http", "127.0.0.1", 8080, "john", null, node.getUUID());
+    editorService.createEditor("http", "127.0.0.1", 8080, USER_USERNAME, null, node.getUUID());
 
     // Then
     assertTrue(onCreateCalled.get());
@@ -230,7 +233,7 @@ public class OnlyofficeEditorServiceTest extends BaseCommonsTestCase {
   @Test
   public void testCallListenerOnCreateWhenRemovingListener() throws Exception {
     // Given
-    startSessionAs("john");
+    startSessionAs(USER_USERNAME);
     Node node = createDocument("Test Document.docx", "nt:file", "testContent", true);
     AtomicBoolean onCreateCalled = new AtomicBoolean(false);
 
@@ -269,7 +272,7 @@ public class OnlyofficeEditorServiceTest extends BaseCommonsTestCase {
     editorService.removeListener(listener);
 
     // When
-    editorService.createEditor("http", "127.0.0.1", 8080, "john", null, node.getUUID());
+    editorService.createEditor("http", "127.0.0.1", 8080, USER_USERNAME, null, node.getUUID());
 
     // Then
     assertFalse(onCreateCalled.get());
@@ -282,12 +285,12 @@ public class OnlyofficeEditorServiceTest extends BaseCommonsTestCase {
   @Test
   public void testCreateDocumentWhenUserDataNotNull() throws Exception {
     // Given
-    startSessionAs("john");
+    startSessionAs(USER_USERNAME);
     Node node = createDocument("Test Document.docx", "nt:file", "testContent", false);
 
     // When
-    editorService.addFilePreferences(node, "john", node.getPath());
-    Config config = editorService.createEditor("http", "127.0.0.1", 8080, "john", null, node.getUUID());
+    editorService.addFilePreferences(node, USER_USERNAME, node.getPath());
+    Config config = editorService.createEditor("http", "127.0.0.1", 8080, USER_USERNAME, null, node.getUUID());
 
     // Then
     String docId = node.getUUID();
@@ -317,10 +320,10 @@ public class OnlyofficeEditorServiceTest extends BaseCommonsTestCase {
    */
   @Test
   public void testCreateEditorIncorrectFile() throws Exception {
-    startSessionAs("john");
+    startSessionAs(USER_USERNAME);
     Node node = createDocument("Test Document.docx", "nt:base", "testContent", true);
     try {
-      editorService.createEditor("http", "127.0.0.1", 8080, "john", null, node.getUUID());
+      editorService.createEditor("http", "127.0.0.1", 8080, USER_USERNAME, null, node.getUUID());
     } catch (OnlyofficeEditorException e) {
       // Ok
       node.remove();
@@ -337,13 +340,13 @@ public class OnlyofficeEditorServiceTest extends BaseCommonsTestCase {
   @Test
   public void testCreateEditorWhenCopyEditorForUserFromAnotherEntry() throws Exception {
     // Given
-    startSessionAs("john");
+    startSessionAs(USER_USERNAME);
     Node node = createDocument("Test Document.docx", "nt:file", "testContent", true);
-    editorService.createEditor("http", "127.0.0.1", 8080, "john", null, node.getUUID());
+    editorService.createEditor("http", "127.0.0.1", 8080, USER_USERNAME, null, node.getUUID());
 
     // When
 
-    Config config = editorService.createEditor("http", "127.0.0.1", 8080, "Root", null, node.getUUID());
+    Config config = editorService.createEditor("http", "127.0.0.1", 8080, "root", null, node.getUUID());
 
     // Then
     String docId = node.getUUID();
@@ -371,7 +374,7 @@ public class OnlyofficeEditorServiceTest extends BaseCommonsTestCase {
    */
   @Test
   public void testCreateNewEditorConfigAndDocumentKey() throws Exception {
-    startSessionAs("john");
+    startSessionAs(USER_USERNAME);
     Node node = session.getRootNode().addNode("Test Document.docx", "nt:file");
     node.addMixin("mix:referenceable");
     Node contentNode = node.addNode("jcr:content", "nt:unstructured");
@@ -381,7 +384,7 @@ public class OnlyofficeEditorServiceTest extends BaseCommonsTestCase {
     session.save();
 
     String docId = node.getUUID();
-    Config config = editorService.createEditor("http", "127.0.0.1", 8080, "john", null, docId);
+    Config config = editorService.createEditor("http", "127.0.0.1", 8080, USER_USERNAME, null, docId);
     String editorURL = "http://127.0.0.1:8080/portal/classic/oeditor?docId=" + docId;
 
     assertNotNull(config);
@@ -412,13 +415,13 @@ public class OnlyofficeEditorServiceTest extends BaseCommonsTestCase {
   @Test
   public void testDownloadVersionToJcrNodeAndAddingCommentToCurrentFile() throws Exception {
     // Given
-    startSessionAs("john");
+    startSessionAs(USER_USERNAME);
     Node node = createDocument("Test Document.docx", "nt:file", "testContent", true);
     ActivityTypeUtils.attachActivityId(node, "activityId");
 
     // When
-    Config config = editorService.createEditor("http", "127.0.0.1", 8080, "john", null, node.getUUID());
-    editorService.downloadVersion("john", config.getDocument().getKey(), false, false, "comment", null);
+    Config config = editorService.createEditor("http", "127.0.0.1", 8080, USER_USERNAME, null, node.getUUID());
+    editorService.downloadVersion(USER_USERNAME, config.getDocument().getKey(), false, false, "comment", null);
 
     // Then
     node = editorService.getDocumentById(config.getWorkspace(), config.getDocId());
@@ -429,7 +432,7 @@ public class OnlyofficeEditorServiceTest extends BaseCommonsTestCase {
     assertTrue(node.hasProperty("exo:lastModifiedDate"));
     assertNotNull(node.getProperty("exo:lastModifiedDate").getValue().getString());
     assertTrue(node.hasProperty("exo:lastModifier"));
-    assertEquals("john", node.getProperty("exo:lastModifier").getValue().getString());
+    assertEquals(USER_USERNAME, node.getProperty("exo:lastModifier").getValue().getString());
     assertNotSame(config.getEditorConfig().getUser().lastSaved.toString(), "0");
     node.remove();
   }
@@ -440,15 +443,15 @@ public class OnlyofficeEditorServiceTest extends BaseCommonsTestCase {
   @Test
   public void testDownloadVersionWhenContentUrlNotNull() throws Exception {
     // Given
-    startSessionAs("john");
+    startSessionAs(USER_USERNAME);
     Node node = createDocument("Test Document.docx", "nt:file", "testContent", true);
 
     // When
-    Config config = editorService.createEditor("http", "127.0.0.1", 8080, "john", null, node.getUUID());
-    editorService.downloadVersion("john", config.getDocument().getKey(), false, false, "comment", config.getEditorUrl());
+    Config config = editorService.createEditor("http", "127.0.0.1", 8080, USER_USERNAME, null, node.getUUID());
+    editorService.downloadVersion(USER_USERNAME, config.getDocument().getKey(), false, false, "comment", config.getEditorUrl());
 
     // Then
-    Config result = editorService.getEditorByKey("john",config.getDocument().getKey());
+    Config result = editorService.getEditorByKey(USER_USERNAME,config.getDocument().getKey());
     assertNotSame(result.getEditorConfig().getUser().lastSaved.toString(), "0");
     node.remove();
   }
@@ -459,12 +462,12 @@ public class OnlyofficeEditorServiceTest extends BaseCommonsTestCase {
   @Test
   public void testGetContent() throws Exception {
     // Given
-    startSessionAs("john");
+    startSessionAs(USER_USERNAME);
     Node node = createDocument("Test Document.docx", "nt:file", "testContent", true);
 
     // When
-    Config config = editorService.createEditor("http", "127.0.0.1", 8080, "john", null, node.getUUID());
-    DocumentContent documentContent = editorService.getContent("john", config.getDocument().getKey());
+    Config config = editorService.createEditor("http", "127.0.0.1", 8080, USER_USERNAME, null, node.getUUID());
+    DocumentContent documentContent = editorService.getContent(USER_USERNAME, config.getDocument().getKey());
 
     // Then
     assertNotNull(documentContent);
@@ -480,13 +483,13 @@ public class OnlyofficeEditorServiceTest extends BaseCommonsTestCase {
   @Test
   public void testGetContentWhenFileKeyNotFound() throws Exception {
     // Given
-    startSessionAs("john");
+    startSessionAs(USER_USERNAME);
     Node node = createDocument("Test Document.docx", "nt:file", "testContent", true);
 
     // When
 
     try {
-      editorService.getContent("john", "key");
+      editorService.getContent(USER_USERNAME, "key");
       fail();
     } catch (BadParameterException e) {
       assertTrue(e instanceof BadParameterException);
@@ -501,9 +504,9 @@ public class OnlyofficeEditorServiceTest extends BaseCommonsTestCase {
   @Test
   public void testGetContentWhenUserEditorNotFound() throws Exception {
     // Given
-    startSessionAs("john");
+    startSessionAs(USER_USERNAME);
     Node node = createDocument("Test Document.docx", "nt:file", "testContent", true);
-    Config config = editorService.createEditor("http", "127.0.0.1", 8080, "john", null, node.getUUID());
+    Config config = editorService.createEditor("http", "127.0.0.1", 8080, USER_USERNAME, null, node.getUUID());
 
     // When
 
@@ -523,7 +526,7 @@ public class OnlyofficeEditorServiceTest extends BaseCommonsTestCase {
   @Test
   public void testGetDocument() throws Exception {
     // Given
-    startSessionAs("john");
+    startSessionAs(USER_USERNAME);
     Node node = createDocument("Test Document.docx", "nt:file", "testContent", true);
 
     // When
@@ -542,7 +545,7 @@ public class OnlyofficeEditorServiceTest extends BaseCommonsTestCase {
   @Test
   public void testGetDocumentByIdWhenDocumentExists() throws Exception {
     // Given
-    startSessionAs("john");
+    startSessionAs(USER_USERNAME);
     Node node = createDocument("Test Document.docx", "nt:file", "testContent", true);
 
     // When
@@ -561,10 +564,10 @@ public class OnlyofficeEditorServiceTest extends BaseCommonsTestCase {
   @Test
   public void testGetDocumentByIdWhenWrongId() throws Exception {
     // Given
-    startSessionAs("john");
+    startSessionAs(USER_USERNAME);
     Node node = createDocument("Test Document.docx", "nt:file", "testContent", true);
     try {
-      editorService.getDocumentById(null, "john");
+      editorService.getDocumentById(null, USER_USERNAME);
       fail();
     } catch (DocumentNotFoundException e) {
       assertTrue(e instanceof DocumentNotFoundException);
@@ -579,7 +582,7 @@ public class OnlyofficeEditorServiceTest extends BaseCommonsTestCase {
   @Test
   public void testGetDocumentId() throws Exception {
     // Given
-    startSessionAs("john");
+    startSessionAs(USER_USERNAME);
     Node node = createDocument("Test Document.docx", "nt:file", "testContent", true);
 
     // When
@@ -597,11 +600,11 @@ public class OnlyofficeEditorServiceTest extends BaseCommonsTestCase {
   @Test
   public void testGetEditorByKeyWhenNoConfig() throws Exception {
     // Given
-    startSessionAs("john");
+    startSessionAs(USER_USERNAME);
     Node node = createDocument("Test Document.docx", "nt:file", "testContent", true);
 
     // When
-    Config configTest = editorService.getEditorByKey("john", null);
+    Config configTest = editorService.getEditorByKey(USER_USERNAME, null);
 
     // Then
     assertNull(configTest);
@@ -614,7 +617,7 @@ public class OnlyofficeEditorServiceTest extends BaseCommonsTestCase {
   @Test
   public void testGetEditorLink() throws Exception {
     // Given
-    startSessionAs("john");
+    startSessionAs(USER_USERNAME);
     Node node = createDocument("Test Document.docx", "nt:file", "testContent", true);
 
     // When
@@ -633,12 +636,12 @@ public class OnlyofficeEditorServiceTest extends BaseCommonsTestCase {
   @Test
   public void testGetEditorWhenEditorAlreadyExists() throws Exception {
     // Given
-    startSessionAs("john");
+    startSessionAs(USER_USERNAME);
     Node node = createDocument("Test Document.docx", "nt:file", "testContent", true);
 
     // When
-    Config config = editorService.createEditor("http", "127.0.0.1", 8080, "john", null, node.getUUID());
-    Config configTest = editorService.getEditor("john", config.getWorkspace(), node.getPath());
+    Config config = editorService.createEditor("http", "127.0.0.1", 8080, USER_USERNAME, null, node.getUUID());
+    Config configTest = editorService.getEditor(USER_USERNAME, config.getWorkspace(), node.getPath());
 
     // Then
     assertNotNull(configTest);
@@ -652,11 +655,11 @@ public class OnlyofficeEditorServiceTest extends BaseCommonsTestCase {
   @Test
   public void testGetEditorWhenNoMixNode() throws Exception {
     // Given
-    startSessionAs("john");
+    startSessionAs(USER_USERNAME);
     Node node = createDocument("Test Document.docx", "nt:file", "testContent", true);
 
     // When
-    Config config = editorService.createEditor("http", "127.0.0.1", 8080, "john", null, node.getUUID());
+    Config config = editorService.createEditor("http", "127.0.0.1", 8080, USER_USERNAME, null, node.getUUID());
     node.removeMixin("mix:versionable");
     node.save();
 
@@ -664,7 +667,7 @@ public class OnlyofficeEditorServiceTest extends BaseCommonsTestCase {
     node.save();
 
     // Then
-    Config configTest = editorService.getEditor("john", config.getWorkspace(), node.getPath());
+    Config configTest = editorService.getEditor(USER_USERNAME, config.getWorkspace(), node.getPath());
     assertNull(configTest);
     node.remove();
   }
@@ -675,14 +678,14 @@ public class OnlyofficeEditorServiceTest extends BaseCommonsTestCase {
   @Test
   public void testGetEditorWithCreateCoEditing() throws Exception {
     // Given
-    startSessionAs("john");
+    startSessionAs(USER_USERNAME);
     Node node = createDocument("Test Document.docx", "nt:file", "testContent", true);
 
     // When
-    editorService.createEditor("http", "127.0.0.1", 8080, "john", null, node.getUUID());
+    editorService.createEditor("http", "127.0.0.1", 8080, USER_USERNAME, null, node.getUUID());
 
-    Config config = editorService.createEditor("http", "127.0.0.1", 8080, "john", null, node.getUUID());
-    Config configTest = editorService.getEditor("john", config.getWorkspace(), node.getPath());
+    Config config = editorService.createEditor("http", "127.0.0.1", 8080, USER_USERNAME, null, node.getUUID());
+    Config configTest = editorService.getEditor(USER_USERNAME, config.getWorkspace(), node.getPath());
 
     // Then
     assertNotNull(configTest);
@@ -696,17 +699,17 @@ public class OnlyofficeEditorServiceTest extends BaseCommonsTestCase {
   @Test
   public void testGetLastModifier() throws Exception {
     // Given
-    startSessionAs("john");
+    startSessionAs(USER_USERNAME);
     Node node = createDocument("Test Document.docx", "nt:file", "testContent", true);
 
     // When
-    Config editor = editorService.createEditor("http", "127.0.0.1", 8080, "john", null, node.getUUID());
-    editorService.setLastModifier(editor.getDocument().getKey(), "john");
+    Config editor = editorService.createEditor("http", "127.0.0.1", 8080, USER_USERNAME, null, node.getUUID());
+    editorService.setLastModifier(editor.getDocument().getKey(), USER_USERNAME);
 
     // Then
     Config.Editor.User user = editorService.getLastModifier(editor.getDocument().getKey());
     assertNotNull(user);
-    assertEquals(user.getName(), "John Anthony");
+    assertEquals(user.getName(), USER_FULL_NAME);
     assertNotSame(user.lastModified, "0");
     node.remove();
   }
@@ -717,15 +720,15 @@ public class OnlyofficeEditorServiceTest extends BaseCommonsTestCase {
   @Test
   public void testGetState() throws Exception {
     // Given
-    startSessionAs("john");
+    startSessionAs(USER_USERNAME);
     Node node = createDocument("Test Document.docx", "nt:file", "testContent", true);
 
     // When
     // already saved
-    ChangeState changeStateTosaved = editorService.getState("john", node.getUUID());
+    ChangeState changeStateTosaved = editorService.getState(USER_USERNAME, node.getUUID());
     // not saved
-    Config editor = editorService.createEditor("http", "127.0.0.1", 8080, "john", null, node.getUUID());
-    ChangeState changeStateToNotSaved = editorService.getState("john", editor.getDocument().getKey());
+    Config editor = editorService.createEditor("http", "127.0.0.1", 8080, USER_USERNAME, null, node.getUUID());
+    ChangeState changeStateToNotSaved = editorService.getState(USER_USERNAME, editor.getDocument().getKey());
 
     // Then
     assertTrue(changeStateTosaved.saved);
@@ -739,9 +742,9 @@ public class OnlyofficeEditorServiceTest extends BaseCommonsTestCase {
   @Test
   public void testGetStateWhenUserEditorNotFound() throws Exception {
     // Given
-    startSessionAs("john");
+    startSessionAs(USER_USERNAME);
     Node node = createDocument("Test Document.docx", "nt:file", "testContent", true);
-    Config editor=editorService.createEditor("http", "127.0.0.1", 8080, "john", null, node.getUUID());
+    Config editor=editorService.createEditor("http", "127.0.0.1", 8080, USER_USERNAME, null, node.getUUID());
 
     // When
 
@@ -761,14 +764,14 @@ public class OnlyofficeEditorServiceTest extends BaseCommonsTestCase {
   @Test
   public void testGetUserWhenConfigIsNull() throws Exception {
     // Given
-    startSessionAs("john");
+    startSessionAs(USER_USERNAME);
     Node node = createDocument("Test Document.docx", "nt:file", "testContent", true);
 
     // When
-    editorService.createEditor("http", "127.0.0.1", 8080, "john", null, node.getUUID());
+    editorService.createEditor("http", "127.0.0.1", 8080, USER_USERNAME, null, node.getUUID());
 
     // Then
-    Config.Editor.User user = editorService.getUser("key", "john");
+    Config.Editor.User user = editorService.getUser("key", USER_USERNAME);
     assertNull(user);
     node.remove();
   }
@@ -779,16 +782,16 @@ public class OnlyofficeEditorServiceTest extends BaseCommonsTestCase {
   @Test
   public void testGetUserWithKeyAndUserId() throws Exception {
     // Given
-    startSessionAs("john");
+    startSessionAs(USER_USERNAME);
     Node node = createDocument("Test Document.docx", "nt:file", "testContent", true);
 
     // When
-    Config config = editorService.createEditor("http", "127.0.0.1", 8080, "john", null, node.getUUID());
+    Config config = editorService.createEditor("http", "127.0.0.1", 8080, USER_USERNAME, null, node.getUUID());
 
     // Then
-    Config.Editor.User user = editorService.getUser(config.getDocument().getKey(), "john");
+    Config.Editor.User user = editorService.getUser(config.getDocument().getKey(), USER_USERNAME);
     assertNotNull(user);
-    assertEquals(user.getName(), "John Anthony");
+    assertEquals(user.getName(), USER_FULL_NAME);
     node.remove();
   }
 
@@ -798,7 +801,7 @@ public class OnlyofficeEditorServiceTest extends BaseCommonsTestCase {
   @Test
   public void testInitDocumentByNode() throws Exception {
     // Given
-    startSessionAs("john");
+    startSessionAs(USER_USERNAME);
     Node node = createDocument("Test Document.docx", "nt:file", "testContent", true);
 
     // When
@@ -816,9 +819,9 @@ public class OnlyofficeEditorServiceTest extends BaseCommonsTestCase {
   @Test
   public void testInitDocumentByWorkspaceAndPath() throws Exception {
     // Given
-    startSessionAs("john");
+    startSessionAs(USER_USERNAME);
     Node node = createDocument("Test Document.docx", "nt:file", "testContent", true);
-    Config config = editorService.createEditor("http", "127.0.0.1", 8080, "john", null, node.getUUID());
+    Config config = editorService.createEditor("http", "127.0.0.1", 8080, USER_USERNAME, null, node.getUUID());
 
     // When
     String initDocument = editorService.initDocument(config.getWorkspace(), node.getPath());
@@ -834,7 +837,7 @@ public class OnlyofficeEditorServiceTest extends BaseCommonsTestCase {
    */
   @Test
   public void testIsDocumentMimeSupported() throws Exception {
-    startSessionAs("john");
+    startSessionAs(USER_USERNAME);
     Node node = createDocument("Test Document.docx", "nt:file", "testContent", true);
     assertTrue(editorService.isDocumentMimeSupported(node));
     node.getNode("jcr:content").setProperty("jcr:mimeType", "text/plain");
@@ -866,12 +869,12 @@ public class OnlyofficeEditorServiceTest extends BaseCommonsTestCase {
   @Test
   public void testSetLastModifier() throws Exception {
     // Given
-    startSessionAs("john");
+    startSessionAs(USER_USERNAME);
     Node node = createDocument("Test Document.docx", "nt:file", "testContent", true);
 
     // When
-    Config config = editorService.createEditor("http", "127.0.0.1", 8080, "john", null, node.getUUID());
-    editorService.setLastModifier(node.getUUID(), "john");
+    Config config = editorService.createEditor("http", "127.0.0.1", 8080, USER_USERNAME, null, node.getUUID());
+    editorService.setLastModifier(node.getUUID(), USER_USERNAME);
 
     // Then
     assertNotSame(config.getEditorConfig().getUser().lastModified.toString(), "0");
@@ -885,12 +888,12 @@ public class OnlyofficeEditorServiceTest extends BaseCommonsTestCase {
   @Test
   public void testUpdateDocumentErrorSavingInOnlyOffice() throws Exception {
     // Given
-    startSessionAs("john");
+    startSessionAs(USER_USERNAME);
     Node node = createDocument("Test Document.docx", "nt:file", "testContent", true);
-    Config config = editorService.createEditor("http", "127.0.0.1", 8080, "john", null, node.getUUID());
+    Config config = editorService.createEditor("http", "127.0.0.1", 8080, USER_USERNAME, null, node.getUUID());
     DocumentStatus status = new DocumentStatus.Builder().status(3L)
-                                                        .users(new String[] { "john" })
-                                                        .userId("john")
+                                                        .users(new String[] { USER_USERNAME })
+                                                        .userId(USER_USERNAME)
                                                         .url("http://127.0.0.1:8080/editor/")
                                                         .key(config.getDocument().getKey())
                                                         .build();
@@ -910,12 +913,12 @@ public class OnlyofficeEditorServiceTest extends BaseCommonsTestCase {
   @Test
   public void testUpdateDocumentErrorWithoutContentUrl() throws Exception {
     // Given
-    startSessionAs("john");
+    startSessionAs(USER_USERNAME);
     Node node = createDocument("Test Document.docx", "nt:file", "testContent", true);
-    Config config = editorService.createEditor("http", "127.0.0.1", 8080, "john", null, node.getUUID());
+    Config config = editorService.createEditor("http", "127.0.0.1", 8080, USER_USERNAME, null, node.getUUID());
     DocumentStatus status = new DocumentStatus.Builder().status(3L)
-                                                        .users(new String[] { "john" })
-                                                        .userId("john")
+                                                        .users(new String[] { USER_USERNAME })
+                                                        .userId(USER_USERNAME)
                                                         .key(config.getDocument().getKey())
                                                         .build();
 
@@ -935,12 +938,12 @@ public class OnlyofficeEditorServiceTest extends BaseCommonsTestCase {
   @Test
   public void testUpdateDocumentForUnknownCode() throws Exception {
     // Given
-    startSessionAs("john");
+    startSessionAs(USER_USERNAME);
     Node node = createDocument("Test Document.docx", "nt:file", "testContent", true);
-    Config config = editorService.createEditor("http", "127.0.0.1", 8080, "john", null, node.getUUID());
+    Config config = editorService.createEditor("http", "127.0.0.1", 8080, USER_USERNAME, null, node.getUUID());
     DocumentStatus status = new DocumentStatus.Builder().status(5L)
-                                                        .users(new String[] { "john" })
-                                                        .userId("john")
+                                                        .users(new String[] { USER_USERNAME })
+                                                        .userId(USER_USERNAME)
                                                         .saved(true)
                                                         .key(config.getDocument().getKey())
                                                         .build();
@@ -964,11 +967,11 @@ public class OnlyofficeEditorServiceTest extends BaseCommonsTestCase {
   @Test
   public void testUpdateDocumentForUnknownDocument() throws Exception {
     // Given
-    startSessionAs("john");
+    startSessionAs(USER_USERNAME);
     Node node = createDocument("Test Document.docx", "nt:file", "testContent", true);
-    Config config = editorService.createEditor("http", "127.0.0.1", 8080, "john", null, node.getUUID());
+    Config config = editorService.createEditor("http", "127.0.0.1", 8080, USER_USERNAME, null, node.getUUID());
     DocumentStatus status = new DocumentStatus.Builder().status(0L)
-                                                        .userId("john")
+                                                        .userId(USER_USERNAME)
                                                         .users(new String[] {})
                                                         .key(config.getDocument().getKey())
                                                         .build();
@@ -990,11 +993,11 @@ public class OnlyofficeEditorServiceTest extends BaseCommonsTestCase {
   @Test
   public void testUpdateDocumentForUnknownFileKey() throws Exception {
     // Given
-    startSessionAs("john");
+    startSessionAs(USER_USERNAME);
     Node node = createDocument("Test Document.docx", "nt:file", "testContent", true);
     DocumentStatus status = new DocumentStatus.Builder().status(5L)
-                                                        .users(new String[] { "john" })
-                                                        .userId("john")
+                                                        .users(new String[] { USER_USERNAME })
+                                                        .userId(USER_USERNAME)
                                                         .saved(true)
                                                         .key("key")
                                                         .build();
@@ -1016,9 +1019,9 @@ public class OnlyofficeEditorServiceTest extends BaseCommonsTestCase {
   @Test
   public void testUpdateDocumentForUnknownUser() throws Exception {
     // Given
-    startSessionAs("john");
+    startSessionAs(USER_USERNAME);
     Node node = createDocument("Test Document.docx", "nt:file", "testContent", true);
-    Config config = editorService.createEditor("http", "127.0.0.1", 8080, "john", null, node.getUUID());
+    Config config = editorService.createEditor("http", "127.0.0.1", 8080, USER_USERNAME, null, node.getUUID());
     DocumentStatus status = new DocumentStatus.Builder().status(5L)
                                                         .users(new String[] { "Thomas" })
                                                         .userId("Thomas")
@@ -1044,12 +1047,12 @@ public class OnlyofficeEditorServiceTest extends BaseCommonsTestCase {
   @Test
   public void testUpdateDocumentForceSaveDone() throws Exception {
     // Given
-    startSessionAs("john");
+    startSessionAs(USER_USERNAME);
     Node node = createDocument("Test Document.docx", "nt:file", "testContent", true);
-    Config config = editorService.createEditor("http", "127.0.0.1", 8080, "john", null, node.getUUID());
+    Config config = editorService.createEditor("http", "127.0.0.1", 8080, USER_USERNAME, null, node.getUUID());
     DocumentStatus status = new DocumentStatus.Builder().status(6L)
-                                                        .users(new String[] { "john" })
-                                                        .userId("john")
+                                                        .users(new String[] { USER_USERNAME })
+                                                        .userId(USER_USERNAME)
                                                         .saved(true)
                                                         .key(config.getDocument().getKey())
                                                         .build();
@@ -1075,22 +1078,22 @@ public class OnlyofficeEditorServiceTest extends BaseCommonsTestCase {
   @Test
   public void testUpdateDocumentIfThereWereModificationAfterSaving() throws Exception {
     // Given
-    startSessionAs("john");
+    startSessionAs(USER_USERNAME);
     Node node = createDocument("Test Document.docx", "nt:file", "testContent", true);
-    Config config = editorService.createEditor("http", "127.0.0.1", 8080, "john", null, node.getUUID());
+    Config config = editorService.createEditor("http", "127.0.0.1", 8080, USER_USERNAME, null, node.getUUID());
     DocumentStatus status = new DocumentStatus.Builder().status(2L)
-                                                        .users(new String[] { "john" })
-                                                        .userId("john")
+                                                        .users(new String[] { USER_USERNAME })
+                                                        .userId(USER_USERNAME)
                                                         .key(config.getDocument().getKey())
                                                         .build();
     String documentKey = config.getDocument().getKey();
 
     // When
-    editorService.setLastModifier(config.getDocument().getKey(), "john");
+    editorService.setLastModifier(config.getDocument().getKey(), USER_USERNAME);
     editorService.updateDocument(status);
 
     // Then
-    assertNull(editorService.getEditorByKey("john",documentKey));
+    assertNull(editorService.getEditorByKey(USER_USERNAME,documentKey));
 
 //    assertTrue(config.isClosed());
 //    assertFalse(config.isOpen());
@@ -1105,13 +1108,13 @@ public class OnlyofficeEditorServiceTest extends BaseCommonsTestCase {
   @Test
   public void testUpdateDocumentWhenDocumentStillInEditing() throws Exception {
     // Given
-    startSessionAs("john");
+    startSessionAs(USER_USERNAME);
     Node node = createDocument("Test Document.docx", "nt:file", "testContent", true);
-    Config config = editorService.createEditor("http", "127.0.0.1", 8080, "john", null, node.getUUID());
-    Config configTest = editorService.createEditor("http", "127.0.0.1", 8080, "Root", null, node.getUUID());
+    Config config = editorService.createEditor("http", "127.0.0.1", 8080, USER_USERNAME, null, node.getUUID());
+    Config configTest = editorService.createEditor("http", "127.0.0.1", 8080, "root", null, node.getUUID());
     DocumentStatus status = new DocumentStatus.Builder().status(3L)
-                                                        .users(new String[] { "john" })
-                                                        .userId("john")
+                                                        .users(new String[] { USER_USERNAME })
+                                                        .userId(USER_USERNAME)
                                                         .key(config.getDocument().getKey())
                                                         .build();
 
@@ -1131,12 +1134,12 @@ public class OnlyofficeEditorServiceTest extends BaseCommonsTestCase {
   @Test
   public void testUpdateDocumentWhileErrorInForceSaving() throws Exception {
     // Given
-    startSessionAs("john");
+    startSessionAs(USER_USERNAME);
     Node node = createDocument("Test Document.docx", "nt:file", "testContent", true);
-    Config config = editorService.createEditor("http", "127.0.0.1", 8080, "john", null, node.getUUID());
+    Config config = editorService.createEditor("http", "127.0.0.1", 8080, USER_USERNAME, null, node.getUUID());
     DocumentStatus status = new DocumentStatus.Builder().status(7L)
-                                                        .users(new String[] { "john" })
-                                                        .userId("john")
+                                                        .users(new String[] { USER_USERNAME })
+                                                        .userId(USER_USERNAME)
                                                         .saved(true)
                                                         .key(config.getDocument().getKey())
                                                         .build();
@@ -1160,12 +1163,12 @@ public class OnlyofficeEditorServiceTest extends BaseCommonsTestCase {
   @Test
   public void testUpdateDocumentWithSaveLink() throws Exception {
     // Given
-    startSessionAs("john");
+    startSessionAs(USER_USERNAME);
     Node node = createDocument("Test Document.docx", "nt:file", "testContent", true);
-    Config config = editorService.createEditor("http", "127.0.0.1", 8080, "john", null, node.getUUID());
+    Config config = editorService.createEditor("http", "127.0.0.1", 8080, USER_USERNAME, null, node.getUUID());
     DocumentStatus status = new DocumentStatus.Builder().status(6L)
-                                                        .users(new String[] { "john" })
-                                                        .userId("john")
+                                                        .users(new String[] { USER_USERNAME })
+                                                        .userId(USER_USERNAME)
                                                         .saved(false)
                                                         .url("http://127.0.0.1:8080/editor/")
                                                         .key(config.getDocument().getKey())
@@ -1175,7 +1178,7 @@ public class OnlyofficeEditorServiceTest extends BaseCommonsTestCase {
     editorService.updateDocument(status);
 
     // Then
-    Config configAfterAction = editorService.getEditorByKey("john", key);
+    Config configAfterAction = editorService.getEditorByKey(USER_USERNAME, key);
     assertNotNull(status.getConfig());
     assertNotSame(configAfterAction.getEditorConfig().getUser().getLinkSaved(), 0);
     assertNotNull(configAfterAction.getEditorConfig().getUser().getDownloadLink());
@@ -1188,15 +1191,15 @@ public class OnlyofficeEditorServiceTest extends BaseCommonsTestCase {
   @Test
   public void testUpdateTitle() throws Exception {
     // Given
-    startSessionAs("john");
+    startSessionAs(USER_USERNAME);
     Node node = createDocument("Test Document.docx", "nt:file", "testContent", false);
 
     // When
-    editorService.updateTitle("portal-test", node.getUUID(), "TestDocumentJohn.docx", "john");
+    editorService.updateTitle("portal-test", node.getUUID(), "TestDocumentMary.docx", USER_USERNAME);
 
     // Then
     assertFalse(node.getParent().hasNode("Test Document.docx"));
-    assertTrue(node.getParent().hasNode("TestDocumentJohn.docx"));
+    assertTrue(node.getParent().hasNode("TestDocumentMary.docx"));
     node.remove();
   }
 
@@ -1206,15 +1209,15 @@ public class OnlyofficeEditorServiceTest extends BaseCommonsTestCase {
   @Test
   public void testUpdateTitleRootNode() throws Exception {
     // Given
-    startSessionAs("john");
+    startSessionAs(USER_USERNAME);
     Node node = createDocument("Test Document.docx", "nt:file", "testContent", true);
 
     // When
-    editorService.updateTitle("portal-test", node.getUUID(), "TestDocumentJohn.docx", "john");
+    editorService.updateTitle("portal-test", node.getUUID(), "TestDocumentMary.docx", USER_USERNAME);
 
     // Then
     assertFalse(node.getParent().hasNode("Test Document.docx"));
-    assertTrue(node.getParent().hasNode("TestDocumentJohn.docx"));
+    assertTrue(node.getParent().hasNode("TestDocumentMary.docx"));
     node.remove();
   }
 
@@ -1224,11 +1227,11 @@ public class OnlyofficeEditorServiceTest extends BaseCommonsTestCase {
   @Test
   public void testUpdateTitleWhenNewTitleIsEmpty() throws Exception {
     // Given
-    startSessionAs("john");
+    startSessionAs(USER_USERNAME);
     Node node = createDocument("Test Document.docx", "nt:file", "testContent", false);
 
     // When
-    editorService.updateTitle("portal-test", node.getUUID(), "", "john");
+    editorService.updateTitle("portal-test", node.getUUID(), "", USER_USERNAME);
 
     // Then
     assertTrue(node.getParent().hasNode("Test Document.docx"));
@@ -1241,11 +1244,11 @@ public class OnlyofficeEditorServiceTest extends BaseCommonsTestCase {
   @Test
   public void testUpdateTitleWhenNotFoundDocument() throws Exception {
     // Given
-    startSessionAs("john");
+    startSessionAs(USER_USERNAME);
     Node node = createDocument("Test Document.docx", "nt:file", "testContent", false);
 
     // When
-    editorService.updateTitle(null, "docId", "TestDocumentJohn.docx", "john");
+    editorService.updateTitle(null, "docId", "TestDocumentMary.docx", USER_USERNAME);
 
     // Then
     assertTrue(node.getParent().hasNode("Test Document.docx"));
@@ -1259,26 +1262,26 @@ public class OnlyofficeEditorServiceTest extends BaseCommonsTestCase {
   @Test
   public void testUserJoinedAndLeaved() throws Exception {
     Node node = createDocument("Test Document.docx", "nt:file", "testContent", true);
-    Config config = editorService.createEditor("http", "127.0.0.1", 8080, "john", null, node.getUUID());
+    Config config = editorService.createEditor("http", "127.0.0.1", 8080, USER_USERNAME, null, node.getUUID());
     DocumentStatus status = new DocumentStatus.Builder().status(1L)
-                                                        .users(new String[] { "john" })
-                                                        .userId("john")
+                                                        .users(new String[] { USER_USERNAME })
+                                                        .userId(USER_USERNAME)
                                                         .key(config.getDocument().getKey())
                                                         .build();
 
     assertFalse(config.isOpen());
     editorService.updateDocument(status);
-    Config currentConfig = editorService.getEditorByKey("john",config.getDocument().getKey());
+    Config currentConfig = editorService.getEditorByKey(USER_USERNAME,config.getDocument().getKey());
     assertTrue(currentConfig.isOpen());
     assertFalse(currentConfig.isClosed());
     status = new DocumentStatus.Builder().status(4L)
-                                         .userId("john")
+                                         .userId(USER_USERNAME)
                                          .users(new String[] {})
                                          .key(config.getDocument().getKey())
                                          .build();
     editorService.updateDocument(status);
 
-    Config result = editorService.getEditorByKey("john",config.getDocument().getKey());
+    Config result = editorService.getEditorByKey(USER_USERNAME,config.getDocument().getKey());
     assertNull(result);
     node.remove();
   }
@@ -1288,9 +1291,9 @@ public class OnlyofficeEditorServiceTest extends BaseCommonsTestCase {
    */
   @Test
   public void testValidateToken() throws Exception {
-    startSessionAs("john");
+    startSessionAs(USER_USERNAME);
     Node node = createDocument("Test Document.docx", "nt:file", "testContent", true);
-    Config config = editorService.createEditor("http", "127.0.0.1", 8080, "john", null, node.getUUID());
+    Config config = editorService.createEditor("http", "127.0.0.1", 8080, USER_USERNAME, null, node.getUUID());
     String key = config.getDocument().getKey();
     Map<String, Object> payload = new HashMap<>();
 
@@ -1339,12 +1342,12 @@ public class OnlyofficeEditorServiceTest extends BaseCommonsTestCase {
   @Test
   public void testGetVersions() throws Exception {
     // Given
-    startSessionAs("john");
+    startSessionAs(USER_USERNAME);
     Node node = createDocument("Test Document.docx", "nt:file", "testContent", false);
-    Config config = editorService.createEditor("http", "127.0.0.1", 8080, "john", null, node.getUUID());
+    Config config = editorService.createEditor("http", "127.0.0.1", 8080, USER_USERNAME, null, node.getUUID());
     DocumentStatus status = new DocumentStatus.Builder().status(6L)
-                                                        .users(new String[] { "john" })
-                                                        .userId("john")
+                                                        .users(new String[] { USER_USERNAME })
+                                                        .userId(USER_USERNAME)
                                                         .saved(true)
                                                         .key(config.getDocument().getKey())
                                                         .comment("Document updated")
@@ -1358,9 +1361,9 @@ public class OnlyofficeEditorServiceTest extends BaseCommonsTestCase {
     assertNotNull(versions);
     assertEquals(1, versions.size());
     Version version1 = versions.get(0);
-    assertEquals("john", version1.getAuthor());
+    assertEquals(USER_USERNAME, version1.getAuthor());
     assertEquals(1, version1.getVersionPageNumber());
-    assertEquals("John Anthony", version1.getFullName());
+    assertEquals(USER_FULL_NAME, version1.getFullName());
     assertNotNull(version1.getVersionLabels());
     assertEquals(1, version1.getVersionLabels().length);
     assertEquals("Document updated", version1.getVersionLabels()[0]);
