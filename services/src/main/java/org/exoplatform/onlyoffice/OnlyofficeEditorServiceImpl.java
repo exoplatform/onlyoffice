@@ -845,7 +845,7 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
             throw new OnlyofficeEditorException("Cannot set conversation state " + userId);
           }
           // work in user session
-          Node node = node(config.getWorkspace(), config.getPath());
+          Node node = nodeByUUID(config.getWorkspace(), config.getDocId());
 
           if (viewMode) {
             viewerCache.remove(key);
