@@ -23,9 +23,9 @@
   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
   <parent>
-    <artifactId>addons-parent-pom</artifactId>
+    <artifactId>addons-parent-exo-pom</artifactId>
     <groupId>org.exoplatform.addons</groupId>
-    <version>17-exo-M01</version>
+    <version>17-security-fix-SNAPSHOT</version>
   </parent>
 
   <artifactId>exo-onlyoffice-editor-parent</artifactId>
@@ -44,7 +44,6 @@
 
   <properties>
     <!-- eXo Modules -->
-    <org.exoplatform.social.version>6.5.x-exo-SNAPSHOT</org.exoplatform.social.version>
     <addon.exo.ecms.version>6.5.x-SNAPSHOT</addon.exo.ecms.version>
   
     <!-- Sonar properties -->
@@ -53,14 +52,6 @@
 
   <dependencyManagement>
     <dependencies>
-      <!-- Import versions from platform projects -->
-      <dependency>
-        <groupId>org.exoplatform.social</groupId>
-        <artifactId>social</artifactId>
-        <version>${org.exoplatform.social.version}</version>
-        <type>pom</type>
-        <scope>import</scope>
-      </dependency>
       <dependency>
         <groupId>org.exoplatform.ecms</groupId>
         <artifactId>ecms</artifactId>
