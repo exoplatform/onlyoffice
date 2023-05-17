@@ -25,7 +25,7 @@
   <parent>
     <artifactId>addons-exo-parent-pom</artifactId>
     <groupId>org.exoplatform.addons</groupId>
-    <version>17-M01</version>
+    <version>17-M02</version>
   </parent>
 
   <artifactId>exo-onlyoffice-editor-parent</artifactId>
