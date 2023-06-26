@@ -134,6 +134,12 @@ div#open-drawer-btn {
   bottom: 86px;
 }
 
+@media screen and (max-width: 959px) {
+  div#open-drawer-btn {
+    right: 15px !important;
+  }
+}
+
 div#open-drawer-btn:hover {
   background-color: #476a9c;
   background-position: 0px -65px;
@@ -331,7 +337,6 @@ a.icon-place {
   width: 100%;
   height: 100%;
   position: relative;
-  min-width: 665px;
 }
 
 .onlyofficeContainer>.loading {
@@ -339,7 +344,6 @@ a.icon-place {
   height: 100%;
   position: relative;
   border: 0px;
-  min-width: 665px;
   min-height: 550px;
   margin-bottom: 15px;
 }
