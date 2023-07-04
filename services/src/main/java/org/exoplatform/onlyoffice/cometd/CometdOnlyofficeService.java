@@ -655,7 +655,7 @@ public class CometdOnlyofficeService implements Startable {
       // If there were changes after last saving
       if (lastModifier != null && lastModifier.getLastModified() > lastModifier.getLastSaved()) {
         // If there is relevant link
-        if (lastModifier.getLinkSaved() >= lastModifier.getLastModified()) {
+        if (lastModifier.getLinkSaved() >= lastModifier.getLastModified() || editors.isDocumentCoedited(key)) {
           editors.downloadVersion(userId, key, true, true, comment, lastModifier.getDownloadLink());
         } else {
           editors.forceSave(userId, key, true, false, true, comment);
