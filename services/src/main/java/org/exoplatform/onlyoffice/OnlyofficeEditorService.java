@@ -384,5 +384,10 @@ public interface OnlyofficeEditorService {
 
   void closeWithoutModification(String userId, String key);
 
+  /**
+   * Checks if the document is opened for edition by multiple users
+   * @param key Document key
+   * @return Boolean true if the document is opened for edition by multiple users
+   */
   boolean isDocumentCoedited(String key);
 }
