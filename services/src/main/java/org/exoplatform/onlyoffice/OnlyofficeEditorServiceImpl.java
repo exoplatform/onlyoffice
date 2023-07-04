@@ -1608,6 +1608,12 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
     }
   }
 
+  @Override
+  public boolean isDocumentCoedited(String key) {
+    Map<String, Config> configs = cachedEditorConfigStorage.getConfigsByKey(key);
+    return configs != null && !configs.isEmpty() && configs.size() > 1;
+  }
+
   /**
    * Save link.
    *

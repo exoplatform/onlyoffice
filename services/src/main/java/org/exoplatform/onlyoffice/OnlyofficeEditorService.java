@@ -383,4 +383,6 @@ public interface OnlyofficeEditorService {
   String getDocumentServiceSecret();
 
   void closeWithoutModification(String userId, String key);
+
+  boolean isDocumentCoedited(String key);
 }
