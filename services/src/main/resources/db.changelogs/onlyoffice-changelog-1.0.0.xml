@@ -116,5 +116,8 @@
   <changeSet author="onlyoffice" id="1.0.0-5" dbms="hsqldb">
     <createSequence sequenceName="SEQ_OO_EDITOR_CONFIG_ID" startValue="1"/>
   </changeSet>
+  <changeSet id="1.0.0-6" author="onlyoffice" dbms="mysql">
+    <sql>ALTER TABLE OO_EDITOR_CONFIG MODIFY COLUMN DOCUMENT_TITLE varchar(250) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin;</sql>
+  </changeSet>
 
 </databaseChangeLog>
