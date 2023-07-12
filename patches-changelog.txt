@@ -1,5 +1,22 @@
               2023-07-12 eXo Support <support@exoplatform.org> 
 
-   # 2.4.2 Patches changelog: 
+   # 2.4.2 Patches changelog:
+
+   * 2022-07-04: Patch-6.4.2:1, Author: Jihed Chabbeh<jchabbeh@exoplatform.com>
+
+    - https://github.com/exoplatform/documents/pull/1008
+
+  * 2022-07-07: Patch-6.4.2:2, Author: Jihed Chabbeh<jchabbeh@exoplatform.com>
+
+    - https://github.com/exoplatform/ecms/pull/2145
+
+  * 2022-07-07: Patch-6.4.2:3, Author: Jihed Chabbeh<jchabbeh@exoplatform.com>
+
+    - https://github.com/exoplatform/documents/pull/1030
+
+    - https://github.com/exoplatform/onlyoffice/pull/197
+
+    - https://github.com/exoplatform/documents/pull/1033
+
 
 
