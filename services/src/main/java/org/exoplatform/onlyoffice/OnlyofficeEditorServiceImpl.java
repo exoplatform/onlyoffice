@@ -1179,7 +1179,12 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
       version.setAuthor(versionNode.getAuthor());
       version.setName(versionNode.getName());
       version.setDisplayName(versionNode.getDisplayName());
-      version.setFullName(getUser(versionNode.getAuthor()).getDisplayName());
+      String displayName = versionNode.getAuthor();
+      User versionAuthor = getUser(versionNode.getAuthor());
+      if (versionAuthor != null) {
+        displayName = versionAuthor.getDisplayName();
+      }
+      version.setFullName(displayName);
       version.setVersionLabels(versionNode.getVersionLabels());
       version.setCreatedTime(versionNode.getCreatedTime().getTimeInMillis());
       version.setVersionPageNumber(pageNbrs);
