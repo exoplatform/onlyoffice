@@ -584,7 +584,13 @@
         createViewer(config).done(function(localConfig) {
           if (localConfig) {
             currentConfig = localConfig;
-            currentConfig.document.title = decodeURI(decodeURI(currentConfig.document.title));
+            currentConfig.document.title = currentConfig.document.title;
+            try {
+              currentConfig.document.title = decodeURI(decodeURI(currentConfig.document.title));
+            } catch (error) {
+              //No problem, we can use the title as is, it does not need to be decoded and it contains a % character
+            }
+
             $(function() {
               try {
                 new DocsAPI.DocEditor("onlyoffice", localConfig);
@@ -1088,8 +1094,17 @@
     };
 
     this.initBar = function(config) {
-      config.editorPage.displayPath = decodeURI(config.editorPage.displayPath);
-      config.path = decodeURI(config.path);
+      config.editorPage.displayPath = config.editorPage.displayPath;
+      try {
+        config.editorPage.displayPath = decodeURI(config.editorPage.displayPath);
+      } catch (error) {
+        //No problem, we can use the title as is, it does not need to be decoded and it contains a % character
+      }
+      try {
+        config.path = decodeURI(config.path);
+      } catch (error) {
+        //No problem, we can use the title as is, it does not need to be decoded and it contains a % character
+      }
       var drive = config.editorPage.drive;
       if (drive === null) {
         UI.showError(message("ErrorTitle"), message("ErrorNameDriveNull"));
