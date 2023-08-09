@@ -2476,7 +2476,12 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
     String lang = Locale.getDefault().getLanguage();
     if(localePolicy != null) {
       Locale locale = localePolicy.determineLocale(localeCtx);
-      lang = locale.getLanguage() + "-" + locale.getCountry();
+      lang = locale.getLanguage();
+      // In case of pt_PT or cn_TW we have to add the country
+      // as detailed in https://api.onlyoffice.com/editors/config/editor#lang
+      if("PT".equalsIgnoreCase(locale.getCountry()) || "TW".equalsIgnoreCase(locale.getCountry())) {
+        lang = locale.getLanguage() + "-" + locale.getCountry();
+      }
     }
     return lang;
   }
