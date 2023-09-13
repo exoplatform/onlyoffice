@@ -579,6 +579,7 @@
      */
     this.initEmbeddedViewer = function(config) {
       if (config) {
+        config.downloadUrl = config.downloadUrl.replaceAll("%", "%25");
         log("Initialize viewer for document: " + config.docId);
         log("i18n: " + JSON.stringify(messages));
         createViewer(config).done(function(localConfig) {
