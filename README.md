@@ -64,6 +64,11 @@ When building from sources, then go to `/packaging/target` folder of the project
 
 | eXo Addon version | OnlyOffice version |
 |-------------------|--------------------|
+| >= 2.5.x          | 7.3.3.49              |
+| >= 2.4.x          | 7.2.2              |
+| >= 2.3.x          | 7.0.1              |
+| >= 2.2.x          | 6.3.1              |
+| >= 2.1.x          | 6.1                |
 | >= 2.0.x          | 5.4.2.46           |
 | >= 1.5.0-M07      | 5.4.2.46           |
 | < 1.5.0-M07       | 5.3.0.243          |
