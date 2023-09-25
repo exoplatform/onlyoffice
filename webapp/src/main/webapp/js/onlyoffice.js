@@ -155,12 +155,11 @@
     });
   };
 
-  const DESKTOP_MODE = "desktop";
-  let EMBEDDED_MODE = "";
+  let DESKTOP_MODE = "desktop";
+  let EMBEDDED_MODE = "embedded";
   if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
     EMBEDDED_MODE = "mobile";
-  } else {
-    EMBEDDED_MODE = "embedded";
+    DESKTOP_MODE = "mobile"
   }
 
 
