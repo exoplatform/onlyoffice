@@ -3,51 +3,51 @@
   <!-- For client UI -->
   <OnlyofficeEditorClient>
 
-    <EditButtonTitle>Edit in OnlyOffice</EditButtonTitle>
-    <SaveVersionLabel>Save version</SaveVersionLabel>
-    <SeeMoreButton>Go to full version history</SeeMoreButton>
-    <LoadMoreButton>Load more</LoadMoreButton>
-    <CloseButton>Close</CloseButton>
-    <SaveButton>Save</SaveButton>
-    <PlaceHolderTextarea>Write your summary of changes ...</PlaceHolderTextarea>
-    <TitleTooltip>Click to edit</TitleTooltip>
-    <OpenDrawerBtn>Add new version</OpenDrawerBtn>
-    <NoVersions>No versions</NoVersions>
-    <AlertSave>Changes saved</AlertSave>
-    <ErrorSave>No more than 500 characters</ErrorSave>
-    <UpdateBannerTitle>The document has been updated.</UpdateBannerTitle>
-    <ReloadButtonTitle>Reload</ReloadButtonTitle>
+    <EditButtonTitle>Edit di OnlyOffice</EditButtonTitle>
+    <SaveVersionLabel>Simpan versi</SaveVersionLabel>
+    <SeeMoreButton>Buka riwayat versi lengkap.</SeeMoreButton>
+    <LoadMoreButton>Muat lebih banyak</LoadMoreButton>
+    <CloseButton>Tutup</CloseButton>
+    <SaveButton>Simpan</SaveButton>
+    <PlaceHolderTextarea>Tuliskan ringkasan perubahan Anda...</PlaceHolderTextarea>
+    <TitleTooltip>Klik untuk mengedit...</TitleTooltip>
+    <OpenDrawerBtn>Tambahkan versi baru</OpenDrawerBtn>
+    <NoVersions>Versi tidak ada</NoVersions>
+    <AlertSave>Perubahan tersimpan.</AlertSave>
+    <ErrorSave>Tidak lebih dari 500 karakter.</ErrorSave>
+    <UpdateBannerTitle>Konten sudah diperbarui.</UpdateBannerTitle>
+    <ReloadButtonTitle>Muat ulang</ReloadButtonTitle>
 
     <ErrorTitle>Error</ErrorTitle>
-    <InfoTitle>Information</InfoTitle>
-    <PreviewNotAvailable>OnlyOffice document preview is not available now.</PreviewNotAvailable>
-    <GoToDocument>Go to document</GoToDocument>
+    <InfoTitle>Informasi</InfoTitle>
+    <PreviewNotAvailable>Pratinjau dokumen OnlyOffice tidak tersedia saat ini.</PreviewNotAvailable>
+    <GoToDocument>Menuju ke dokumen</GoToDocument>
     <!-- For Explorer/Preview/Stream -->
-    <EditorLinkNotFoundError>Editor's link not found</EditorLinkNotFoundError>
-    <EditorLinkNotFoundErrorMessage>Cannot get the editor's link - permission denied.</EditorLinkNotFoundErrorMessage>
-    <StorageError>Storage error occurred.</StorageError>
-    <StorageErrorMessage>Cannot get the editor's link because of storage errors.</StorageErrorMessage>
-    <InternalEditorError>Integration editor error.</InternalEditorError>
-    <InternalEditorErrorMessage>Cannot get the editor's link because of an internal editor error.</InternalEditorErrorMessage>
-    <CannotLoadViewerScript>Cannot load DocsAPI script. Please contact the administrator.</CannotLoadViewerScript>
+    <EditorLinkNotFoundError>Link editor tidak ditemukan</EditorLinkNotFoundError>
+    <EditorLinkNotFoundErrorMessage>Tidak dapat mendapatkan tautan editor - izin ditolak.</EditorLinkNotFoundErrorMessage>
+    <StorageError>Terjadi kesalahan penyimpanan.</StorageError>
+    <StorageErrorMessage>Tidak dapat mendapatkan link editor karena kesalahan penyimpanan.</StorageErrorMessage>
+    <InternalEditorError>Kesalahan integrasi editor.</InternalEditorError>
+    <InternalEditorErrorMessage>Tidak dapat mendapatkan link editor karena kesalahan editor internal.</InternalEditorErrorMessage>
+    <CannotLoadViewerScript>Tidak dapat memuat skrip DocsAPI. Harap hubungi administrator.</CannotLoadViewerScript>
     <!-- For Editor frame -->
-    <ErrorConfigNotDefined>The editor's configuration is not defined</ErrorConfigNotDefined>
-    <ErrorLinkNotFound>Editor's link not found</ErrorLinkNotFound>
-    <ErrorCreateConfig>Failed to create editor's configuration</ErrorCreateConfig>
-    <AnotherEditorIsOpen>Cannot create the editor. The document is being edited in another editor (provider)</AnotherEditorIsOpen>
-    <ErrorFileDeletedECMS>The file has been deleted. You can try to restore it from the Trash</ErrorFileDeletedECMS>
-    <ErrorFileDeletedEditor>The file has been deleted. You can save it by clicking on File -&gt; Save</ErrorFileDeletedEditor>
-    <ErrorNameDriveNull>Could not determinate the drive of this file.</ErrorNameDriveNull>
+    <ErrorConfigNotDefined>Konfigurasi editor tidak ditentukan.</ErrorConfigNotDefined>
+    <ErrorLinkNotFound>Link editor tidak ditemukan.</ErrorLinkNotFound>
+    <ErrorCreateConfig>Gagal membuat konfigurasi editor.</ErrorCreateConfig>
+    <AnotherEditorIsOpen>Tidak dapat membuat editor. Dokumen sedang diedit di editor lain (penyedia).</AnotherEditorIsOpen>
+    <ErrorFileDeletedECMS>Berkas telah dihapus. Anda dapat mencoba memulihkannya dari Tempat Sampah.</ErrorFileDeletedECMS>
+    <ErrorFileDeletedEditor>Berkas telah dihapus. Anda dapat menyimpannya dengan mengklik File -&gt; Simpan.</ErrorFileDeletedEditor>
+    <ErrorNameDriveNull>Tidak dapat menentukan drive dari berkas ini.</ErrorNameDriveNull>
     <TimeConvert>
-      <Less_Than_A_Minute>less than a minute ago</Less_Than_A_Minute>
-      <About_A_Minute>about a minute ago</About_A_Minute>
-      <About_X_Minutes>about {0} minutes ago</About_X_Minutes>
-      <About_An_Hour>about an hour ago</About_An_Hour>
-      <About_X_Hours>about {0} hours ago</About_X_Hours>
-      <About_A_Day>about a day ago</About_A_Day>
-      <About_X_Days>about {0} days ago</About_X_Days>
-      <About_A_Month>about a month ago</About_A_Month>
-      <About_X_Months>about {0} months ago</About_X_Months>
+      <Less_Than_A_Minute>kurang dari satu menit yang lalu</Less_Than_A_Minute>
+      <About_A_Minute>sekitar satu menit yang lalu</About_A_Minute>
+      <About_X_Minutes>sekitar {0} menit yang lalu</About_X_Minutes>
+      <About_An_Hour>sekitar satu jam yang lalu</About_An_Hour>
+      <About_X_Hours>sekitar {0} jam yang lalu</About_X_Hours>
+      <About_A_Day>sekitar sehari yang lalu</About_A_Day>
+      <About_X_Days>sekitar {0} hari yang lalu</About_X_Days>
+      <About_A_Month>sekitar sebulan yang lalu</About_A_Month>
+      <About_X_Months>sekitar {0} bulan yang lalu</About_X_Months>
     </TimeConvert>
   </OnlyofficeEditorClient>
 </bundle>
