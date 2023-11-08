@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bundle>
+  <!-- For client UI -->
+  <OnlyofficeEditorClient>
+
+    <EditButtonTitle>Edit di OnlyOffice</EditButtonTitle>
+    <SaveVersionLabel>Simpan versi</SaveVersionLabel>
+    <SeeMoreButton>Buka riwayat versi lengkap.</SeeMoreButton>
+    <LoadMoreButton>Muat lebih banyak</LoadMoreButton>
+    <CloseButton>Tutup</CloseButton>
+    <SaveButton>Simpan</SaveButton>
+    <PlaceHolderTextarea>Tuliskan ringkasan perubahan Anda...</PlaceHolderTextarea>
+    <TitleTooltip>Klik untuk mengedit</TitleTooltip>
+    <OpenDrawerBtn>Tambahkan versi baru</OpenDrawerBtn>
+    <NoVersions>Versi tidak ada</NoVersions>
+    <AlertSave>Perubahan tersimpan.</AlertSave>
+    <ErrorSave>Tidak lebih dari 500 karakter.</ErrorSave>
+    <UpdateBannerTitle>Konten sudah diperbarui.</UpdateBannerTitle>
+    <ReloadButtonTitle>Muat ulang</ReloadButtonTitle>
+
+    <ErrorTitle>Error</ErrorTitle>
+    <InfoTitle>Informasi</InfoTitle>
+    <PreviewNotAvailable>Pratinjau dokumen OnlyOffice tidak tersedia saat ini.</PreviewNotAvailable>
+    <GoToDocument>Menuju ke dokumen</GoToDocument>
+    <!-- For Explorer/Preview/Stream -->
+    <EditorLinkNotFoundError>Link editor tidak ditemukan</EditorLinkNotFoundError>
+    <EditorLinkNotFoundErrorMessage>Tidak dapat mendapatkan tautan editor - izin ditolak.</EditorLinkNotFoundErrorMessage>
+    <StorageError>Terjadi kesalahan penyimpanan.</StorageError>
+    <StorageErrorMessage>Tidak dapat mendapatkan link editor karena kesalahan penyimpanan.</StorageErrorMessage>
+    <InternalEditorError>Kesalahan integrasi editor.</InternalEditorError>
+    <InternalEditorErrorMessage>Tidak dapat mendapatkan link editor karena kesalahan editor internal.</InternalEditorErrorMessage>
+    <CannotLoadViewerScript>Tidak dapat memuat skrip DocsAPI. Harap hubungi administrator.</CannotLoadViewerScript>
+    <!-- For Editor frame -->
+    <ErrorConfigNotDefined>Konfigurasi editor tidak ditentukan.</ErrorConfigNotDefined>
+    <ErrorLinkNotFound>Link editor tidak ditemukan.</ErrorLinkNotFound>
+    <ErrorCreateConfig>Gagal membuat konfigurasi editor.</ErrorCreateConfig>
+    <AnotherEditorIsOpen>Tidak dapat membuat editor. Dokumen sedang diedit di editor lain (penyedia).</AnotherEditorIsOpen>
+    <ErrorFileDeletedECMS>Berkas telah dihapus. Anda dapat mencoba memulihkannya dari Tempat Sampah.</ErrorFileDeletedECMS>
+    <ErrorFileDeletedEditor>Berkas telah dihapus. Anda dapat menyimpannya dengan mengklik File -> Simpan.</ErrorFileDeletedEditor>
+    <ErrorNameDriveNull>Tidak dapat menentukan drive dari berkas ini.</ErrorNameDriveNull>
+    <TimeConvert>
+      <Less_Than_A_Minute>kurang dari satu menit yang lalu</Less_Than_A_Minute>
+      <About_A_Minute>sekitar satu menit yang lalu</About_A_Minute>
+      <About_X_Minutes>sekitar {0} menit yang lalu</About_X_Minutes>
+      <About_An_Hour>sekitar satu jam yang lalu</About_An_Hour>
+      <About_X_Hours>sekitar {0} jam yang lalu</About_X_Hours>
+      <About_A_Day>sekitar sehari yang lalu</About_A_Day>
+      <About_X_Days>sekitar {0} hari yang lalu</About_X_Days>
+      <About_A_Month>sekitar sebulan yang lalu</About_A_Month>
+      <About_X_Months>sekitar {0} bulan yang lalu</About_X_Months>
+    </TimeConvert>
+  </OnlyofficeEditorClient>
+</bundle>
