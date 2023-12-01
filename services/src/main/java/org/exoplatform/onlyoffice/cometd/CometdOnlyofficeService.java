@@ -656,11 +656,23 @@ public class CometdOnlyofficeService implements Startable {
       if (lastModifier != null && lastModifier.getLastModified() > lastModifier.getLastSaved()) {
         // If there is relevant link
         if (lastModifier.getLinkSaved() >= lastModifier.getLastModified() || editors.isDocumentCoedited(key)) {
+          if (LOG.isDebugEnabled()) {
+            LOG.debug("Downloading from existing link. User: {}, Key: {}, Link: {}",
+                      lastModifier.getId(),
+                      key,
+                      lastModifier.getDownloadLink());
+          }
           editors.downloadVersion(userId, key, true, true, comment, lastModifier.getDownloadLink());
         } else {
           editors.forceSave(userId, key, true, false, true, comment);
         }
       } else {
+        if (LOG.isDebugEnabled()) {
+          LOG.debug("Downloading from existing link. User: {}, Key: {}, Link: {}",
+                    userId,
+                    key,
+                    null);
+        }
         editors.downloadVersion(userId, key, true, true, comment, null);
       }
     }
