@@ -1042,6 +1042,11 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
           }
           // Here we decide if we need to download content or just save the link
           if (status.isSaved()) {
+            if (status.isSaved()) {
+              status.setConfig(getEditorByKey(status.getUserId(), key));
+              LOG.debug("Document is save, and we need to download it (Node (id={}), userId={})",
+                        status.getConfig().getDocId(), status.getUserId());
+            }
             status.setConfig(getEditorByKey(status.getUserId(), key));
             downloadVersion(status);
           } else {
@@ -1639,6 +1644,10 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
     config.closing();
     broadcastEvent(status, OnlyofficeEditorService.EDITOR_CLOSED_EVENT);
     try {
+      if(LOG.isDebugEnabled()) {
+        LOG.debug("Document is closed, download it (Node (id={}), userId={})",
+                  status.getConfig().getDocId(), status.getUserId());
+      }
       download(status);
       config.getEditorConfig().getUser().setLastSaved(System.currentTimeMillis());
       config.closed(); // reset transient closing state
@@ -1932,7 +1941,12 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
     String path = config.getPath();
 
     if (LOG.isDebugEnabled()) {
-      LOG.debug(">> download(" + path + ", " + config.getDocument().getKey() + ")");
+      LOG.debug("User {} start a download for document path={}, documentId={}, documentKey={}, documentStatus={}",
+                status.getUserId(),
+                path,
+                config.getDocId(),
+                config.getDocument().getKey(),
+                status);
     }
 
     String userId = status.getUserId();
@@ -1945,11 +1959,26 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
     if (contentUrl != null) {
       try {
         URL url = new URL(contentUrl);
+        if (LOG.isDebugEnabled()) {
+          LOG.debug("Download start on url={}, (userId={}, documentId={}, documentKey={})",
+                    contentUrl,
+                    userId,
+                    config.getDocId(),
+                    config.getDocument().getKey());
+        }
         connection = (HttpURLConnection) url.openConnection();
         data = connection.getInputStream();
         if (data == null) {
           logError(userId, config.getPath(), config.getDocId(), config.getDocument().getKey(), "Content stream is null");
           throw new OnlyofficeEditorException("Content stream is null");
+        }
+        if (LOG.isDebugEnabled()) {
+          LOG.debug("Download ends on url={}. Downloaded size={} (userId={}, documentId={}, documentKey={})",
+                    contentUrl,
+                    data.available(),
+                    userId,
+                    config.getDocId(),
+                    config.getDocument().getKey());
         }
       } catch (MalformedURLException e) {
         logError(userId, config.getPath(), config.getDocId(), config.getDocument().getKey(), "Error parsing content URL");
@@ -1975,7 +2004,10 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
       }
 
       if (LOG.isDebugEnabled()) {
-        LOG.debug(">>> download under user " + userId + " (" + path + ", " + config.getDocument().getKey() + ")");
+        LOG.debug("Create new version if needed for document path={}, documentId={}, documentKey={}, userId={}",
+                  path,
+                  config.getDocId(),
+                  config.getDocument().getKey(), userId);
       }
       // work in user session
       Node node = null;
@@ -2010,8 +2042,24 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
       String nodePath = nodePath(workspace, node.getPath());
       // lock node first, this also will check if node isn't locked by another
       // user (will throw exception)
+
+      if (LOG.isDebugEnabled()) {
+        LOG.debug("Node with id={} founded. Node path={}, userId={}",
+                  node.getUUID(),
+                  node.getPath(),
+                  userId);
+      }
+
       final LockState lock = lock(node, config);
+      if(LOG.isDebugEnabled()) {
+        LOG.debug("Lock function return, lock={} (Node (id={},path={}), userId={})",
+                  lock ,node.getUUID(), node.getPath(), userId);
+      }
       if (lock.canEdit()) {
+        if(LOG.isDebugEnabled()) {
+          LOG.debug("Lock allow edit (Node (id={},path={}), userId={})",
+                    node.getUUID(), node.getPath(), userId);
+        }
         // This modifierConfig can be different from 'config'
         Config modifierConfig = getEditor(userId, config.getDocId(), false);
         if (modifierConfig == null) {
@@ -2021,12 +2069,21 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
         try {
           if (node.canAddMixin("eoo:onlyofficeFile")) {
             node.addMixin("eoo:onlyofficeFile");
+            if(LOG.isDebugEnabled()) {
+              LOG.debug("Mixin eeo:onlyofficeFile added (Node (id={},path={}), userId={})",
+                        node.getUUID(), node.getPath(), userId);
+            }
           }
           // Use current node insted of frozen one when it doesn't exist yet.
           Node frozen = node;
           boolean versionable = node.isNodeType("mix:versionable");
           if (versionable && node.getBaseVersion().hasNode("jcr:frozenNode")) {
             frozen = node.getBaseVersion().getNode("jcr:frozenNode");
+          }
+
+          if(LOG.isDebugEnabled()) {
+            LOG.debug("Current Base version is (id={},path{}) (Node (id={},path={}), userId={})",
+                      frozen.getUUID(), frozen.getPath(),node.getUUID(), node.getPath(), userId);
           }
           // Used in DocumentUpdateActivityListener
           boolean sameModifier = false;
@@ -2035,6 +2092,10 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
           if (node.hasProperty("exo:lastModifier") && !contentCreated.equals(contentModified)) {
             sameModifier = userId.equals(node.getProperty("exo:lastModifier").getString());
             node.setProperty("exo:lastModifier", userId);
+            if(LOG.isDebugEnabled()) {
+              LOG.debug("Last modifier updated : sameModifier={}, lastModifier={} (Node (id={},path={}), userId={})",
+                        sameModifier, userId,node.getUUID(), node.getPath(), userId);
+            }
           }
 
           // TODO: Need to set SameModifier to false if last time the document was saved by forcesave
@@ -2055,6 +2116,10 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
           if (node.hasProperty("exo:dateModified")) {
             node.setProperty("exo:dateModified", editedTime);
           }
+          if(LOG.isDebugEnabled()) {
+            LOG.debug("Property lastModified updated={} (Node (id={},path={}), userId={})",
+                      editedTime,node.getUUID(), node.getPath(), userId);
+          }
 
           // Add comment to the FileActivity
           String commentId = null;
@@ -2073,6 +2138,11 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
             node.setProperty("eoo:commentId", "");
             config.getEditorPage().setComment(null);
           }
+          if(LOG.isDebugEnabled()) {
+            LOG.debug("Update config={} (Node (id={},path={}), userId={})",
+                      config.toString(),node.getUUID(), node.getPath(), userId);
+          }
+
           updateCache(config);
 
           // update document
@@ -2082,21 +2152,48 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
             // Set the same data to call listeners
             content.setProperty("jcr:data", content.getProperty("jcr:data").getStream());
           }
+          if(LOG.isDebugEnabled()) {
+            LOG.debug("jcr:data updated for (Node (id={},path={}), userId={})",
+                      node.getUUID(), node.getPath(), userId);
+          }
           node.save();
+          if(LOG.isDebugEnabled()) {
+            LOG.debug("Node saved after jcr:data updated for (Node (id={},path={}), userId={})",
+                      node.getUUID(), node.getPath(), userId);
+          }
           long statusCode = status.getStatus() != null ? status.getStatus() : -1;
+          if(LOG.isDebugEnabled()) {
+            LOG.debug("Status code={} after jcr:data was saved (Node (id={},path={}), userId={})",
+                      statusCode,node.getUUID(), node.getPath(), userId);
+          }
+
 
           String versioningUser = null;
           if (frozen.hasProperty("eoo:versionOwner")) {
             versioningUser = frozen.getProperty("eoo:versionOwner").getString();
           }
 
+          if(LOG.isDebugEnabled()) {
+            LOG.debug("VersionningUser={} after jcr:data was saved (Node (id={},path={}), userId={})",
+                      versioningUser,node.getUUID(), node.getPath(), userId);
+          }
+
           // Version accumulation for same user
           if (!status.isForcesaved() && versionable && userId.equals(versioningUser)) {
+            if(LOG.isDebugEnabled()) {
+              LOG.debug("We are in accumulation case, status.isForcesaved={}, versionable={}, versionningUser={} (Node (id={},path={}), userId={})",
+                        status.isForcesaved(), versionable, versioningUser,node.getUUID(), node.getPath(), userId);
+            }
             String versionName = node.getBaseVersion().getName();
             if (LOG.isDebugEnabled()) {
-              LOG.debug("Version accumulation: removig version " + versionName + " from node " + nodePath);
+              LOG.debug("Version accumulation: removing version " + versionName + " for (Node (id={},path={}), userId={})",
+                        versionName, node.getUUID(),node.getPath(),userId);
             }
             node.getVersionHistory().removeVersion(versionName);
+            if (LOG.isDebugEnabled()) {
+              LOG.debug("Version accumulation: Version " + versionName + " removed for (Node (id={},path={}), userId={})",
+                        versionName, node.getUUID(),node.getPath(),userId);
+            }
           }
 
           if (statusCode != 2 && !status.isForcesaved()) {
@@ -2107,18 +2204,36 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
           node.setProperty("eoo:onlyofficeVersion", true);
 
           node.save();
+          if(LOG.isDebugEnabled()) {
+            LOG.debug("Node saved after update of eoo.versionOwner for (Node (id={},path={}), userId={}). Will now try to checkout if needed.",
+                      node.getUUID(), node.getPath(), userId);
+          }
           // manage version only if node already mix:versionable
           if (checkout(node)) {
             // Make a new version from the downloaded state
+            if(LOG.isDebugEnabled()) {
+              LOG.debug("Node checkouted (Node (id={},path={}), userId={}). Will now checkin",
+                        node.getUUID(), node.getPath(), userId);
+            }
             node.checkin();
+            if(LOG.isDebugEnabled()) {
+              LOG.debug("Node checked in (Node (id={},path={}), userId={}). Will now checkout",
+                        node.getUUID(), node.getPath(), userId);
+            }
             // Since 1.2.0-RC01 we check-out the document to let (more) other
             // actions in ECMS appear on it
             node.checkout();
-
+            if(LOG.isDebugEnabled()) {
+              LOG.debug("Node checkouted (Node (id={},path={}), userId={})",
+                        node.getUUID(), node.getPath(), userId);
+            }
             // Remove properties from node
             node.setProperty("eoo:versionOwner", "");
             node.setProperty("eoo:onlyofficeVersion", false);
-
+            if(LOG.isDebugEnabled()) {
+              LOG.debug("Properties eoo:versionOwner removed from the node (Node (id={},path={}), userId={})",
+                        node.getUUID(), node.getPath(), userId);
+            }
             // Add version summary
             if (versionable && versionSummary != null) {
               String baseVersion = node.getBaseVersion().getName();
@@ -2129,18 +2244,33 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
               }
             }
             node.save();
-
+            if(LOG.isDebugEnabled()) {
+              LOG.debug("Node final save (Node (id={},path={}), userId={})",
+                        node.getUUID(), node.getPath(), userId);
+            }
             // If the status code == 2, the EDITOR_SAVED_EVENT should be thrown.
             if (statusCode != 2) {
+              if(LOG.isDebugEnabled()) {
+                LOG.debug("Broacast EDITOR_VERSION_EVENT (Node (id={},path={}), userId={})",
+                          node.getUUID(), node.getPath(), userId);
+              }
               broadcastEvent(status, OnlyofficeEditorService.EDITOR_VERSION_EVENT);
             }
           }
 
           fireSaved(status);
           if (statusCode == 2) {
+            if(LOG.isDebugEnabled()) {
+              LOG.debug("Broacast EDITOR_SAVED_EVENT (Node (id={},path={}), userId={})",
+                        node.getUUID(), node.getPath(), userId);
+            }
             broadcastEvent(status, OnlyofficeEditorService.EDITOR_SAVED_EVENT);
           }
         } catch (RepositoryException e) {
+          if(LOG.isDebugEnabled()) {
+            LOG.debug("RepositoryException : will try to refresh the node for JCR, without keeping changes, then throw (Node (id={},path={}), userId={})",
+                      node.getUUID(), node.getPath(), userId, e);
+          }
           try {
             node.refresh(false); // rollback JCR modifications
           } catch (Throwable re) {
@@ -2148,7 +2278,11 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
           }
           throw e; // let the caller handle it further
         } catch(Exception e) {
-          logError(userId, nodePath, config.getDocId(), config.getDocument().getKey(), "Failed to comment activity");
+          if(LOG.isDebugEnabled()) {
+            LOG.debug("Exception : (Node (id={},path={}), userId={})",
+                      node.getUUID(), node.getPath(), userId, e);
+          }
+          logError(userId, nodePath, config.getDocId(), config.getDocument().getKey(), "Failed to comment activity", e);
         } finally {
           // Remove values after usage in DocumentUdateActivityListener
           modifierConfig.setPreviousModified(null);
@@ -2173,7 +2307,15 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
           }
           try {
             if (node.isLocked() && lock.wasLocked()) {
+              if(LOG.isDebugEnabled()) {
+                LOG.debug("Try to unlock node (Node (id={},path={}), userId={})",
+                          node.getUUID(), node.getPath(), userId);
+              }
               unlock(node, lock);
+              if(LOG.isDebugEnabled()) {
+                LOG.debug("Node Unlocked (Node (id={},path={}), userId={})",
+                          node.getUUID(), node.getPath(), userId);
+              }
             }
           } catch (Throwable e) {
             logError(userId,
@@ -2184,6 +2326,10 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
           }
         }
       } else {
+        if(LOG.isDebugEnabled()) {
+          LOG.debug("Node is already locked, can do somethig (Node (id={},path={}), userId={})",
+                    node.getUUID(), node.getPath(), userId);
+        }
         logError(userId, config.getPath(), config.getDocId(), config.getDocument().getKey(), "Document locked");
         throw new OnlyofficeEditorException("Document locked " + nodePath);
       }
@@ -2366,12 +2512,32 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
    * @throws RepositoryException the repository exception
    */
   protected LockState lock(Node node, Config config) throws OnlyofficeEditorException, RepositoryException {
+    if(LOG.isDebugEnabled()) {
+      LOG.debug("Try to lock Node (id={},path={}). (userId={})",
+                node.getUUID(), node.getPath(), config.getEditorConfig().getUser().getId());
+    }
     if (!node.isNodeType("mix:lockable")) {
+      if(LOG.isDebugEnabled()) {
+        LOG.debug("Node (id={},path={}) is not mix:lockable, add mixin (userId={})",
+                  node.getUUID(), node.getPath(), config.getEditorConfig().getUser().getId());
+      }
       if (!node.isCheckedOut() && node.isNodeType("mix:versionable")) {
+        if(LOG.isDebugEnabled()) {
+          LOG.debug("Node (id={},path={}) is not checkouted, checkout it (userId={})",
+                    node.getUUID(), node.getPath(), config.getEditorConfig().getUser().getId());
+        }
         node.checkout();
+        if(LOG.isDebugEnabled()) {
+          LOG.debug("Node (id={},path={}) is now checkout. (userId={})",
+                    node.getUUID(), node.getPath(), config.getEditorConfig().getUser().getId());
+        }
       }
       node.addMixin("mix:lockable");
       node.save();
+      if(LOG.isDebugEnabled()) {
+        LOG.debug("Node (id={},path={}) is now mix:lockable. (userId={})",
+                  node.getUUID(), node.getPath(), config.getEditorConfig().getUser().getId());
+      }
     }
 
     Config.Editor.User user = config.getEditorConfig().getUser();
@@ -2381,9 +2547,17 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
       do {
         attempts++;
         if (node.isLocked()) {
+          if(LOG.isDebugEnabled()) {
+            LOG.debug("Node (id={},path={}) is already locked. (userId={})",
+                      node.getUUID(), node.getPath(), config.getEditorConfig().getUser().getId());
+          }
           String lockToken;
           try {
             lockToken = LockUtil.getLockToken(node);
+            if(LOG.isDebugEnabled()) {
+              LOG.debug("Node (id={},path={}) is locked with token={}. (userId={})",
+                        node.getUUID(), node.getPath(),lockToken,config.getEditorConfig().getUser().getId());
+            }
           } catch (Exception e) {
             if (RepositoryException.class.isAssignableFrom(e.getClass())) {
               throw RepositoryException.class.cast(e);
@@ -2396,20 +2570,51 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
               throw new OnlyofficeEditorException("Error reading document lock", e);
             }
           }
+
           if (node.getLock().getLockOwner().equals(user.getId()) && lockToken != null) {
+            if(LOG.isDebugEnabled()) {
+              LOG.debug("Node (id={},path={}) is locked by currentUser : lockOwner={}, lockToken={}. (userId={})",
+                        node.getUUID(), node.getPath(), node.getLock().getLockOwner(), lockToken, config.getEditorConfig().getUser().getId());
+            }
             // already this user lock
             node.getSession().addLockToken(lockToken);
             lock = new LockState(lockToken);
+            if(LOG.isDebugEnabled()) {
+              LOG.debug("New lock token ({}) added to node (id={},path={}). (userId={})",
+                        lockToken,
+                        node.getUUID(),
+                        node.getPath(),
+                        config.getEditorConfig().getUser().getId());
+            }
           } else {
             // need wait for unlock
+            if(LOG.isDebugEnabled()) {
+              LOG.debug("Wait {} ms before retrying to take lock on node (id={},path={}). (userId={})",
+                        LOCK_WAIT_TIMEOUT,
+                        node.getUUID(),
+                        node.getPath(),
+                        config.getEditorConfig().getUser().getId());
+            }
             Thread.sleep(LOCK_WAIT_TIMEOUT);
             lock = null;
           }
         } else {
+          if(LOG.isDebugEnabled()) {
+            LOG.debug("Node (id={},path={}) is not locked, take the lock. (userId={})",
+                      node.getUUID(), node.getPath(), config.getEditorConfig().getUser().getId());
+          }
           Lock jcrLock = node.lock(true, false);
+          if(LOG.isDebugEnabled()) {
+            LOG.debug("Node (id={},path={}) is now locked. (userId={})",
+                      node.getUUID(), node.getPath(), config.getEditorConfig().getUser().getId());
+          }
           // keep lock token for other sessions of same user
           try {
             LockUtil.keepLock(jcrLock, user.getId(), jcrLock.getLockToken());
+            if(LOG.isDebugEnabled()) {
+              LOG.debug("Node (id={},path={}) is now locked and accept other lock for user. (userId={})",
+                        node.getUUID(), node.getPath(), config.getEditorConfig().getUser().getId());
+            }
           } catch (Exception e) {
             if (RepositoryException.class.isAssignableFrom(e.getClass())) {
               throw RepositoryException.class.cast(e);
