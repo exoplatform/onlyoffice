@@ -27,7 +27,8 @@ public class RDBMSEditorConfigStorageImpl implements EditorConfigStorage {
     List<EditorConfigEntity> entities = editorConfigDAO.getConfigByKey(key);
     return entities.stream()
                    .collect(Collectors.toMap(EditorConfigEntity::getEditorUserUserid,
-                                             this::buildFromEntity));
+                                             this::buildFromEntity,
+                                             (key1, key2) -> key1));
   }
 
   @Override
@@ -36,7 +37,9 @@ public class RDBMSEditorConfigStorageImpl implements EditorConfigStorage {
     List<EditorConfigEntity> entities = editorConfigDAO.getConfigByDocId(docId);
     return entities.stream()
                    .collect(Collectors.toConcurrentMap(EditorConfigEntity::getEditorUserUserid,
-                                                       this::buildFromEntity));  }
+                                                       this::buildFromEntity,
+                                                       (key1, key2) -> key1));
+  }
 
 
 
