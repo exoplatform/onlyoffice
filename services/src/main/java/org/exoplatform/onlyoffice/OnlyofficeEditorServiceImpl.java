@@ -2540,94 +2540,40 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
       }
     }
 
-    Config.Editor.User user = config.getEditorConfig().getUser();
     LockState lock;
     int attempts = 0;
     try {
       do {
         attempts++;
         if (node.isLocked()) {
+          // need wait for unlock
           if(LOG.isDebugEnabled()) {
-            LOG.debug("Node (id={},path={}) is already locked. (userId={})",
-                      node.getUUID(), node.getPath(), config.getEditorConfig().getUser().getId());
+            LOG.debug("Wait {} ms before retrying to take lock on node (id={},path={}). (userId={})",
+                      LOCK_WAIT_TIMEOUT,
+                      node.getUUID(),
+                      node.getPath(),
+                      config.getEditorConfig().getUser().getId());
           }
-          String lockToken;
-          try {
-            lockToken = LockUtil.getLockToken(node);
-            if(LOG.isDebugEnabled()) {
-              LOG.debug("Node (id={},path={}) is locked with token={}. (userId={})",
-                        node.getUUID(), node.getPath(),lockToken,config.getEditorConfig().getUser().getId());
-            }
-          } catch (Exception e) {
-            if (RepositoryException.class.isAssignableFrom(e.getClass())) {
-              throw RepositoryException.class.cast(e);
-            } else {
-              logError(config.getEditorConfig().getUser().getId(),
-                       node.getPath(),
-                       node.getUUID(),
-                       config.getDocument().getKey(),
-                       "Error reading document lock");
-              throw new OnlyofficeEditorException("Error reading document lock", e);
-            }
-          }
-
-          if (node.getLock().getLockOwner().equals(user.getId()) && lockToken != null) {
-            if(LOG.isDebugEnabled()) {
-              LOG.debug("Node (id={},path={}) is locked by currentUser : lockOwner={}, lockToken={}. (userId={})",
-                        node.getUUID(), node.getPath(), node.getLock().getLockOwner(), lockToken, config.getEditorConfig().getUser().getId());
-            }
-            // already this user lock
-            node.getSession().addLockToken(lockToken);
-            lock = new LockState(lockToken);
-            if(LOG.isDebugEnabled()) {
-              LOG.debug("New lock token ({}) added to node (id={},path={}). (userId={})",
-                        lockToken,
-                        node.getUUID(),
-                        node.getPath(),
-                        config.getEditorConfig().getUser().getId());
-            }
-          } else {
-            // need wait for unlock
-            if(LOG.isDebugEnabled()) {
-              LOG.debug("Wait {} ms before retrying to take lock on node (id={},path={}). (userId={})",
-                        LOCK_WAIT_TIMEOUT,
-                        node.getUUID(),
-                        node.getPath(),
-                        config.getEditorConfig().getUser().getId());
-            }
-            Thread.sleep(LOCK_WAIT_TIMEOUT);
-            lock = null;
-          }
+          Thread.sleep(LOCK_WAIT_TIMEOUT);
+          lock = null;
         } else {
-          if(LOG.isDebugEnabled()) {
-            LOG.debug("Node (id={},path={}) is not locked, take the lock. (userId={})",
-                      node.getUUID(), node.getPath(), config.getEditorConfig().getUser().getId());
-          }
-          Lock jcrLock = node.lock(true, false);
-          if(LOG.isDebugEnabled()) {
-            LOG.debug("Node (id={},path={}) is now locked. (userId={})",
-                      node.getUUID(), node.getPath(), config.getEditorConfig().getUser().getId());
-          }
-          // keep lock token for other sessions of same user
           try {
-            LockUtil.keepLock(jcrLock, user.getId(), jcrLock.getLockToken());
-            if(LOG.isDebugEnabled()) {
-              LOG.debug("Node (id={},path={}) is now locked and accept other lock for user. (userId={})",
+            if (LOG.isDebugEnabled()) {
+              LOG.debug("Node (id={},path={}) is not locked, take the lock. (userId={})",
                         node.getUUID(), node.getPath(), config.getEditorConfig().getUser().getId());
             }
-          } catch (Exception e) {
-            if (RepositoryException.class.isAssignableFrom(e.getClass())) {
-              throw RepositoryException.class.cast(e);
-            } else {
-              logError(config.getEditorConfig().getUser().getId(),
-                       node.getPath(),
-                       node.getUUID(),
-                       config.getDocument().getKey(),
-                       "Error saving document lock");
-              throw new OnlyofficeEditorException("Error saving document lock", e);
+            Lock jcrLock = node.lock(true, false);
+            if (LOG.isDebugEnabled()) {
+              LOG.debug("Node (id={},path={}) is now locked. (userId={})",
+                        node.getUUID(), node.getPath(), config.getEditorConfig().getUser().getId());
             }
+            lock = new LockState(jcrLock);
+          } catch (Exception e) {
+            LOG.warn("Unable to get the lock on node (id={},path={}). Probably because on concurrent access. (userId={})",
+                     node.getUUID(), node.getPath(), config.getEditorConfig().getUser().getId(), e);
+            lock = null;
+
           }
-          lock = new LockState(jcrLock);
         }
       } while (lock == null && attempts <= LOCK_WAIT_ATTEMTS);
     } catch (InterruptedException e) {
