@@ -1,0 +1,5 @@
+              2023-12-06 eXo Support <support@exoplatform.org> 
+
+   # 2.4.4 Patches changelog: 
+
+
