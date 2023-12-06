@@ -2282,7 +2282,7 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
             LOG.debug("Exception : (Node (id={},path={}), userId={})",
                       node.getUUID(), node.getPath(), userId, e);
           }
-          logError(userId, nodePath, config.getDocId(), config.getDocument().getKey(), "Failed to comment activity", e);
+          logError(userId, nodePath, config.getDocId(), config.getDocument().getKey(), "Failed to comment activity");
         } finally {
           // Remove values after usage in DocumentUdateActivityListener
           modifierConfig.setPreviousModified(null);

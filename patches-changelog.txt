@@ -2,4 +2,8 @@
 
    # 2.4.4 Patches changelog: 
 
+  * 2023-12-06: Patch-6.4.4:1, Author: Jihed Chabbeh<jchabbeh@exoplatform.com>
 
+    - https://github.com/exoplatform/onlyoffice/pull/219
+    - https://github.com/exoplatform/onlyoffice/pull/220
+    - https://github.com/exoplatform/onlyoffice/pull/221
