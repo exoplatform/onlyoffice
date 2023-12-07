@@ -25,12 +25,12 @@
   <parent>
     <artifactId>addons-exo-parent-pom</artifactId>
     <groupId>org.exoplatform.addons</groupId>
-    <version>18-M06.1</version>
+    <version>18-mips-SNAPSHOT</version>
   </parent>
 
   <artifactId>exo-onlyoffice-editor-parent</artifactId>
   <groupId>org.exoplatform.addons.onlyoffice</groupId>
-  <version>7.0.x-SNAPSHOT</version>
+  <version>7.0.x-mips-SNAPSHOT</version>
   <packaging>pom</packaging>
   <name>eXo Add-on:: OnlyOffice Editor</name>
   <description>eXo OnlyOffice Editor for Documents extension</description>
@@ -44,7 +44,7 @@
 
   <properties>
     <!-- eXo Modules -->
-    <addon.exo.ecms.version>7.0.x-SNAPSHOT</addon.exo.ecms.version>
+    <addon.exo.ecms.version>7.0.x-mips-SNAPSHOT</addon.exo.ecms.version>
   
     <!-- Sonar properties -->
     <sonar.organization>exoplatform</sonar.organization>
