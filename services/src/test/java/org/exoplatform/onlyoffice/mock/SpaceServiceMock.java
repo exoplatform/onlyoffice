@@ -228,10 +228,6 @@ public class SpaceServiceMock implements SpaceService {
     return null;
   }
 
-  @Override
-  public List<Space> getSpacesByFirstCharacterOfName(String firstCharacterOfName) throws SpaceException {
-    return null;
-  }
 
   @Override
   public List<Space> getSpacesBySearchCondition(String condition) throws Exception {
