@@ -225,46 +225,6 @@ public class IdentityManagerMock implements IdentityManager {
   }
 
   @Override
-  public void addOrModifyProfileProperties(Profile profile) throws Exception {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
-  public void updateAvatar(Profile p) {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
-  public void updateBasicInfo(Profile p) throws Exception {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
-  public void updateContactSection(Profile p) throws Exception {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
-  public void updateExperienceSection(Profile p) throws Exception {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
-  public void updateHeaderSection(Profile p) throws Exception {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
-  public List<Identity> getIdentities(String providerId) throws Exception {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
-  public List<Identity> getIdentities(String providerId, boolean loadProfile) throws Exception {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
   public List<Identity> getConnections(Identity ownerIdentity) throws Exception {
     throw new UnsupportedOperationException();
   }
