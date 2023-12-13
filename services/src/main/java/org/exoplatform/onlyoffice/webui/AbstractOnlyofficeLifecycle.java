@@ -19,7 +19,7 @@
 
 package org.exoplatform.onlyoffice.webui;
 
-import javax.servlet.ServletRequest;
+import jakarta.servlet.ServletRequest;
 
 import org.exoplatform.portal.application.PortalRequestContext;
 import org.exoplatform.web.application.Application;

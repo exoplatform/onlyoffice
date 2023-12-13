@@ -30,7 +30,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import javax.annotation.security.RolesAllowed;
 import javax.jcr.RepositoryException;
-import javax.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletRequest;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
