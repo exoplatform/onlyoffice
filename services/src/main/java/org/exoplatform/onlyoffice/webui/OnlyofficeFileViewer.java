@@ -1,7 +1,7 @@
 package org.exoplatform.onlyoffice.webui;
 
 import javax.jcr.RepositoryException;
-import javax.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletRequest;
 
 import org.exoplatform.onlyoffice.Config;
 import org.exoplatform.onlyoffice.OnlyofficeEditorException;

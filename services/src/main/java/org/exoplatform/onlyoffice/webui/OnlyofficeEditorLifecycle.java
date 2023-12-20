@@ -22,7 +22,7 @@ package org.exoplatform.onlyoffice.webui;
 import java.util.Iterator;
 import java.util.Set;
 
-import javax.servlet.ServletRequest;
+import jakarta.servlet.ServletRequest;
 
 import org.exoplatform.portal.webui.portal.UIPortalComponent;
 import org.exoplatform.services.log.ExoLogger;
