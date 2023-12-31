@@ -21,7 +21,7 @@
     <ErrorTitle>Errore</ErrorTitle>
     <InfoTitle>Informazione</InfoTitle>
     <PreviewNotAvailable>L'anteprima del documento di OnlyOffice non è disponibile al momento.</PreviewNotAvailable>
-    <GoToDocument>Go to document</GoToDocument>
+    <GoToDocument>Vada al documento</GoToDocument>
     <!-- For Explorer/Preview/Stream -->
     <EditorLinkNotFoundError>Collegamento dell'editor non trovato</EditorLinkNotFoundError>
     <EditorLinkNotFoundErrorMessage>Impossibile ottenere il link dell'editor - permesso negato.</EditorLinkNotFoundErrorMessage>
@@ -37,7 +37,7 @@
     <AnotherEditorIsOpen>Impossibile creare l'editor. Il documento è in fase di modifica in un altro editor (provider)</AnotherEditorIsOpen>
     <ErrorFileDeletedECMS>Il file è stato eliminato. Puoi provare a ripristinarlo dal Cestino</ErrorFileDeletedECMS>
     <ErrorFileDeletedEditor>Il file è stato eliminato. Puoi salvarlo cliccando su File -&gt; Salva</ErrorFileDeletedEditor>
-    <ErrorNameDriveNull>Could not determinate the drive of this file.</ErrorNameDriveNull>
+    <ErrorNameDriveNull>Impossibile determinare l'unità di questo file.</ErrorNameDriveNull>
     <TimeConvert>
       <Less_Than_A_Minute>meno di un minuto fa</Less_Than_A_Minute>
       <About_A_Minute>circa un minuto fa</About_A_Minute>
