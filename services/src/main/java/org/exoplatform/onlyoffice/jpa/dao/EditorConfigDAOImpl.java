@@ -4,7 +4,7 @@ import org.exoplatform.commons.persistence.impl.GenericDAOJPAImpl;
 import org.exoplatform.onlyoffice.jpa.EditorConfigDAO;
 import org.exoplatform.onlyoffice.jpa.entities.EditorConfigEntity;
 
-import javax.persistence.TypedQuery;
+import jakarta.persistence.TypedQuery;
 import java.util.List;
 
 public class EditorConfigDAOImpl extends GenericDAOJPAImpl<EditorConfigEntity, Long> implements EditorConfigDAO {
