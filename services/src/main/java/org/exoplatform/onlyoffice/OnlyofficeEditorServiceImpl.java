@@ -781,8 +781,10 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
     builder.lang(getUserLanguage(userId));
     builder.mode(OnlyofficeEditorService.VIEW_MODE);
     builder.title(nodeTitle(node));
-    builder.userId(user.getUserName());
-    builder.userName(user.getDisplayName());
+    if (user != null) {
+      builder.userId(user.getUserName());
+      builder.userName(user.getDisplayName());
+    }
     String key = generateId(workspace, path).toString();
     builder.key(key);
     StringBuilder platformUrl = platformUrl(schema, host, port);
@@ -817,7 +819,7 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
     Config config = builder.build();
     // Create users' config map and add first user
     ConcurrentHashMap<String, Config> configs = new ConcurrentHashMap<>();
-    configs.put(userId, config);
+    configs.put(userId != null ? userId : "__anonim", config);
 
     viewerCache.put(key, configs);
     viewerCache.put(docId, configs);
@@ -2695,7 +2697,7 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
   protected URI explorerUri(String schema, String host, int port, String ecmsLink) {
     URI uri;
     try {
-      ecmsLink = URLDecoder.decode(ecmsLink, StandardCharsets.UTF_8.name());
+      ecmsLink = ecmsLink != null ? URLDecoder.decode(ecmsLink, StandardCharsets.UTF_8.name()) : "";
       String[] linkParts = ecmsLink.split("\\?");
       if (linkParts.length >= 2) {
         uri = new URI(schema, null, host, port, linkParts[0], linkParts[1], null);
