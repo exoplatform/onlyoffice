@@ -839,9 +839,14 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
       viewMode = true;
     }
     if (configs != null && !configs.isEmpty()) {
+      if (userId.equals("null")) {
+        userId = "__anonim";
+      }
       Config config = configs.get(userId);
       if (config != null) {
-        validateUser(userId, config);
+        if (!userId.equals("__anonim")) {
+          validateUser(userId, config);
+        }
 
         // Use user session here:
         // remember real context state and session provider to restore them at
