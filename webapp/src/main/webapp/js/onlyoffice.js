@@ -1116,11 +1116,11 @@
       if (drive.startsWith('spaces/')) {
         var folders = config.editorPage.displayPath.split(':')[1].split('/');
         var title = folders.pop();
-        var titleWithoutAccent = this.removeAccents(title);
         var spaceName = drive.split('spaces/')[1];
         var spaceNameWithoutAccent = this.removeAccents(spaceName);
         var newDrivePath = spaceNameWithoutAccent.replace(/\ /g, '_').toLowerCase();
-        var pathDocument = config.path.split(newDrivePath + '/')[1].split("/" + titleWithoutAccent)[0];
+        var pathDocument = config.path.split(newDrivePath + '/')[1];
+        pathDocument = pathDocument.substring(0, pathDocument.lastIndexOf('/'))
         var pathDocumentWithIcon = pathDocument.replace(/\//g, function() {
           return "<i class='uiIconArrowRight'></i>";
         });
