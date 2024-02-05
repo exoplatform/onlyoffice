@@ -498,8 +498,9 @@
         config.type = EMBEDDED_MODE;
         config.height = "100%";
         config.width = "100%";
+        var fullscreenUrl = eXo.env.portal.userName !== '' ? config.editorUrl : config.editorUrl.replace(eXo.env.portal.metaPortalName, eXo.env.portal.portalName);
         config.editorConfig.embedded = {
-          fullscreenUrl: config.editorUrl,
+          fullscreenUrl: fullscreenUrl,
           saveUrl: config.downloadUrl,
           toolbarDocked: "top"
         };
@@ -992,8 +993,9 @@
         config.type = EMBEDDED_MODE;
         config.height = "100%";
         config.width = "100%";
+        var fullscreenUrl = eXo.env.portal.userName !== '' ? config.editorUrl : config.editorUrl.replace(eXo.env.portal.metaPortalName, eXo.env.portal.portalName);
         config.editorConfig.embedded = {
-          fullscreenUrl: config.editorUrl,
+          fullscreenUrl: fullscreenUrl,
           saveUrl: config.downloadUrl,
           toolbarDocked: "top"
         };
