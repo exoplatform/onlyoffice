@@ -58,5 +58,38 @@
         </object-param>
       </init-params>
     </component-plugin>
+    <component-plugin>
+      <name>new.portal.config.user.listener</name>
+      <set-method>initListener</set-method>
+      <type>org.exoplatform.portal.config.NewPortalConfigListener</type>
+      <description>this listener init the portal configuration</description>
+      <init-params>
+        <object-param>
+          <name>portal.configuration</name>
+          <description>Onlyoffice add-on application</description>
+          <object type="org.exoplatform.portal.config.NewPortalConfig">
+            <field name="predefinedOwner">
+              <collection type="java.util.HashSet">
+                <value>
+                  <string>public</string>
+                </value>
+              </collection>
+            </field>
+            <field name="ownerType">
+              <string>portal</string>
+            </field>
+            <field name="templateLocation">
+              <string>war:/conf/onlyoffice</string>
+            </field>
+            <field name="override">
+              <boolean>${exo.onlyoffice.portalConfig.public.override:true}</boolean>
+            </field>
+            <field name="importMode">
+              <string>${exo.onlyoffice.portalConfig.public.importmode:insert}</string>
+            </field>
+          </object>
+        </object-param>
+      </init-params>
+    </component-plugin>
   </external-component-plugins>
 </configuration>
