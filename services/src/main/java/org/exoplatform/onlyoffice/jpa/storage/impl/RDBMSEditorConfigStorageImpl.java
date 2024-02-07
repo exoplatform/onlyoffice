@@ -10,6 +10,9 @@ import org.exoplatform.onlyoffice.jpa.EditorConfigStorage;
 import org.exoplatform.onlyoffice.jpa.entities.EditorConfigEntity;
 
 
+import java.net.URLDecoder;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -102,7 +105,13 @@ public class RDBMSEditorConfigStorageImpl implements EditorConfigStorage {
     result.setClosedTime(config.getClosedTime());
     result.setEditorPageLastModifier(config.getEditorPage().getLastModifier());
     result.setEditorPageLastModified(config.getEditorPage().getLastModified());
-    result.setEditorPageDisplayPath(config.getEditorPage().getDisplayPath());
+    String encodedDisplayPath;
+    try {
+      encodedDisplayPath = URLEncoder.encode(config.getEditorPage().getDisplayPath(), StandardCharsets.UTF_8);
+    } catch (Exception exception) {
+      encodedDisplayPath = null;
+    }
+    result.setEditorPageDisplayPath(encodedDisplayPath != null ? encodedDisplayPath : config.getEditorPage().getDisplayPath());
     result.setEditorPageComment(config.getEditorPage().getComment());
     result.setEditorPageDrive(config.getEditorPage().getDrive());
     result.setEditorPageRenamedAllowed(config.getEditorPage().getRenameAllowed());
@@ -138,7 +147,13 @@ public class RDBMSEditorConfigStorageImpl implements EditorConfigStorage {
     builder.owner(entity.getEditorUserUserid());
     builder.fileType(entity.getDocumentFileType());
     builder.uploaded(entity.getDocumentInfoUploaded());
-    builder.displayPath(entity.getEditorPageDisplayPath());
+    String decodedDisplayPath;
+    try {
+      decodedDisplayPath = URLDecoder.decode(entity.getEditorPageDisplayPath(), StandardCharsets.UTF_8);
+    } catch (Exception exception) {
+      decodedDisplayPath = null;
+    }
+    builder.displayPath(decodedDisplayPath != null ? decodedDisplayPath :entity.getEditorPageDisplayPath());
     builder.comment(entity.getEditorPageComment());
     builder.drive(entity.getEditorPageDrive());
     builder.renameAllowed(entity.isEditorPageRenamedAllowed());
