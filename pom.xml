@@ -29,7 +29,7 @@
 
   <artifactId>exo-onlyoffice-editor-parent</artifactId>
   <groupId>org.exoplatform.addons.onlyoffice</groupId>
-  <version>2.5.1</version>
+  <version>2.5.1-patched</version>
   <packaging>pom</packaging>
   <name>eXo Add-on:: OnlyOffice Editor</name>
   <description>eXo OnlyOffice Editor for Documents extension</description>
