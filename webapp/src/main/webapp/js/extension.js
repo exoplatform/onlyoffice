@@ -71,6 +71,27 @@
       view: true,
       edit: false
     },
+    {
+      provider: 'onlyoffice',
+      extension: '.doc',
+      mimeType: 'application/msword',
+      view: true,
+      edit: false
+    },
+    {
+      provider: 'onlyoffice',
+      extension: '.ppt',
+      mimeType: 'application/vnd.ms-powerpoint',
+      view: true,
+      edit: false
+    },
+    {
+      provider: 'onlyoffice',
+      extension: '.xls',
+      mimeType: 'application/vnd.ms-excel',
+      view: true,
+      edit: false
+    },
   ];
 
   const lang = eXo.env.portal.language || 'en';
