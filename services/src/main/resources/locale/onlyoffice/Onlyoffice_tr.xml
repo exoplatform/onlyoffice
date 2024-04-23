@@ -1,42 +1,38 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<bundle>
-  <!-- For menu caption in Action Bar -->
-  <UIActionBar>
-    <tooltip>
-      <OnlyofficeOpen>OnlyOffice'te düzenle</OnlyofficeOpen>
-    </tooltip>
-  </UIActionBar>
-  <!-- Used in Administration-Content-Explorer in Views settings a popup with actions list -->
-  <UITabForm>
-    <label>
-      <onlyofficeOpen>OnlyOffice'te düzenle</onlyofficeOpen>
-    </label>
-  </UITabForm>
-  
-  <!-- For new document form -->
-  <UINewDocumentForm>    <label>
-      <option>
-        <MicrosoftOfficeDocument>Microsoft Word Belgesi (*.docx)</MicrosoftOfficeDocument>
-        <MicrosoftOfficeSpreadsheet>Microsoft Excel Çalışma Kitabı (*.xlsx)</MicrosoftOfficeSpreadsheet>
-        <MicrosoftOfficePresentation>Microsoft PowerPoint Sunumu (*.pptx)</MicrosoftOfficePresentation>
-        <MicrosoftOfficeNewSheet>Sheet</MicrosoftOfficeNewSheet>
-      </option>
-    </label>
-  </UINewDocumentForm>  
-  
-  <!-- Messages -->
-  <OnlyofficeEditor>
-    <message>
-      <ViewerNotFound>OnlyOffice belge düzenleyicisi bulunamadı</ViewerNotFound>
-    </message>
-    <error>
-      <EditorCannotBeCreated>Düzenleyici oluşturulamaz. Lütfen tekrar deneyin.</EditorCannotBeCreated>
-      <CannotReadDocument>Belge okunamıyor. Lütfen tekrar deneyin.</CannotReadDocument>
-      <CannotCreateEditor>Düzenleyici oluşturulamıyor. Lütfen tekrar deneyin.</CannotCreateEditor>
-      <CannotSendEditorConfiguration>Düzenleyici yapılandırması gönderilemiyor. Lütfen tekrar deneyin.</CannotSendEditorConfiguration>
-      <CannotInitEditorConfiguration>Düzenleyici yapılandırması başlatılamıyor. Lütfen tekrar deneyin.</CannotInitEditorConfiguration>
-      <InitializationError>Düzenleyici başlatma hatası. Lütfen tekrar deneyin.</InitializationError>
-      <DocumentIdRequired>Yanlış istek: belge kimliği gerekli.</DocumentIdRequired>
-    </error>
-  </OnlyofficeEditor>
-</bundle>
+<?xml version\="1.0" encoding\="UTF-8"?>
+<bundle>=
+<\!-- Messages -->
+<UIActionBar>=
+<tooltip>=
+<OnlyofficeOpen>Edit in OnlyOffice</OnlyofficeOpen>
+</tooltip>=
+</UIActionBar>=
+<UITabForm>=
+<label>=
+<onlyofficeOpen>Edit in OnlyOffice</onlyofficeOpen>
+</label>=
+</UITabForm>=
+
+<UINewDocumentForm>    <label>
+<option>=
+<MicrosoftOfficeDocument>Microsoft Word Document (*.docx)</MicrosoftOfficeDocument>
+<MicrosoftOfficeSpreadsheet>Microsoft Excel Workbook (*.xlsx)</MicrosoftOfficeSpreadsheet>
+<MicrosoftOfficePresentation>Microsoft PowerPoint Presentation (*.pptx)</MicrosoftOfficePresentation>
+<MicrosoftOfficeNewSheet>Sheet</MicrosoftOfficeNewSheet>=
+</option>=
+</UINewDocumentForm>  
+
+<OnlyofficeEditor>=
+<message>=
+<ViewerNotFound>OnlyOffice document editor not found</ViewerNotFound>
+</message>=
+<error>=
+<EditorCannotBeCreated>The editor cannot be created. Please retry.</EditorCannotBeCreated>
+<CannotReadDocument>Cannot read the document. Please retry.</CannotReadDocument>
+<CannotCreateEditor>Cannot create editor. Please retry.</CannotCreateEditor>
+<CannotSendEditorConfiguration>Cannot send editor's configuration. Please retry.</CannotSendEditorConfiguration>
+<CannotInitEditorConfiguration>Cannot initialize the editor's configuration. Please retry.</CannotInitEditorConfiguration>
+<InitializationError>Error initializing the editor. Please retry.</InitializationError>
+<DocumentIdRequired>Wrong request\: document ID required.</DocumentIdRequired>
+</error>=
+</OnlyofficeEditor>=
+</bundle>=

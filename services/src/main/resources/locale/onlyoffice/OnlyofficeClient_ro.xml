@@ -1,53 +1,51 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<bundle>
-  <!-- For client UI -->
-  <OnlyofficeEditorClient>
+<?xml version\="1.0" encoding\="UTF-8"?>
+<bundle>=
+<\!-- For Editor frame -->
+<OnlyofficeEditorClient>=
 
-    <EditButtonTitle>Edit in OnlyOffice</EditButtonTitle>
-    <SaveVersionLabel>Save version</SaveVersionLabel>
-    <SeeMoreButton>Go to full version history</SeeMoreButton>
-    <LoadMoreButton>Load more</LoadMoreButton>
-    <CloseButton>Închide</CloseButton>
-    <SaveButton>Salvaţi</SaveButton>
-    <PlaceHolderTextarea>Write your summary of changes ...</PlaceHolderTextarea>
-    <TitleTooltip>Apasă pentru a modifica</TitleTooltip>
-    <OpenDrawerBtn>Add new version</OpenDrawerBtn>
-    <NoVersions>No versions</NoVersions>
-    <AlertSave>Changes saved</AlertSave>
-    <ErrorSave>No more than 500 characters</ErrorSave>
-    <UpdateBannerTitle>The document has been updated.</UpdateBannerTitle>
-    <ReloadButtonTitle>Reload</ReloadButtonTitle>
+<EditButtonTitle>Edit in OnlyOffice</EditButtonTitle>
+<SaveVersionLabel>Save version</SaveVersionLabel>
+<SeeMoreButton>Go to full version history</SeeMoreButton>
+<LoadMoreButton>Load more</LoadMoreButton>
+<CloseButton>Close</CloseButton>=
+<SaveButton>Save</SaveButton>=
+<PlaceHolderTextarea>Write your summary of changes ...</PlaceHolderTextarea>
+<TitleTooltip>Click to edit</TitleTooltip>
+<OpenDrawerBtn>Add new version</OpenDrawerBtn>
+<NoVersions>No versions</NoVersions>
+<AlertSave>Changes saved</AlertSave>
+<ErrorSave>No more than 500 characters</ErrorSave>
+<UpdateBannerTitle>The document has been updated.</UpdateBannerTitle>
+<ReloadButtonTitle>Reload</ReloadButtonTitle>=
 
-    <ErrorTitle>Eroare</ErrorTitle>
-    <InfoTitle>Informaţii</InfoTitle>
-    <PreviewNotAvailable>OnlyOffice document preview is not available now.</PreviewNotAvailable>
-    <GoToDocument>Go to document</GoToDocument>
-    <!-- For Explorer/Preview/Stream -->
-    <EditorLinkNotFoundError>Editor's link not found</EditorLinkNotFoundError>
-    <EditorLinkNotFoundErrorMessage>Cannot get the editor's link - permission denied.</EditorLinkNotFoundErrorMessage>
-    <StorageError>Storage error occurred.</StorageError>
-    <StorageErrorMessage>Cannot get the editor's link because of storage errors.</StorageErrorMessage>
-    <InternalEditorError>Integration editor error.</InternalEditorError>
-    <InternalEditorErrorMessage>Cannot get the editor's link because of an internal editor error.</InternalEditorErrorMessage>
-    <CannotLoadViewerScript>Cannot load DocsAPI script. Please contact the administrator.</CannotLoadViewerScript>
-    <!-- For Editor frame -->
-    <ErrorConfigNotDefined>The editor's configuration is not defined</ErrorConfigNotDefined>
-    <ErrorLinkNotFound>Editor's link not found</ErrorLinkNotFound>
-    <ErrorCreateConfig>Failed to create editor's configuration</ErrorCreateConfig>
-    <AnotherEditorIsOpen>Cannot create the editor. The document is being edited in another editor (provider)</AnotherEditorIsOpen>
-    <ErrorFileDeletedECMS>The file has been deleted. You can try to restore it from the Trash</ErrorFileDeletedECMS>
-    <ErrorFileDeletedEditor>The file has been deleted. You can save it by clicking on File -&gt; Save</ErrorFileDeletedEditor>
-    <ErrorNameDriveNull>Could not determinate the drive of this file.</ErrorNameDriveNull>
-    <TimeConvert>
-      <Less_Than_A_Minute>cu mai puţin de un minut în urmă</Less_Than_A_Minute>
-      <About_A_Minute>aproximativ cu un minut în urmă</About_A_Minute>
-      <About_X_Minutes>aproximativ {0} minute în urmă</About_X_Minutes>
-      <About_An_Hour>aproximativ cu o oră în urmă</About_An_Hour>
-      <About_X_Hours>aproximativ {0} ore în urmă</About_X_Hours>
-      <About_A_Day>aproximativ o zi în urmă</About_A_Day>
-      <About_X_Days>aproximativ {0} zile în urmă</About_X_Days>
-      <About_A_Month>aproximativ o lună în urmă</About_A_Month>
-      <About_X_Months>aproximativ {0} luni în urmă</About_X_Months>
-    </TimeConvert>
-  </OnlyofficeEditorClient>
-</bundle>
+<ErrorTitle>Error</ErrorTitle>=
+<InfoTitle>Information</InfoTitle>=
+<PreviewNotAvailable>OnlyOffice document preview is not available now.</PreviewNotAvailable>
+<GoToDocument>Go to document</GoToDocument>
+<EditorLinkNotFoundError>Editor's link not found</EditorLinkNotFoundError>
+<EditorLinkNotFoundErrorMessage>Cannot get the editor's link - permission denied.</EditorLinkNotFoundErrorMessage>
+<StorageError>Storage error occurred.</StorageError>
+<StorageErrorMessage>Cannot get the editor's link because of storage errors.</StorageErrorMessage>
+<InternalEditorError>Integration editor error.</InternalEditorError>
+<InternalEditorErrorMessage>Cannot get the editor's link because of an internal editor error.</InternalEditorErrorMessage>
+<CannotLoadViewerScript>Cannot load DocsAPI script. Please contact the administrator.</CannotLoadViewerScript>
+<ErrorConfigNotDefined>The editor's configuration is not defined</ErrorConfigNotDefined>
+<ErrorLinkNotFound>Editor's link not found</ErrorLinkNotFound>
+<ErrorCreateConfig>Failed to create editor's configuration</ErrorCreateConfig>
+<AnotherEditorIsOpen>Cannot create the editor. The document is being edited in another editor (provider)</AnotherEditorIsOpen>
+<ErrorFileDeletedECMS>The file has been deleted. You can try to restore it from the Trash</ErrorFileDeletedECMS>
+<ErrorFileDeletedEditor>The file has been deleted. You can save it by clicking on File -&gt; Save</ErrorFileDeletedEditor>
+<ErrorNameDriveNull>Could not determinate the drive of this file.</ErrorNameDriveNull>
+<TimeConvert>=
+<Less_Than_A_Minute>less than a minute ago</Less_Than_A_Minute>
+<About_A_Minute>about a minute ago</About_A_Minute>
+<About_X_Minutes>about {0} minutes ago</About_X_Minutes>
+<About_An_Hour>about an hour ago</About_An_Hour>
+<About_X_Hours>about {0} hours ago</About_X_Hours>
+<About_A_Day>about a day ago</About_A_Day>
+<About_X_Days>about {0} days ago</About_X_Days>
+<About_A_Month>about a month ago</About_A_Month>
+<About_X_Months>about {0} months ago</About_X_Months>
+</TimeConvert>=
+</OnlyofficeEditorClient>=
+</bundle>=
