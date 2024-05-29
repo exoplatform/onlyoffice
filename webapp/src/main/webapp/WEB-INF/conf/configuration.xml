@@ -26,6 +26,5 @@
   <!-- Onlyoffice extension configurations -->
   
   <import profiles="all">war:/conf/onlyoffice/configuration.xml</import>
-  <import profiles="all">war:/conf/onlyoffice/portal/portal-configuration.xml</import>
 
 </configuration>
