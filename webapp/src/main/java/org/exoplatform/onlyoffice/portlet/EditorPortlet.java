@@ -46,7 +46,7 @@ import org.exoplatform.onlyoffice.OnlyofficeEditorService;
 import org.exoplatform.services.log.ExoLogger;
 import org.exoplatform.services.log.Log;
 import org.exoplatform.services.resources.ResourceBundleService;
-import org.exoplatform.webui.application.WebuiRequestContext;
+import org.exoplatform.web.application.RequestContext;
 import org.exoplatform.ws.frameworks.json.impl.JsonException;
 
 /**
@@ -115,8 +115,8 @@ public class EditorPortlet extends GenericPortlet {
                                                         request.getLocale());
 
     
-    WebuiRequestContext webuiContext = WebuiRequestContext.getCurrentInstance();
-    String mode = webuiContext.getRequestParameter("mode");
+    RequestContext requestContext = RequestContext.getCurrentInstance();
+    String mode = requestContext.getRequestParameter("mode");
     Config config = getConfig(request, response, i18n, mode);
     if (config != null) {
       try {
@@ -153,8 +153,8 @@ public class EditorPortlet extends GenericPortlet {
   private Config getConfig(RenderRequest request, RenderResponse response, ResourceBundle i18n, String mode) {
     Config config = null;
 
-    WebuiRequestContext webuiContext = WebuiRequestContext.getCurrentInstance();
-    String docId = webuiContext.getRequestParameter("docId");
+    RequestContext requestContext = RequestContext.getCurrentInstance();
+    String docId = requestContext.getRequestParameter("docId");
 
     if (docId != null) {
       try {
