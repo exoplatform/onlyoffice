@@ -1,53 +1,51 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<bundle>
-  <!-- For client UI -->
-  <OnlyofficeEditorClient>
+<?xml version\="1.0" encoding\="UTF-8"?>
+<bundle>=
+<\!-- For Editor frame -->
+<OnlyofficeEditorClient>=
 
-    <EditButtonTitle>In OnlyOffice bearbeiten</EditButtonTitle>
-    <SaveVersionLabel>Version speichern</SaveVersionLabel>
-    <SeeMoreButton>Zur vollen Versionsverlauf</SeeMoreButton>
-    <LoadMoreButton>Weiter laden</LoadMoreButton>
-    <CloseButton>Schließen</CloseButton>
-    <SaveButton>Speichern</SaveButton>
-    <PlaceHolderTextarea>Schreiben Sie Ihre Zusammenfassung der Änderungen...</PlaceHolderTextarea>
-    <TitleTooltip>Klicken, um zu ändern</TitleTooltip>
-    <OpenDrawerBtn>Neue Version hinzufügen</OpenDrawerBtn>
-    <NoVersions>Keine Versionen</NoVersions>
-    <AlertSave>Änderungen gespeichert</AlertSave>
-    <ErrorSave>Nicht mehr als 500 Zeichen</ErrorSave>
-    <UpdateBannerTitle>Das Dokument wurde aktualisiert</UpdateBannerTitle>
-    <ReloadButtonTitle>Neuladen</ReloadButtonTitle>
+<EditButtonTitle>Edit in Office</OnlyofficeOpen>
+<SaveVersionLabel>Save Version
+<SeeMoreButton>Go Zum vollen Versionsverlauf
+<LoadMoreButton>Load mehr</LoadMoreButton>
+<CloseButton>Close</CloseButton>=
+<SaveButton>Save</SaveButton>=
+<PlaceHolderTextarea>Write Zusammenfassung der \u00c4nderungen ...</PlaceHolderTextarea>
+<TitleTooltip>Click </TitleTooltip> bearbeiten
+<OpenDrawerBtn>Add Neue Version</OpenDrawerBtn>
+<NoVersions>No Versionen</NoVersions>
+<AlertSave>Changes Gespeichert</AlertSave>
+<ErrorSave>No Mehr als 500 Zeichen</ErrorSave>
+<UpdateBannerTitle>The Das Dokument wurde aktualisiert
+<ReloadButtonTitle>Reload</ReloadButtonTitle>=
 
-    <ErrorTitle>Fehler</ErrorTitle>
-    <InfoTitle>Informationen</InfoTitle>
-    <PreviewNotAvailable>OnlyOffice-Dokumentvorschau ist derzeit nicht verfügbar.</PreviewNotAvailable>
-    <GoToDocument>Zum Dokument</GoToDocument>
-    <!-- For Explorer/Preview/Stream -->
-    <EditorLinkNotFoundError>Editorlink nicht gefunden</EditorLinkNotFoundError>
-    <EditorLinkNotFoundErrorMessage>Editorlink kann nicht abgerufen werden - Berechtigung verweigert.</EditorLinkNotFoundErrorMessage>
-    <StorageError>Speicherfehler aufgetreten.</StorageError>
-    <StorageErrorMessage>Editorlink kann nicht abgerufen werden aufgrund Speicherfehler.</StorageErrorMessage>
-    <InternalEditorError>Integration-Editor-Fehler</InternalEditorError>
-    <InternalEditorErrorMessage>Editorlink kann nicht abgerufen werden aufgrund eines internen Editorfehlers.</InternalEditorErrorMessage>
-    <CannotLoadViewerScript>Das DocsAPI-Skript kann nicht geladen werden. Bitte kontaktieren Sie den Verwalter.</CannotLoadViewerScript>
-    <!-- For Editor frame -->
-    <ErrorConfigNotDefined>Die Editorkonfiguration ist nicht definiert</ErrorConfigNotDefined>
-    <ErrorLinkNotFound>Editorlink nicht gefunden</ErrorLinkNotFound>
-    <ErrorCreateConfig>Editorkonfiguration konnte nicht erstellt werden</ErrorCreateConfig>
-    <AnotherEditorIsOpen>Editor kann nicht erstellt werden. Das Dokument wird in einem anderen Editor bearbeitet (Anbieter)</AnotherEditorIsOpen>
-    <ErrorFileDeletedECMS>Die Datei wurde gelöscht. Sie können versuchen, sie aus dem Papierkorb wiederherzustellen.</ErrorFileDeletedECMS>
-    <ErrorFileDeletedEditor>Die Datei wurde gelöscht. Sie können sie speichern indem Sie auf Datei -&gt; Speichern klicken</ErrorFileDeletedEditor>
-    <ErrorNameDriveNull>Der Drive dieser Datei konnte nicht bestimmt werden.</ErrorNameDriveNull>
-    <TimeConvert>
-      <Less_Than_A_Minute>Vor weniger als einer Minute</Less_Than_A_Minute>
-      <About_A_Minute>Vor etwa einer Minute</About_A_Minute>
-      <About_X_Minutes>Vor {0} Minuten</About_X_Minutes>
-      <About_An_Hour>Vor etwa einer Stunde</About_An_Hour>
-      <About_X_Hours>Vor {0} Stunden</About_X_Hours>
-      <About_A_Day>vor etwa einem Tag</About_A_Day>
-      <About_X_Days>vor etwa {0} Tagen</About_X_Days>
-      <About_A_Month>vor etwa einem Monat</About_A_Month>
-      <About_X_Months>vor {0} Monaten</About_X_Months>
-    </TimeConvert>
-  </OnlyofficeEditorClient>
-</bundle>
+<ErrorTitle>Error</ErrorTitle>=
+<InfoTitle>Information</InfoTitle>=
+<PreviewNotAvailable>OnlyOffice Die Dokumentvorschau ist momentan nicht verf\u00fcgbar.</PreviewNotAvailable>
+<GoToDocument>Go zum Dokument</GoToDocument>
+<EditorLinkNotFoundError>Editor's Link nicht gefunden</EditorLinkNotFoundError>
+<EditorLinkNotFoundErrorMessage>Cannot get the editor's link - permission denied.</EditorLinkNotFoundErrorMessage>
+<StorageError>Storage Fehler aufgetreten.</StorageError>
+<StorageErrorMessage>Cannot get the editor's link because of storage errors.</StorageErrorMessage>
+<InternalEditorError>Integration editor error.</InternalEditorError>
+<InternalEditorErrorMessage>Cannot get the editor's link because of an internal editor error.</InternalEditorErrorMessage>
+<CannotLoadViewerScript>Cannot load DocsAPI script. Please contact the administrator.</CannotLoadViewerScript>
+<ErrorConfigNotDefined>The editor's configuration is not defined</ErrorConfigNotDefined>
+<ErrorLinkNotFound>Editor's Link nicht gefunden</EditorLinkNotFoundError>
+<ErrorCreateConfig>Failed to create editor's configuration</ErrorCreateConfig>
+<AnotherEditorIsOpen>Cannot create the editor. The document is being edited in another editor (provider)</AnotherEditorIsOpen>
+<ErrorFileDeletedECMS>The Die Datei wurde gel\u00f6scht. Sie k\u00f6nnen versuchen, sie aus dem Papierkorb </ErrorFileDeletedECMS>wiederherzustellen. 
+<ErrorFileDeletedEditor>The file has been deleted. You can save it by clicking on File -&gt; Save</ErrorFileDeletedEditor>
+<ErrorNameDriveNull>Could not determinate the drive of this file.</ErrorNameDriveNull>
+<TimeConvert>=
+<Less_Than_A_Minute>less than a minute ago</Less_Than_A_Minute>
+<About_A_Minute>about vor einer Minute</About_A_Minute>
+<About_X_Minutes>about vor {0} Minuten </About_X_Minutes>
+<About_An_Hour>about vor einer Stunde</About_An_Hour>
+<About_X_Hours>about vor {0} Stunden
+<About_A_Day>about vor einem Tag</About_A_Day>
+<About_X_Days>about Vor {0} Tagen</About_X_Days>
+<About_A_Month>about vor einem Monat</About_A_Month>
+<About_X_Months>about vor {0} Monaten </About_X_Months>
+</TimeConvert>=
+</OnlyofficeEditorClient>=
+</bundle>=

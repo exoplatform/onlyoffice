@@ -1,53 +1,51 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<bundle>
-  <!-- For client UI -->
-  <OnlyofficeEditorClient>
+<?xml version\="1.0" encoding\="UTF-8"?>
+<bundle>=
+<\!-- For Editor frame -->
+<OnlyofficeEditorClient>=
 
-    <EditButtonTitle>OnlyOffice'te düzenle</EditButtonTitle>
-    <SaveVersionLabel>Sürümü kaydet</SaveVersionLabel>
-    <SeeMoreButton>Tam sürüm geçmişine git</SeeMoreButton>
-    <LoadMoreButton>Daha fazla yükle</LoadMoreButton>
-    <CloseButton>Kapat</CloseButton>
-    <SaveButton>Kaydet</SaveButton>
-    <PlaceHolderTextarea>Değişikliklerinizin özetini yazın ...</PlaceHolderTextarea>
-    <TitleTooltip>Düzenlemek için tıklayın</TitleTooltip>
-    <OpenDrawerBtn>Yeni sürüm ekle</OpenDrawerBtn>
-    <NoVersions>Sürüm yok</NoVersions>
-    <AlertSave>Değişiklikler kaydedildi</AlertSave>
-    <ErrorSave>En fazla 500 karakter</ErrorSave>
-    <UpdateBannerTitle>Belge güncellendi.</UpdateBannerTitle>
-    <ReloadButtonTitle>Tekrar yükle</ReloadButtonTitle>
+<EditButtonTitle>Edit in OnlyOffice</EditButtonTitle>
+<SaveVersionLabel>Save version</SaveVersionLabel>
+<SeeMoreButton>Go to full version history</SeeMoreButton>
+<LoadMoreButton>Load more</LoadMoreButton>
+<CloseButton>Close</CloseButton>=
+<SaveButton>Save</SaveButton>=
+<PlaceHolderTextarea>Write your summary of changes ...</PlaceHolderTextarea>
+<TitleTooltip>Click to edit</TitleTooltip>
+<OpenDrawerBtn>Add new version</OpenDrawerBtn>
+<NoVersions>No versions</NoVersions>
+<AlertSave>Changes saved</AlertSave>
+<ErrorSave>No more than 500 characters</ErrorSave>
+<UpdateBannerTitle>The document has been updated.</UpdateBannerTitle>
+<ReloadButtonTitle>Reload</ReloadButtonTitle>=
 
-    <ErrorTitle>Hata</ErrorTitle>
-    <InfoTitle>Bilgi</InfoTitle>
-    <PreviewNotAvailable>OnlyOffice document preview is not available now.</PreviewNotAvailable>
-    <GoToDocument>Go to document</GoToDocument>
-    <!-- For Explorer/Preview/Stream -->
-    <EditorLinkNotFoundError>Düzenleyici bağlantısı bulunamadı</EditorLinkNotFoundError>
-    <EditorLinkNotFoundErrorMessage>Düzenleyici bağlantısı alınamadı - izin reddedildi.</EditorLinkNotFoundErrorMessage>
-    <StorageError>Depolama hatası oluştu.</StorageError>
-    <StorageErrorMessage>Depolama hataları nedeniyle düzenleyici bağlantısı alınamıyor.</StorageErrorMessage>
-    <InternalEditorError>Entegrasyon düzenleyici hatası.</InternalEditorError>
-    <InternalEditorErrorMessage>Dahili bir düzenleyici hatası nedeniyle düzenleyici bağlantısı alınamıyor.</InternalEditorErrorMessage>
-    <CannotLoadViewerScript>Cannot load DocsAPI script. Please contact the administrator.</CannotLoadViewerScript>
-    <!-- For Editor frame -->
-    <ErrorConfigNotDefined>Düzenleyici yapılandırması tanımlanmadı</ErrorConfigNotDefined>
-    <ErrorLinkNotFound>Düzenleyici bağlantısı bulunamadı</ErrorLinkNotFound>
-    <ErrorCreateConfig>Düzenleyici yapılandırması oluşturulamadı</ErrorCreateConfig>
-    <AnotherEditorIsOpen>Düzenleyici oluşturulamıyor. Belge başka bir düzenleyicide (sağlayıcı) düzenleniyor</AnotherEditorIsOpen>
-    <ErrorFileDeletedECMS>Dosya silindi. Çöp Kutusu'ndan geri yüklemeyi deneyebilirsiniz</ErrorFileDeletedECMS>
-    <ErrorFileDeletedEditor>Dosya silindi. Dosya -&gt; Kaydet'e tıklayarak kaydedebilirsiniz</ErrorFileDeletedEditor>
-    <ErrorNameDriveNull>Could not determinate the drive of this file.</ErrorNameDriveNull>
-    <TimeConvert>
-      <Less_Than_A_Minute>bir dakikadan daha önce</Less_Than_A_Minute>
-      <About_A_Minute>yaklaşık bir dakika önce</About_A_Minute>
-      <About_X_Minutes>yaklaşık {0} dakika önce</About_X_Minutes>
-      <About_An_Hour>yaklaşık bir saat önce</About_An_Hour>
-      <About_X_Hours>yaklaşık {0} saat önce</About_X_Hours>
-      <About_A_Day>yaklaşık bir gün önce</About_A_Day>
-      <About_X_Days>yaklaşık {0} gün önce</About_X_Days>
-      <About_A_Month>yaklaşık bir ay önce</About_A_Month>
-      <About_X_Months>yaklaşık {0} ay önce</About_X_Months>
-    </TimeConvert>
-  </OnlyofficeEditorClient>
-</bundle>
+<ErrorTitle>Error</ErrorTitle>=
+<InfoTitle>Information</InfoTitle>=
+<PreviewNotAvailable>OnlyOffice document preview is not available now.</PreviewNotAvailable>
+<GoToDocument>Go to document</GoToDocument>
+<EditorLinkNotFoundError>Editor's link not found</EditorLinkNotFoundError>
+<EditorLinkNotFoundErrorMessage>Cannot get the editor's link - permission denied.</EditorLinkNotFoundErrorMessage>
+<StorageError>Storage error occurred.</StorageError>
+<StorageErrorMessage>Cannot get the editor's link because of storage errors.</StorageErrorMessage>
+<InternalEditorError>Integration editor error.</InternalEditorError>
+<InternalEditorErrorMessage>Cannot get the editor's link because of an internal editor error.</InternalEditorErrorMessage>
+<CannotLoadViewerScript>Cannot load DocsAPI script. Please contact the administrator.</CannotLoadViewerScript>
+<ErrorConfigNotDefined>The editor's configuration is not defined</ErrorConfigNotDefined>
+<ErrorLinkNotFound>Editor's link not found</ErrorLinkNotFound>
+<ErrorCreateConfig>Failed to create editor's configuration</ErrorCreateConfig>
+<AnotherEditorIsOpen>Cannot create the editor. The document is being edited in another editor (provider)</AnotherEditorIsOpen>
+<ErrorFileDeletedECMS>The file has been deleted. You can try to restore it from the Trash</ErrorFileDeletedECMS>
+<ErrorFileDeletedEditor>The file has been deleted. You can save it by clicking on File -&gt; Save</ErrorFileDeletedEditor>
+<ErrorNameDriveNull>Could not determinate the drive of this file.</ErrorNameDriveNull>
+<TimeConvert>=
+<Less_Than_A_Minute>less than a minute ago</Less_Than_A_Minute>
+<About_A_Minute>about a minute ago</About_A_Minute>
+<About_X_Minutes>about {0} minutes ago</About_X_Minutes>
+<About_An_Hour>about an hour ago</About_An_Hour>
+<About_X_Hours>about {0} hours ago</About_X_Hours>
+<About_A_Day>about a day ago</About_A_Day>
+<About_X_Days>about {0} days ago</About_X_Days>
+<About_A_Month>about a month ago</About_A_Month>
+<About_X_Months>about {0} months ago</About_X_Months>
+</TimeConvert>=
+</OnlyofficeEditorClient>=
+</bundle>=
