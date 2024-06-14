@@ -535,7 +535,7 @@
           "goback": {
             "blank": true,
             "text": message("GoToDocument"),
-            "url": config.explorerUrl
+            "url":  config.backTo ? `${window.location.origin}${config.backTo}` : config.explorerUrl
           },
           "help": true,
           "logo": {
