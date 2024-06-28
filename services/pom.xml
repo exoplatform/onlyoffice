@@ -146,6 +146,7 @@
           <include>**/*.pptx</include>
           <include>**/*.xlsx</include>
           <include>**/*.docxf</include>
+          <include>**/*.pdf</include>
         </includes>
       </resource>
     </resources>
