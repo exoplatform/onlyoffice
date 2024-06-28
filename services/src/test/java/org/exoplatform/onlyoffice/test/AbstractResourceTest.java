@@ -146,7 +146,7 @@ public class AbstractResourceTest extends BaseCommonsTestCase {
     contentNode.setProperty("jcr:data", content);
     session.save();
     String docId = onlyofficeEditorService.initDocument(node);
-    Config config = onlyofficeEditorService.createEditor("http", "localhost", 8080, user, null, docId);
+    Config config = onlyofficeEditorService.createEditor("http", "localhost", 8080, user, null, docId, OnlyofficeEditorService.EDIT_MODE);
     return config != null ? config.getDocument().getKey() : null;
   }
 }

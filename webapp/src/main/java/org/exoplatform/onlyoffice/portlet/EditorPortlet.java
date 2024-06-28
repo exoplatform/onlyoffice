@@ -172,7 +172,8 @@ public class EditorPortlet extends GenericPortlet {
                                            request.getServerPort(),
                                            request.getRemoteUser(),
                                            null,
-                                           docId);
+                                           docId,
+                                           mode);
         }
         if (config != null) {
           if (config.getEditorConfig().getLang() == null) {

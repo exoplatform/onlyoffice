@@ -40,6 +40,7 @@ public interface OnlyofficeEditorService {
 
   /** The view mode. */
   static String VIEW_MODE            = "view";
+  static String FILLFORM_MODE            = "fillform";
 
   /** The editor opened event. */
   static String EDITOR_OPENED_EVENT  = "exo.onlyoffice.editor.opened";
@@ -103,7 +104,7 @@ public interface OnlyofficeEditorService {
                       int userPost,
                       String userId,
                       String workspace,
-                      String docId) throws OnlyofficeEditorException, RepositoryException;
+                      String docId, String mode) throws OnlyofficeEditorException, RepositoryException;
 
   /**
    * Creates the viewer.
@@ -390,4 +391,6 @@ public interface OnlyofficeEditorService {
    * @return Boolean true if the document is opened for edition by multiple users
    */
   boolean isDocumentCoedited(String key);
+
+  byte[] convertNodeContentToPdf(Node node, String userId);
 }
