@@ -198,6 +198,8 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
   /** The Constant TYPE_TEXT. */
   protected static final String  TYPE_TEXT                = "word";
 
+  private static final String TYPE_PDF = "pdf";
+
   /** The Constant TYPE_SPREADSHEET. */
   protected static final String  TYPE_SPREADSHEET         = "cell";
 
@@ -382,6 +384,8 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
   /** The document command service url. */
   protected final String                                          commandServiceUrl;
 
+  protected final String                                          convertUrl;
+
   /** The document server secret. */
   protected final String                                          documentserverSecret;
 
@@ -483,6 +487,7 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
     documentserverUrl.append(dsHost);
 
     this.uploadUrl = new StringBuilder(documentserverUrl).append("/FileUploader.ashx").toString();
+    this.convertUrl = new StringBuilder(documentserverUrl).append("/converter").toString();
     this.documentserverUrl = new StringBuilder(documentserverUrl).append("/web-apps/").toString();
     this.commandServiceUrl = new StringBuilder(documentserverUrl).append("/coauthoring/CommandService.ashx").toString();
     this.documentserverAccessOnly = Boolean.parseBoolean(config.get(CONFIG_DS_ACCESS_ONLY));
@@ -603,7 +608,7 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
                              int port,
                              String userId,
                              String workspace,
-                             String docId) throws OnlyofficeEditorException, RepositoryException {
+                             String docId, String mode) throws OnlyofficeEditorException, RepositoryException {
     if (workspace == null) {
       workspace = jcrService.getCurrentRepository().getConfiguration().getDefaultWorkspaceName();
     }
@@ -652,6 +657,7 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
           builder.displayPath(getDisplayPath(node, userId));
           builder.comment(nodeComment(node));
           builder.drive(getDrive(node));
+          builder.mode(mode);
           builder.renameAllowed(canRenameDocument(node));
           builder.isActivity(ActivityTypeUtils.getActivityId(node) != null);
           try {
@@ -675,7 +681,6 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
                                         // mean a root folder
           }
           builder.lang(getUserLanguage(userId));
-          builder.mode(OnlyofficeEditorService.EDIT_MODE);
           builder.title(nodeTitle(node));
           builder.userId(user.getUserName());
           builder.userName(user.getDisplayName());
@@ -858,12 +863,12 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
           // work in user session
           Node node = nodeByUUID(config.getWorkspace(), config.getDocId());
 
-          if (viewMode) {
-            viewerCache.remove(key);
-            if (config.getDocId() != null) {
-              viewerCache.remove(config.getDocId());
-            }
-          }
+//          if (viewMode) {
+//            viewerCache.remove(key);
+//            if (config.getDocId() != null) {
+//              viewerCache.remove(config.getDocId());
+//            }
+//          }
 
           Node content = nodeContent(node);
           final String mimeType = content.getProperty("jcr:mimeType").getString();
@@ -1052,12 +1057,9 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
                 + ". Document " + nodePath + ". URL: " + status.getUrl() + ". Download: " + status.isSaved());
           }
           // Here we decide if we need to download content or just save the link
-          if (status.isSaved()) {
-            if (status.isSaved()) {
-              status.setConfig(getEditorByKey(status.getUserId(), key));
-              LOG.debug("Document is save, and we need to download it (Node (id={}), userId={})",
+          if (status.saved == null || status.isSaved()) {
+            LOG.debug("Document is save, and we need to download it (Node (id={}), userId={})",
                         status.getConfig().getDocId(), status.getUserId());
-            }
             status.setConfig(getEditorByKey(status.getUserId(), key));
             downloadVersion(status);
           } else {
@@ -2965,7 +2967,7 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
     fileTypes.put("html", TYPE_TEXT);
     fileTypes.put("htm", TYPE_TEXT);
     fileTypes.put("epub", TYPE_TEXT);
-    fileTypes.put("pdf", TYPE_TEXT);
+    fileTypes.put("pdf", TYPE_PDF);
     fileTypes.put("djvu", TYPE_TEXT);
     fileTypes.put("xps", TYPE_TEXT);
     fileTypes.put("docxf", TYPE_TEXT);
@@ -3321,4 +3323,162 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
     ConversationState conversationState = ConversationState.getCurrent();
     return conversationState == null ? null : conversationState.getIdentity();
   }
+
+  @Override
+  public byte[] convertNodeContentToPdf(Node node, String userId) {
+    HttpURLConnection connection = null;
+    try {
+      LOG.debug("Convert Node {}",node.getPath());
+
+      Config config = createConfigForConversion(userId,node);
+
+      String originalFileType ;
+      String fileMimeType = node.getNode("jcr:content").getProperty("jcr:mimeType").getString();
+      if (fileMimeType.equals("application/vnd.openxmlformats-officedocument.wordprocessingml.document")) {
+        originalFileType="docxf";
+      } else if (fileMimeType.equals("application/vnd.openxmlformats-officedocument.wordprocessingml.document.form")) {
+        originalFileType="oform";
+      } else {
+        originalFileType="docx";
+      }
+      if (originalFileType!=null) {
+        String key = config.getDocument().getKey();
+        String documentUrl = config.getDocument().getUrl();
+        LOG.debug("Node {}, generatedId={}, originalFileType={}, convertUrl={}, documentUrl={}",node.getPath(),key,originalFileType,this.convertUrl, documentUrl);
+
+        String json = new JSONObject().put("filetype", originalFileType)
+                                      .put("outputtype", "pdf")
+                                      .put("key", key)
+                                      .put("url",documentUrl).toString();
+
+        byte[] postDataBytes = json.toString().getBytes("UTF-8");
+
+        URL url = new URL(convertUrl);
+        connection = (HttpURLConnection) url.openConnection();
+        connection.setRequestMethod("POST");
+        connection.setRequestProperty("Content-Type", "application/json; charset=UTF-8");
+        connection.setRequestProperty("Content-Length", String.valueOf(postDataBytes.length));
+        connection.setDoOutput(true);
+        connection.setDoInput(true);
+
+        if (documentserverSecret != null && !documentserverSecret.trim().isEmpty()) {
+          String jwtToken = Jwts.builder().setPayload(json)
+                                .signWith(Keys.hmacShaKeyFor(documentserverSecret.getBytes()))
+                                .compact();
+          connection.setRequestProperty("Authorization", "Bearer " + jwtToken);
+        }
+
+        try (OutputStream outputStream = connection.getOutputStream()) {
+          outputStream.write(postDataBytes);
+        } catch (Exception e) {
+          LOG.error("Error occured while sending request to Document Server: ", e);
+        }
+        // read the response
+        InputStream in = new BufferedInputStream(connection.getInputStream());
+        String response = IOUtils.toString(in, "UTF-8");
+        if (LOG.isDebugEnabled()) {
+          LOG.debug("Convert service responded on convert command: " + response);
+        }
+        JSONObject responseJson = new JSONObject(response);
+        if (responseJson.has("fileUrl")) {
+          String convertedFileUrl = responseJson.getString("fileUrl");
+          byte[] convertedFile = downloadConvertedFile(convertedFileUrl);
+          return convertedFile;
+        }
+
+      }
+    } catch (Exception e) {
+      LOG.error("Error in sending convert command", e);
+    } finally {
+      if (connection != null) {
+        connection.disconnect();
+      }
+    }
+    return null;
+  }
+
+  private byte[] downloadConvertedFile(String convertedFileUrl) {
+    HttpURLConnection connection = null;
+    try {
+      URL url = new URL(convertedFileUrl);
+      connection = (HttpURLConnection) url.openConnection();
+      connection.setRequestMethod("GET");
+      InputStream in = new BufferedInputStream(connection.getInputStream());
+      return IOUtils.toByteArray(in);
+    } catch (Exception e) {
+      LOG.error("Unable to download converted file", e);
+    } finally {
+      if(connection!=null) {
+        connection.disconnect();
+      }
+    }
+    return null;
+  }
+
+  private Config createConfigForConversion(String userId, Node node) throws OnlyofficeEditorException, RepositoryException {
+    User user = getUser(userId);
+
+    String fileType = fileType(node);
+    String docType = documentType(fileType);
+    String workspace = jcrService.getCurrentRepository().getConfiguration().getDefaultWorkspaceName();
+    Config.Builder builder = Config.editor(documentserverUrl, docType, workspace, node.getPath(), node.getUUID());
+    builder.owner(userId);
+    builder.fileType(fileType);
+    builder.uploaded(nodeCreated(node));
+    builder.displayPath(getDisplayPath(node, userId));
+    builder.comment(nodeComment(node));
+    builder.drive(getDrive(node));
+    builder.mode(null);
+    builder.renameAllowed(canRenameDocument(node));
+    builder.isActivity(ActivityTypeUtils.getActivityId(node) != null);
+    try {
+      builder.folder(node.getParent().getName());
+    } catch (AccessDeniedException e) {
+      // TODO Current user has no permissions to read the document parent
+      // - it can be an usecase of shared file.
+      // As folder is a text used for "Location" in document info in
+      // Onlyoffice, we could guess something like "John Anthony's document"
+      // or "Product Team document" for sharing from personal docs and a
+      // space respectively.
+      String owner;
+      try {
+        owner = node.getProperty("exo:owner").getString();
+      } catch (PathNotFoundException oe) {
+        owner = "?";
+      }
+      LOG.warn("Cannot read document parent node: "
+                   + nodePath(workspace, node.getPath() + ". Owner: " + owner + ". Error: " + e.getMessage()));
+      builder.folder(EMPTY_TEXT); // can be empty for Onlyoffice, will
+      // mean a root folder
+    }
+    builder.lang(getUserLanguage(userId));
+    builder.title(nodeTitle(node));
+    builder.userId(user.getUserName());
+    builder.userName(user.getDisplayName());
+    builder.lastModifier(getLastModifier(node));
+    builder.lastModified(getLastModified(node));
+    String key = generateId(workspace, node.getPath()).toString();
+
+    builder.key(key);
+    String platformUrl = System.getProperty("exo.base.url");
+
+    // REST URL for file and callback URLs fill be generated respectively
+    // the platform URL and actual user
+    builder.generateUrls(new StringBuilder(platformUrl).append('/')
+                                                       .append(PortalContainer.getCurrentRestContextName())
+                                                       .toString());
+    // editor page URL
+    builder.editorUrl(new StringBuilder(platformUrl).append(editorURLPath(node.getUUID())).toString());
+    builder.explorerUri("");
+    // ECMS explorer page URL
+    String ecmsPageLink = explorerLink(node.getPath());
+    builder.secret(documentserverSecret);
+
+    Config config = builder.build();
+
+    // mapping by unique file key for updateDocument()
+    cachedEditorConfigStorage.saveConfig(List.of(key,node.getUUID()),config,true);
+    return config;
+  }
+
 }

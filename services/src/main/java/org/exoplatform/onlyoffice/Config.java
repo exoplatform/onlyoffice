@@ -475,7 +475,9 @@ public class Config implements Externalizable {
 
       Document.Info info = new Document.Info(owner, uploaded, folder);
       Document.Permissions permissions;
-      if (this.allowEdition) {
+      if (this.mode != null && this.mode.equals("fillform")) {
+        permissions = new Document.FillFormPermissions();
+      } else if (this.allowEdition) {
         permissions = new Document.EditPermissions();
       } else {
         permissions = new Document.NoPermissions();
@@ -589,6 +591,8 @@ public class Config implements Externalizable {
       /** The print. */
       protected final boolean print;
 
+      protected final boolean fillForms;
+
       /**
        * Instantiates a new permissions.
        *
@@ -597,10 +601,11 @@ public class Config implements Externalizable {
        * @param print the print
        */
   
-      protected Permissions(boolean download, boolean edit, boolean print) {
+      protected Permissions(boolean download, boolean edit, boolean print, boolean fillForms) {
         this.download = download;
         this.edit = edit;
         this.print=print;
+        this.fillForms=fillForms;
       }
 
       /**
@@ -629,6 +634,10 @@ public class Config implements Externalizable {
         return print;
       }
 
+      public boolean isFillForms() {
+        return fillForms;
+      }
+
     }
 
     /**
@@ -640,7 +649,7 @@ public class Config implements Externalizable {
        * Instantiates a new edits the permissions.
        */
       protected EditPermissions() {
-        super(true, true,true);
+        super(true, true,true,false);
       }
     }
   
@@ -650,7 +659,17 @@ public class Config implements Externalizable {
        * Instantiates a new views the permissions.
        */
       protected NoPermissions() {
-        super(false, false,false);
+        super(false, false,false,false );
+      }
+    }
+
+    public static class FillFormPermissions extends Permissions {
+
+      /**
+       * Instantiates a new views the permissions.
+       */
+      protected FillFormPermissions() {
+        super(false, false,false,true );
       }
     }
 
@@ -914,7 +933,7 @@ public class Config implements Externalizable {
       super();
       this.callbackUrl = callbackUrl;
       this.lang = lang;
-      this.mode = mode;
+      this.mode = mode != null && mode.equals("fillform") ? "edit" : mode;
       this.user = user;
     }
 

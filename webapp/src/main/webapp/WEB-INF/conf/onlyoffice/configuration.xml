@@ -127,6 +127,22 @@
                     </field>
                   </object>
                 </value>
+                <value>
+                  <object type="org.exoplatform.services.cms.documents.NewDocumentTemplateConfig">
+                    <field name="extension">
+                      <string>.pdf</string>
+                    </field>
+                    <field name="path">
+                      <string>classpath:files/template.pdf</string>
+                    </field>
+                    <field name="name">
+                      <string>OnlyOfficeDocumentFormPdf</string>
+                    </field>
+                    <field name="mimeType">
+                      <string>application/pdf</string>
+                    </field>
+                  </object>
+                </value>
               </collection>
             </field>
           </object>
@@ -172,6 +188,9 @@
                 </value>
                 <value>
                   <string>application/vnd.openxmlformats-officedocument.wordprocessingml.document.form</string>
+                </value>
+                <value>
+                  <string>application/pdf</string>
                 </value>
               </collection>
             </field>
