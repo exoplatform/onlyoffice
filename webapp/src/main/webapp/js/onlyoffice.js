@@ -529,6 +529,9 @@
           "onReady": onReady,
           "onBack": onBack
         };
+
+
+
         config.editorConfig.customization = {
           "chat": false,
           "compactToolbar": true,
@@ -551,6 +554,7 @@
             "www": "exoplatform.com"
           }
         };
+
         config.editorConfig.plugins = {
           "autostart": [],
           "pluginsData": []

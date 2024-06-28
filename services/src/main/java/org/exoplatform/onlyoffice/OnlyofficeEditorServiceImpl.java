@@ -197,6 +197,8 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
   /** The Constant TYPE_TEXT. */
   protected static final String  TYPE_TEXT                = "word";
 
+  private static final String TYPE_PDF = "pdf";
+
   /** The Constant TYPE_SPREADSHEET. */
   protected static final String  TYPE_SPREADSHEET         = "cell";
 
@@ -602,7 +604,7 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
                              int port,
                              String userId,
                              String workspace,
-                             String docId) throws OnlyofficeEditorException, RepositoryException {
+                             String docId, String mode) throws OnlyofficeEditorException, RepositoryException {
     if (workspace == null) {
       workspace = jcrService.getCurrentRepository().getConfiguration().getDefaultWorkspaceName();
     }
@@ -651,6 +653,7 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
           builder.displayPath(getDisplayPath(node, userId));
           builder.comment(nodeComment(node));
           builder.drive(getDrive(node));
+          builder.mode(mode);
           builder.renameAllowed(canRenameDocument(node));
           builder.isActivity(ActivityTypeUtils.getActivityId(node) != null);
           try {
@@ -674,7 +677,6 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
                                         // mean a root folder
           }
           builder.lang(getUserLanguage(userId));
-          builder.mode(OnlyofficeEditorService.EDIT_MODE);
           builder.title(nodeTitle(node));
           builder.userId(user.getUserName());
           builder.userName(user.getDisplayName());
@@ -1051,12 +1053,9 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
                 + ". Document " + nodePath + ". URL: " + status.getUrl() + ". Download: " + status.isSaved());
           }
           // Here we decide if we need to download content or just save the link
-          if (status.isSaved()) {
-            if (status.isSaved()) {
-              status.setConfig(getEditorByKey(status.getUserId(), key));
-              LOG.debug("Document is save, and we need to download it (Node (id={}), userId={})",
+          if (status.saved == null || status.isSaved()) {
+            LOG.debug("Document is save, and we need to download it (Node (id={}), userId={})",
                         status.getConfig().getDocId(), status.getUserId());
-            }
             status.setConfig(getEditorByKey(status.getUserId(), key));
             downloadVersion(status);
           } else {
@@ -2964,7 +2963,7 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
     fileTypes.put("html", TYPE_TEXT);
     fileTypes.put("htm", TYPE_TEXT);
     fileTypes.put("epub", TYPE_TEXT);
-    fileTypes.put("pdf", TYPE_TEXT);
+    fileTypes.put("pdf", TYPE_PDF);
     fileTypes.put("djvu", TYPE_TEXT);
     fileTypes.put("xps", TYPE_TEXT);
     fileTypes.put("docxf", TYPE_TEXT);
