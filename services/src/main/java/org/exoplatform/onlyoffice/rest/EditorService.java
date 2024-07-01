@@ -422,7 +422,7 @@ public class EditorService implements ResourceContainer {
                                                  requestUri.getPort(),
                                                  username,
                                                  workspace,
-                                                 path);
+                                                 path, OnlyofficeEditorService.EDIT_MODE);
             if (config.getEditorConfig().getLang() == null) {
               if (request.getLocale() != null) {
                 // If user lang not defined use current request one

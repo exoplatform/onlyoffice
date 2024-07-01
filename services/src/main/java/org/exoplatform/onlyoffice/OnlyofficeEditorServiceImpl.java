@@ -607,7 +607,7 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
                              int port,
                              String userId,
                              String workspace,
-                             String docId) throws OnlyofficeEditorException, RepositoryException {
+                             String docId, String mode) throws OnlyofficeEditorException, RepositoryException {
     if (workspace == null) {
       workspace = jcrService.getCurrentRepository().getConfiguration().getDefaultWorkspaceName();
     }
@@ -656,6 +656,7 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
           builder.displayPath(getDisplayPath(node, userId));
           builder.comment(nodeComment(node));
           builder.drive(getDrive(node));
+          builder.mode(mode);
           builder.renameAllowed(canRenameDocument(node));
           builder.isActivity(ActivityTypeUtils.getActivityId(node) != null);
           try {
@@ -679,7 +680,7 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
                                         // mean a root folder
           }
           builder.lang(getUserLanguage(userId));
-          builder.mode(OnlyofficeEditorService.EDIT_MODE);
+          builder.mode(mode);
           builder.title(nodeTitle(node));
           builder.userId(user.getUserName());
           builder.userName(user.getDisplayName());

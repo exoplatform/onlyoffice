@@ -69,7 +69,7 @@
       extension: '.pdf',
       mimeType: 'application/pdf',
       view: true,
-      edit: false
+      edit: true
     },
     {
       provider: 'onlyoffice',
