@@ -106,7 +106,7 @@
 
     <!-- For tests -->
     <dependency>
-      <groupId>org.exoplatform.social</groupId>
+      <groupId>io.meeds.social</groupId>
       <artifactId>social-component-core</artifactId>
       <type>test-jar</type>
       <scope>test</scope>
