@@ -27,6 +27,10 @@
     <portlet-name>OnlyofficeEditorPortlet</portlet-name>
     <display-name xml:lang="EN">Onlyoffice Editor Portlet</display-name>
     <portlet-class>org.exoplatform.onlyoffice.portlet.EditorPortlet</portlet-class>
+    <init-param>
+      <name>layout-css-class</name>
+      <value>no-layout-style</value>
+    </init-param>
     <supports>
       <mime-type>text/html</mime-type>
     </supports>
@@ -46,6 +50,10 @@
     <init-param>
       <name>preload.resource.bundles</name>
       <value>locale.navigation.portal.global</value>
+    </init-param>
+    <init-param>
+      <name>layout-css-class</name>
+      <value>no-layout-style</value>
     </init-param>
     <supports>
       <mime-type>text/html</mime-type>
