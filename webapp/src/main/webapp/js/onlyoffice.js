@@ -1041,10 +1041,6 @@
      * Init editor page UI.
      */
     this.initEditor = function() {
-      // We don't need this (thx to OnlyofficeEditorLifecycle)
-      // $("#NavigationPortlet").remove();
-      // But we may need this for some cases of first page loading
-      $("#LeftNavigation").parent(".LeftNavigationTDContainer").remove();
       // Specific styles to add to hide/fix portal layout
       // We prefer to add to an element with already applied Platform skin style
       var $body = $("#UIWorkingWorkspace");
