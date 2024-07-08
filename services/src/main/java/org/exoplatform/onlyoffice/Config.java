@@ -1104,6 +1104,9 @@ public class Config implements Externalizable {
   /**  The close timestamp. */
   private Long                            closedTime;
 
+  /**  The back to path. */
+  private String backTo;
+
   /**
    * Instantiates a new config for use with {@link Externalizable} methods. User
    * by serialization.
@@ -1522,6 +1525,25 @@ public class Config implements Externalizable {
    */
   public Boolean getSameModifier() {
     return this.sameModifier.get();
+  }
+
+
+  /**
+   * Gets the backTo.
+   *
+   * @return the backTo
+   */
+  public String getBackTo() {
+    return backTo;
+  }
+
+  /**
+   * Sets the backTo.
+   *
+   * @param backTo the backTo
+   */
+  public void setBackTo(String backTo) {
+    this.backTo = backTo;
   }
 
   /**
