@@ -155,6 +155,7 @@ public class EditorPortlet extends GenericPortlet {
 
     WebuiRequestContext webuiContext = WebuiRequestContext.getCurrentInstance();
     String docId = webuiContext.getRequestParameter("docId");
+    String backTo = webuiContext.getRequestParameter("backTo");
 
     if (docId != null) {
       try {
@@ -182,6 +183,9 @@ public class EditorPortlet extends GenericPortlet {
               // Otherwise use system default one
               config.getEditorConfig().setLang(Locale.getDefault().getLanguage());
             }
+          }
+          if (backTo != null) {
+            config.setBackTo(backTo);
           }
         } else {
           showError(i18n.getString("OnlyofficeEditorClient.ErrorTitle"),
