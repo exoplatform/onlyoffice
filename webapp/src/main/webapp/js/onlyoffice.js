@@ -535,7 +535,7 @@
           "goback": {
             "blank": true,
             "text": message("GoToDocument"),
-            "url": config.explorerUrl
+            "url":  getBackUrl(config)
           },
           "help": true,
           "logo": {
@@ -569,6 +569,18 @@
       }
       return process.promise();
     };
+    /**
+     * Create back button url.
+     */
+      var getBackUrl = function(config) {
+      if(!config.backTo){
+        return config.explorerUrl;
+      }
+      const url = new URL(`${window.location.origin}${config.backTo}`);
+      url.searchParams.set('updated', changesSaved);
+      return url.toString();
+    };
+
     this.createEditor = createEditor;
     this.createViewer = createViewer;
 
