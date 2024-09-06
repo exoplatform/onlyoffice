@@ -2137,22 +2137,12 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
           }
 
           // Add comment to the FileActivity
-          String commentId = null;
           String versionSummary = null;
           if (status.getComment() != null && !status.getComment().trim().isEmpty()) {
-            commentId = org.exoplatform.wcm.ext.component.activity.listener.Utils.addVersionComment(node,
-                                                                                                    status.getComment(),
-                                                                                                    userId);
             versionSummary = status.getComment().trim();
           }
-
-          if (commentId != null) {
-            node.setProperty("eoo:commentId", commentId);
-            config.getEditorPage().setComment(status.getComment());
-          } else {
             node.setProperty("eoo:commentId", "");
             config.getEditorPage().setComment(null);
-          }
           if(LOG.isDebugEnabled()) {
             LOG.debug("Update config={} (Node (id={},path={}), userId={})",
                       config.toString(),node.getUUID(), node.getPath(), userId);
@@ -2262,6 +2252,14 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
             if(LOG.isDebugEnabled()) {
               LOG.debug("Node final save (Node (id={},path={}), userId={})",
                         node.getUUID(), node.getPath(), userId);
+            }
+            // If the status code == 2, the EDITOR_SAVED_EVENT should be thrown.
+            if (statusCode != 2) {
+              if(LOG.isDebugEnabled()) {
+                LOG.debug("Broacast EDITOR_VERSION_EVENT (Node (id={},path={}), userId={})",
+                          node.getUUID(), node.getPath(), userId);
+              }
+              broadcastEvent(status, OnlyofficeEditorService.EDITOR_VERSION_EVENT);
             }
           }
 
