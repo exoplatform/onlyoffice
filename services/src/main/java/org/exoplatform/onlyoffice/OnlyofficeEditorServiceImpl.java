@@ -2263,14 +2263,6 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
               LOG.debug("Node final save (Node (id={},path={}), userId={})",
                         node.getUUID(), node.getPath(), userId);
             }
-            // If the status code == 2, the EDITOR_SAVED_EVENT should be thrown.
-            if (statusCode != 2) {
-              if(LOG.isDebugEnabled()) {
-                LOG.debug("Broacast EDITOR_VERSION_EVENT (Node (id={},path={}), userId={})",
-                          node.getUUID(), node.getPath(), userId);
-              }
-              broadcastEvent(status, OnlyofficeEditorService.EDITOR_VERSION_EVENT);
-            }
           }
 
           fireSaved(status);
