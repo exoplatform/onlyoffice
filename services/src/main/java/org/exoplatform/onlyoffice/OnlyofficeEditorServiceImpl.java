@@ -2137,22 +2137,12 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
           }
 
           // Add comment to the FileActivity
-          String commentId = null;
           String versionSummary = null;
           if (status.getComment() != null && !status.getComment().trim().isEmpty()) {
-            commentId = org.exoplatform.wcm.ext.component.activity.listener.Utils.addVersionComment(node,
-                                                                                                    status.getComment(),
-                                                                                                    userId);
             versionSummary = status.getComment().trim();
           }
-
-          if (commentId != null) {
-            node.setProperty("eoo:commentId", commentId);
-            config.getEditorPage().setComment(status.getComment());
-          } else {
             node.setProperty("eoo:commentId", "");
             config.getEditorPage().setComment(null);
-          }
           if(LOG.isDebugEnabled()) {
             LOG.debug("Update config={} (Node (id={},path={}), userId={})",
                       config.toString(),node.getUUID(), node.getPath(), userId);
