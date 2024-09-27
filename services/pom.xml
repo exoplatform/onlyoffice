@@ -182,10 +182,6 @@
           </includes>
         </configuration>
       </plugin>
-      <plugin>
-        <groupId>com.jcabi</groupId>
-        <artifactId>jcabi-maven-plugin</artifactId>
-      </plugin>
     </plugins>
   </build>
 </project>
