@@ -98,12 +98,10 @@ import org.exoplatform.ecm.webui.utils.PermissionUtil;
 import org.exoplatform.ecm.webui.utils.Utils;
 import org.exoplatform.onlyoffice.Config.Editor;
 import org.exoplatform.onlyoffice.jcr.NodeFinder;
-import org.exoplatform.portal.Constants;
 import org.exoplatform.portal.application.PortalRequestContext;
 import org.exoplatform.portal.config.UserACL;
 import org.exoplatform.portal.config.UserPortalConfigService;
 import org.exoplatform.portal.config.model.PortalConfig;
-import org.exoplatform.portal.webui.util.Util;
 import org.exoplatform.services.cache.CacheService;
 import org.exoplatform.services.cache.ExoCache;
 import org.exoplatform.services.cms.BasePath;
@@ -127,8 +125,6 @@ import org.exoplatform.services.log.Log;
 import org.exoplatform.services.organization.Group;
 import org.exoplatform.services.organization.OrganizationService;
 import org.exoplatform.services.organization.User;
-import org.exoplatform.services.organization.UserProfile;
-import org.exoplatform.services.organization.UserProfileHandler;
 import org.exoplatform.services.security.Authenticator;
 import org.exoplatform.services.security.ConversationState;
 import org.exoplatform.services.security.Identity;
@@ -144,7 +140,6 @@ import org.exoplatform.social.core.manager.IdentityManager;
 import org.exoplatform.social.core.space.model.Space;
 import org.exoplatform.social.core.space.spi.SpaceService;
 import org.exoplatform.web.application.RequestContext;
-import org.exoplatform.webui.application.WebuiRequestContext;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jws;
@@ -3290,7 +3285,7 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
       // Retrieve the list of accessible portals by current user (defined in
       // ConservationState.getCurrent())
       PortalConfig portalConfig = layoutService.getPortalConfig(SiteType.PORTAL.key(defaultPortal));
-      if (portalConfig != null && userACL.hasPermission(portalConfig)) {
+      if (portalConfig != null && userACL.hasAccessPermission(portalConfig, getCurrentIdentity())) {
         return defaultPortal;
       } else {
         int offset = 0;
@@ -3300,7 +3295,7 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
           portalNames = layoutService.getSiteNames(SiteType.PORTAL, offset, limit);
           String defaultUserPortalName = portalNames.stream().filter(portalName -> {
             PortalConfig userPortalConfig = layoutService.getPortalConfig(SiteType.PORTAL.key(portalName));
-            return userPortalConfig != null && userACL.hasPermission(userPortalConfig);
+            return userPortalConfig != null && userACL.hasAccessPermission(userPortalConfig, getCurrentIdentity());
           }).findFirst().orElse(null);
           if (defaultUserPortalName != null) {
             return defaultUserPortalName;
@@ -3321,4 +3316,8 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
     return (PortalRequestContext) currentInstance;
   }
 
+  private Identity getCurrentIdentity() {
+    ConversationState conversationState = ConversationState.getCurrent();
+    return conversationState == null ? null : conversationState.getIdentity();
+  }
 }
