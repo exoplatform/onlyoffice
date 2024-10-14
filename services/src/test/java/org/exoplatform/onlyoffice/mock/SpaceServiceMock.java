@@ -19,11 +19,9 @@ import org.exoplatform.social.core.space.spi.SpaceService;
  */
 public class SpaceServiceMock implements SpaceService {
 
-
   public Space getSpaceByDisplayName(String spaceDisplayName) {
     return null;
   }
-
 
   public Space getSpaceByPrettyName(String spacePrettyName) {
     return null;
@@ -274,21 +272,9 @@ public class SpaceServiceMock implements SpaceService {
   }
 
 
-  public void renameSpace(Space space, String newDisplayName) throws SpaceException {
-  }
-
 
   public void deleteSpace(String spaceId) throws SpaceException {
   }
-
-
-  public void addMember(String spaceId, String userId) throws SpaceException {
-  }
-
-
-  public void removeMember(String spaceId, String userId) throws SpaceException {
-  }
-
 
   public List<String> getMembers(Space space) throws SpaceException {
     return null;
@@ -326,12 +312,6 @@ public class SpaceServiceMock implements SpaceService {
   public boolean isOnlyLeader(String spaceId, String userId) throws SpaceException {
     return false;
   }
-
-
-  public boolean isMember(String spaceId, String userId) throws SpaceException {
-    return false;
-  }
-
 
   public boolean hasAccessPermission(String spaceId, String userId) throws SpaceException {
     return false;
@@ -397,10 +377,6 @@ public class SpaceServiceMock implements SpaceService {
 
 
   public void removeApplication(String spaceId, String appId, String appName) throws SpaceException {
-  }
-
-
-  public void updateSpaceAccessed(String remoteId, Space space) throws SpaceException {
   }
 
 
