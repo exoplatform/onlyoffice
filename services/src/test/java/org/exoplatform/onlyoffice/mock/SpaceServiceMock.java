@@ -5,7 +5,6 @@ import java.util.List;
 import org.exoplatform.commons.utils.ListAccess;
 import org.exoplatform.social.core.application.PortletPreferenceRequiredPlugin;
 import org.exoplatform.social.core.identity.model.Identity;
-import org.exoplatform.social.core.space.SpaceApplicationConfigPlugin;
 import org.exoplatform.social.core.space.SpaceException;
 import org.exoplatform.social.core.space.SpaceFilter;
 import org.exoplatform.social.core.space.SpaceListAccess;
@@ -206,16 +205,6 @@ public class SpaceServiceMock implements SpaceService {
 
   public void unregisterSpaceListenerPlugin(SpaceListenerPlugin spaceListenerPlugin) {
   }
-
-
-  public void setSpaceApplicationConfigPlugin(SpaceApplicationConfigPlugin spaceApplicationConfigPlugin) {
-  }
-
-
-  public SpaceApplicationConfigPlugin getSpaceApplicationConfigPlugin() {
-    return null;
-  }
-
 
   public List<Space> getAllSpaces() throws SpaceException {
     return null;
