@@ -133,7 +133,6 @@ import org.exoplatform.services.wcm.core.NodetypeConstant;
 import org.exoplatform.services.wcm.utils.WCMCoreUtils;
 import org.exoplatform.social.core.activity.model.ExoSocialActivity;
 import org.exoplatform.social.core.activity.model.ExoSocialActivityImpl;
-import org.exoplatform.social.core.application.SpaceActivityPublisher;
 import org.exoplatform.social.core.identity.provider.OrganizationIdentityProvider;
 import org.exoplatform.social.core.manager.ActivityManager;
 import org.exoplatform.social.core.manager.IdentityManager;
@@ -163,6 +162,8 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
 
   /** The Constant UTF_8. */
   private static final String    UTF_8                    = "utf-8";
+
+  public static final String SPACE_APP_ID = "exosocial:spaces";
 
   /** The Constant RANDOM. */
   protected static final Random  RANDOM                   = new Random();
@@ -2361,7 +2362,7 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
                                                                                                        false);
       ExoSocialActivity activity = activityManager.getActivity(activityId);
       ExoSocialActivity comment = new ExoSocialActivityImpl(identity.getId(),
-                                                            SpaceActivityPublisher.SPACE_APP_ID,
+                                                            SPACE_APP_ID,
                                                             commentText,
                                                             null);
       activityManager.saveComment(activity, comment);
