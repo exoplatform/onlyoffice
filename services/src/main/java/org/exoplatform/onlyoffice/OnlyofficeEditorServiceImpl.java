@@ -3279,7 +3279,7 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
     } else {
       LayoutService layoutService = WCMCoreUtils.getService(LayoutService.class);
       UserPortalConfigService userPortalConfigService = ExoContainerContext.getService(UserPortalConfigService.class);
-      String defaultPortal = userPortalConfigService.getDefaultPortal();
+      String defaultPortal = userPortalConfigService.getMetaPortal();
 
       UserACL userACL = ExoContainerContext.getService(UserACL.class);
 
