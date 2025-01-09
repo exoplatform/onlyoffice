@@ -120,4 +120,8 @@
     <sql>ALTER TABLE OO_EDITOR_CONFIG MODIFY COLUMN DOCUMENT_TITLE varchar(250) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin;</sql>
   </changeSet>
 
+  <changeSet id="1.0.0-7" author="onlyoffice" dbms="mysql">
+    <sql>ALTER TABLE OO_EDITOR_CONFIG MODIFY COLUMN EDITOR_PAGE_LAST_MODIFIED varchar(250) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci;</sql>
+  </changeSet>
+
 </databaseChangeLog>
