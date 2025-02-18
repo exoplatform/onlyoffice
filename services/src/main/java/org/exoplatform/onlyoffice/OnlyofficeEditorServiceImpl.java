@@ -91,10 +91,10 @@ import org.exoplatform.container.component.ComponentPlugin;
 import org.exoplatform.container.configuration.ConfigurationException;
 import org.exoplatform.container.xml.InitParams;
 import org.exoplatform.container.xml.PropertiesParam;
-import org.exoplatform.ecm.jcr.model.VersionNode;
+import org.exoplatform.documents.service.DocumentFileService;
 import org.exoplatform.ecm.utils.lock.LockUtil;
 import org.exoplatform.ecm.utils.text.Text;
-import org.exoplatform.ecm.webui.utils.PermissionUtil;
+import org.exoplatform.ecm.utils.permission.PermissionUtil;
 import org.exoplatform.ecm.webui.utils.Utils;
 import org.exoplatform.onlyoffice.Config.Editor;
 import org.exoplatform.onlyoffice.jcr.NodeFinder;
@@ -106,7 +106,6 @@ import org.exoplatform.services.cache.CacheService;
 import org.exoplatform.services.cache.ExoCache;
 import org.exoplatform.services.cms.BasePath;
 import org.exoplatform.services.cms.documents.DocumentService;
-import org.exoplatform.services.cms.documents.TrashService;
 import org.exoplatform.services.cms.drives.DriveData;
 import org.exoplatform.services.cms.drives.ManageDriveService;
 import org.exoplatform.services.cms.lock.LockService;
@@ -346,7 +345,7 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
   protected final ListenerService                                 listenerService;
 
   /** The trash service. */
-  protected final TrashService                                    trashService;
+  protected final DocumentFileService                             documentFileService;
 
   /** The space service. */
   protected final SpaceService                                    spaceService;
@@ -442,7 +441,7 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
                                      DocumentService documentService,
                                      LockService lockService,
                                      ListenerService listenerService,
-                                     TrashService trashService,
+                                     DocumentFileService documentFileService,
                                      SpaceService spaceService,
                                      ActivityManager activityManager,
                                      ManageDriveService manageDriveService,
@@ -459,7 +458,7 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
     this.documentService = documentService;
     this.lockService = lockService;
     this.listenerService = listenerService;
-    this.trashService = trashService;
+    this.documentFileService = documentFileService;
     this.spaceService = spaceService;
     this.activityManager = activityManager;
     this.cachedEditorConfigStorage = cachedEditorConfigStorage;
@@ -765,7 +764,7 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
     String path = node.getPath();
 
     // only nt:file node or FrozenType node are supported for online edition
-   if (!WCMCoreUtils.isNodeTypeOrFrozenType(node, NodetypeConstant.NT_FILE)) {
+   if (!isNodeTypeOrFrozenType(node, NodetypeConstant.NT_FILE)) {
      throw new OnlyofficeEditorException("Document should be a nt:file node or FrozenType node: " + nodePath(workspace, path));
    }
 
@@ -1326,8 +1325,8 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
     boolean res = false;
     if (node != null) {
       if (isDocumentMimeSupported(node)) {
-        String remoteUser = WCMCoreUtils.getRemoteUser();
-        String superUser = WCMCoreUtils.getSuperUser();
+        String remoteUser = getRemoteUser();
+        String superUser = getSuperUser();
         boolean locked = node.isLocked();
         if (locked && (remoteUser.equalsIgnoreCase(superUser) || node.getLock().getLockOwner().equals(remoteUser))) {
           locked = false;
@@ -1349,8 +1348,8 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
     if (this.documentTypePlugin != null) {
       if (node != null) {
         String mimeType;
-        if (node.isNodeType(Utils.NT_FILE)) {
-          mimeType = node.getNode(Utils.JCR_CONTENT).getProperty(Utils.JCR_MIMETYPE).getString();
+        if (node.isNodeType(NodetypeConstant.NT_FILE)) {
+          mimeType = node.getNode(NodetypeConstant.JCR_CONTENT).getProperty(NodetypeConstant.JCR_MIMETYPE).getString();
         } else {
           mimeType = new MimeTypeResolver().getMimeType(node.getName());
         }
@@ -2027,10 +2026,8 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
       DocumentNotFoundException notFoundEx = null;
       try {
         node = getDocumentById(workspace, config.getDocId());
-        if (trashService.isInTrash(node)) {
-          notFoundEx = new DocumentNotFoundException("The document is in trash. docId: " + config.getDocId() + ", workspace: "
-              + workspace);
-          throw notFoundEx;
+        if (documentFileService.isInTrash(node.getPath())) {
+          throw new DocumentNotFoundException("The document is in trash. docId: " + config.getDocId() + ", workspace: " + workspace);
         }
       } catch (AccessDeniedException e) {
         DocumentStatus errorStatus = new DocumentStatus.Builder().config(config)
@@ -2357,7 +2354,7 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
 
   protected String addComment(String activityId, String commentText, String userId) {
     if (activityId != null && !activityId.isEmpty() && commentText != null && !commentText.trim().isEmpty()) {
-      IdentityManager identityManager = WCMCoreUtils.getService(IdentityManager.class);
+      IdentityManager identityManager = ExoContainerContext.getService(IdentityManager.class);
       org.exoplatform.social.core.identity.model.Identity identity =
                                                                    identityManager.getOrCreateIdentity(OrganizationIdentityProvider.NAME,
                                                                                                        userId,
@@ -3279,7 +3276,7 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
     if (portalRequestContext != null) {
       return portalRequestContext.getPortalOwner();
     } else {
-      LayoutService layoutService = WCMCoreUtils.getService(LayoutService.class);
+      LayoutService layoutService = ExoContainerContext.getService(LayoutService.class);
       UserPortalConfigService userPortalConfigService = ExoContainerContext.getService(UserPortalConfigService.class);
       String defaultPortal = userPortalConfigService.getMetaPortal();
 
@@ -3479,6 +3476,27 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
     // mapping by unique file key for updateDocument()
     cachedEditorConfigStorage.saveConfig(List.of(key,node.getUUID()),config,true);
     return config;
+  }
+
+  private boolean isNodeTypeOrFrozenType(Node node, String type) throws RepositoryException {
+    if (node.isNodeType(type))
+      return true;
+    if (!node.isNodeType(NodetypeConstant.NT_FROZEN_NODE))
+      return false;
+    String realType = node.getProperty("jcr:frozenPrimaryType").getString();
+    return WCMCoreUtils.getRepository().getNodeTypeManager().getNodeType(realType).isNodeType(type);
+  }
+
+  private String getRemoteUser() {
+    try {
+      return ConversationState.getCurrent().getIdentity().getUserId();
+    } catch (NullPointerException npe) {
+      return null;
+    }
+  }
+
+  private static String getSuperUser() {
+    return ExoContainerContext.getService(UserACL.class).getSuperUser();
   }
 
 }

@@ -41,14 +41,6 @@ public class DocumentServiceMock implements DocumentService {
    * {@inheritDoc}
    */
   @Override
-  public Document findDocById(String id) throws RepositoryException {
-    return null;
-  }
-
-  /**
-   * {@inheritDoc}
-   */
-  @Override
   public List<DocumentEditorProvider> getDocumentEditorProviders() {
     return null;
   }

@@ -1,8 +1,8 @@
 package org.exoplatform.onlyoffice.webui;
 
 import javax.jcr.RepositoryException;
-import jakarta.servlet.http.HttpServletRequest;
 
+import org.exoplatform.container.ExoContainerContext;
 import org.exoplatform.onlyoffice.Config;
 import org.exoplatform.onlyoffice.OnlyofficeEditorException;
 import org.exoplatform.onlyoffice.OnlyofficeEditorService;
@@ -10,10 +10,11 @@ import org.exoplatform.portal.application.PortalRequestContext;
 import org.exoplatform.portal.webui.util.Util;
 import org.exoplatform.services.log.ExoLogger;
 import org.exoplatform.services.log.Log;
-import org.exoplatform.services.wcm.utils.WCMCoreUtils;
 import org.exoplatform.webui.config.annotation.ComponentConfig;
 import org.exoplatform.webui.core.lifecycle.UIFormLifecycle;
 import org.exoplatform.webui.form.UIForm;
+
+import jakarta.servlet.http.HttpServletRequest;
 
 /**
  * The Class OnlyofficeFileViewer is used to show document preview.
@@ -36,7 +37,7 @@ public class OnlyofficeFileViewer extends UIForm {
    * @return the file viewer config
    */
   public Config getFileViewerConfig(String fileId, String workspace) {
-    OnlyofficeEditorService editorService = WCMCoreUtils.getService(OnlyofficeEditorService.class);
+    OnlyofficeEditorService editorService = ExoContainerContext.getService(OnlyofficeEditorService.class);
     PortalRequestContext requestContext = Util.getPortalRequestContext();
     HttpServletRequest request = requestContext.getRequest();
     try {
