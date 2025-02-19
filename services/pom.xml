@@ -85,11 +85,6 @@
     <!-- Portal & ECMS & Social -->
     <dependency>
       <groupId>org.exoplatform.ecms</groupId>
-      <artifactId>ecms-core-webui</artifactId>
-      <scope>compile</scope>
-    </dependency>
-        <dependency>
-      <groupId>org.exoplatform.ecms</groupId>
       <artifactId>ecms-core-services</artifactId>
       <scope>provided</scope>
     </dependency>
