@@ -26,16 +26,16 @@ import java.util.ResourceBundle;
 import org.exoplatform.container.ExoContainer;
 import org.exoplatform.container.PortalContainer;
 import org.exoplatform.onlyoffice.OnlyofficeEditorException;
-import org.exoplatform.onlyoffice.OnlyofficeEditorService;
 import org.exoplatform.onlyoffice.cometd.CometdConfig;
 import org.exoplatform.onlyoffice.cometd.CometdOnlyofficeService;
+import org.exoplatform.portal.application.PortalRequestContext;
 import org.exoplatform.services.log.ExoLogger;
 import org.exoplatform.services.log.Log;
 import org.exoplatform.services.resources.ResourceBundleService;
 import org.exoplatform.services.security.ConversationState;
 import org.exoplatform.web.application.JavascriptManager;
+import org.exoplatform.web.application.RequestContext;
 import org.exoplatform.web.application.RequireJS;
-import org.exoplatform.webui.application.WebuiRequestContext;
 import org.exoplatform.ws.frameworks.json.impl.JsonException;
 import org.exoplatform.ws.frameworks.json.impl.JsonGeneratorImpl;
 
@@ -74,7 +74,8 @@ public class OnlyofficeContext {
    * @param requestContext the request context
    * @throws Exception the exception
    */
-  private OnlyofficeContext(WebuiRequestContext requestContext) throws Exception {
+  private OnlyofficeContext() throws Exception {
+    PortalRequestContext requestContext = PortalRequestContext.getCurrentInstance();
     JavascriptManager js = requestContext.getJavascriptManager();
     this.require = js.require("SHARED/onlyoffice", "onlyoffice");
 
@@ -85,7 +86,7 @@ public class OnlyofficeContext {
                                                         .getApplicationServiceContainer()
                                                         .getComponentInstanceOfType(ResourceBundleService.class);
       ResourceBundle res = i18nService.getResourceBundle("locale.onlyoffice.OnlyofficeClient", requestContext.getLocale());
-      Map<String, String> resMap = new HashMap<String, String>();
+      Map<String, String> resMap = new HashMap<>();
       for (Enumeration<String> keys = res.getKeys(); keys.hasMoreElements();) {
         String key = keys.nextElement();
         String bundleKey;
@@ -158,13 +159,13 @@ public class OnlyofficeContext {
    */
   private static OnlyofficeContext context() throws Exception {
     OnlyofficeContext context;
-    WebuiRequestContext requestContext = WebuiRequestContext.getCurrentInstance();
+    RequestContext requestContext = RequestContext.getCurrentInstance();
     Object obj = requestContext.getAttribute(JAVASCRIPT);
     if (obj == null || !OnlyofficeContext.class.isAssignableFrom(obj.getClass())) {
       synchronized (requestContext) {
         obj = requestContext.getAttribute(JAVASCRIPT);
         if (obj == null || !OnlyofficeContext.class.isAssignableFrom(obj.getClass())) {
-          context = new OnlyofficeContext(requestContext);
+          context = new OnlyofficeContext();
           requestContext.setAttribute(JAVASCRIPT, context);
         } else {
           context = OnlyofficeContext.class.cast(obj);
