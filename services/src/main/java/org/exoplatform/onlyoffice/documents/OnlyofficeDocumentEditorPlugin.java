@@ -31,7 +31,6 @@ import javax.jcr.RepositoryException;
 
 import org.exoplatform.container.PortalContainer;
 import org.exoplatform.container.component.BaseComponentPlugin;
-import org.exoplatform.ecm.webui.component.explorer.UIJCRExplorer;
 import org.exoplatform.onlyoffice.DocumentNotFoundException;
 import org.exoplatform.onlyoffice.EditorLinkNotFoundException;
 import org.exoplatform.onlyoffice.OnlyOfficeDocumentUpdateActivityHandler;
@@ -49,7 +48,6 @@ import org.exoplatform.services.log.ExoLogger;
 import org.exoplatform.services.log.Log;
 import org.exoplatform.services.resources.ResourceBundleService;
 import org.exoplatform.services.security.ConversationState;
-import org.exoplatform.webui.application.WebuiRequestContext;
 
 /**
  * The Class OnlyOfficeNewDocumentEditorPlugin.
@@ -258,61 +256,6 @@ public class OnlyofficeDocumentEditorPlugin extends BaseComponentPlugin implemen
   }
 
   /**
-   * Inits the explorer.
-   *
-   * @param fileId the file id
-   * @param workspace the workspace
-   * @param context the context
-   * @return the editor setting
-   */
-  @SuppressWarnings("unchecked")
-  @Override
-  public EditorSetting initExplorer(String fileId, String workspace, WebuiRequestContext context) {
-    try {
-      String userId = context.getRemoteUser();
-      Node node = editorService.getDocumentById(workspace, fileId);
-      if (editorService.isDocumentMimeSupported(node)) {
-        if (LOG.isDebugEnabled()) {
-          LOG.debug("Init documents explorer for node: {}:{}", workspace, fileId);
-        }
-        // Handling symlinks
-        UIJCRExplorer uiExplorer = context.getUIApplication().findFirstComponentOfType(UIJCRExplorer.class);
-        if (uiExplorer != null) {
-          if (linkManager.isFileOrParentALink(uiExplorer.getSession(), uiExplorer.getCurrentPath())) {
-            editorService.addFilePreferences(node, userId, uiExplorer.getCurrentPath());
-          }
-        } else {
-          LOG.warn("Cannot check for symlink node {}:{} - UIJCRExplorer is null", fileId, workspace);
-        }
-        String link = null;
-        EditorError error = null;
-        try {
-          link = contextEditorLink(node, PREVIEW, null);
-        } catch (EditorLinkNotFoundException e) {
-          if (LOG.isDebugEnabled()) {
-            LOG.debug("Cannot get editor link for preview: {}", e.getMessage());
-          }
-          error = new EditorError(EDITOR_LINK_NOT_FOUND_ERROR, EDITOR_LINK_NOT_FOUND_ERROR_MESSAGE);
-        } catch (OnlyofficeEditorException e) {
-          LOG.error("Cannot get editor link for preview: ", e);
-          error = new EditorError(INTERNAL_EDITOR_ERROR, INTERNAL_EDITOR_ERROR_MESSAGE);
-        } catch (RepositoryException e) {
-          LOG.error("Cannot get editor link for preview: ", e);
-          error = new EditorError(STORAGE_ERROR, STORAGE_ERROR_MESSAGE);
-        }
-        Map<String, String> messages = initMessages(context.getLocale());
-        CometdConfig cometdConf = new CometdConfig(cometdService.getCometdServerPath(),
-                                                   cometdService.getUserToken(userId),
-                                                   PortalContainer.getCurrentPortalContainerName());
-        return new EditorSetting(fileId, link, userId, cometdConf, messages, error);
-      }
-    } catch (Exception e) {
-      LOG.error("Cannot initialize explorer for fileId: " + fileId + ", workspace: " + workspace, e);
-    }
-    return null;
-  }
-
-  /**
    * Checks if is document supported.
    *
    * @param fileId the file id
@@ -408,7 +351,7 @@ public class OnlyofficeDocumentEditorPlugin extends BaseComponentPlugin implemen
    */
   private Map<String, String> initMessages(Locale locale) {
     ResourceBundle res = i18nService.getResourceBundle("locale.onlyoffice.OnlyofficeClient", locale);
-    Map<String, String> messages = new HashMap<String, String>();
+    Map<String, String> messages = new HashMap<>();
     for (Enumeration<String> keys = res.getKeys(); keys.hasMoreElements();) {
       String key = keys.nextElement();
       String bundleKey;
