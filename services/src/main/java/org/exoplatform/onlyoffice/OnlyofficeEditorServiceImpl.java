@@ -3325,6 +3325,11 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
 
   @Override
   public byte[] convertNodeContentToPdf(Node node, String userId) {
+    return convertNodeContent(node, "pdf", userId);
+  }
+
+  @Override
+  public byte[] convertNodeContent(Node node, String format, String userId) {
     HttpURLConnection connection = null;
     try {
       LOG.debug("Convert Node {}",node.getPath());
@@ -3346,9 +3351,9 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
         LOG.debug("Node {}, generatedId={}, originalFileType={}, convertUrl={}, documentUrl={}",node.getPath(),key,originalFileType,this.convertUrl, documentUrl);
 
         String json = new JSONObject().put("filetype", originalFileType)
-                                      .put("outputtype", "pdf")
-                                      .put("key", key)
-                                      .put("url",documentUrl).toString();
+                .put("outputtype", format)
+                .put("key", key)
+                .put("url",documentUrl).toString();
 
         byte[] postDataBytes = json.toString().getBytes("UTF-8");
 
@@ -3362,8 +3367,8 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
 
         if (documentserverSecret != null && !documentserverSecret.trim().isEmpty()) {
           String jwtToken = Jwts.builder().setPayload(json)
-                                .signWith(Keys.hmacShaKeyFor(documentserverSecret.getBytes()))
-                                .compact();
+                  .signWith(Keys.hmacShaKeyFor(documentserverSecret.getBytes()))
+                  .compact();
           connection.setRequestProperty("Authorization", "Bearer " + jwtToken);
         }
 
@@ -3395,6 +3400,7 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
     }
     return null;
   }
+
 
   private byte[] downloadConvertedFile(String convertedFileUrl) {
     HttpURLConnection connection = null;
