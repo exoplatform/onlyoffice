@@ -92,27 +92,6 @@
       view: true,
       edit: false
     },
-    {
-      provider: 'onlyoffice',
-      extension: '.ods',
-      mimeType: 'application/vnd.oasis.opendocument.spreadsheet',
-      view: true,
-      edit: false
-    },
-    {
-      provider: 'onlyoffice',
-      extension: '.odt',
-      mimeType: 'application/vnd.oasis.opendocument.text',
-      view: true,
-      edit: false
-    },
-    {
-      provider: 'onlyoffice',
-      extension: '.odp',
-      mimeType: 'application/vnd.oasis.opendocument.presentation',
-      view: true,
-      edit: false
-    },
   ];
 
   const lang = eXo.env.portal.language || 'en';
