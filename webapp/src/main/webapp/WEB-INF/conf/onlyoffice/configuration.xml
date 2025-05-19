@@ -419,5 +419,14 @@
       </init-params>
     </component-plugin>
   </external-component-plugins>
+
+  <external-component-plugins>
+    <target-component>org.exoplatform.services.thumbnail.ImageThumbnailService</target-component>
+    <component-plugin>
+      <name>documents-office</name>
+      <set-method>addPlugin</set-method>
+      <type>org.exoplatform.onlyoffice.OfficeDocumentsThumbnailPlugin</type>
+    </component-plugin>
+  </external-component-plugins>
   
 </configuration>

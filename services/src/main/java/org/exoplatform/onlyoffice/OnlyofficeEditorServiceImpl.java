@@ -3324,31 +3324,38 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
   }
 
   @Override
-  public byte[] convertNodeContentToPdf(Node node, String userId) {
+  public byte[] convertNodeContentToPdf(Node node, String userId) throws RepositoryException {
+
+    String originalFileType ;
+    String fileMimeType = node.getNode("jcr:content").getProperty("jcr:mimeType").getString();
+    if (fileMimeType.equals("application/vnd.openxmlformats-officedocument.wordprocessingml.document")) {
+      originalFileType="docxf";
+    } else if (fileMimeType.equals("application/vnd.openxmlformats-officedocument.wordprocessingml.document.form")) {
+      originalFileType="oform";
+    } else {
+      originalFileType="docx";
+    }
+    return convertNodeContent(node, "pdf", originalFileType, userId);
+  }
+
+  @Override
+  public byte[] convertNodeContent(Node node, String format, String originalFileType, String userId) {
     HttpURLConnection connection = null;
     try {
       LOG.debug("Convert Node {}",node.getPath());
 
       Config config = createConfigForConversion(userId,node);
 
-      String originalFileType ;
-      String fileMimeType = node.getNode("jcr:content").getProperty("jcr:mimeType").getString();
-      if (fileMimeType.equals("application/vnd.openxmlformats-officedocument.wordprocessingml.document")) {
-        originalFileType="docxf";
-      } else if (fileMimeType.equals("application/vnd.openxmlformats-officedocument.wordprocessingml.document.form")) {
-        originalFileType="oform";
-      } else {
-        originalFileType="docx";
-      }
+
       if (originalFileType!=null) {
         String key = config.getDocument().getKey();
         String documentUrl = config.getDocument().getUrl();
         LOG.debug("Node {}, generatedId={}, originalFileType={}, convertUrl={}, documentUrl={}",node.getPath(),key,originalFileType,this.convertUrl, documentUrl);
 
         String json = new JSONObject().put("filetype", originalFileType)
-                                      .put("outputtype", "pdf")
-                                      .put("key", key)
-                                      .put("url",documentUrl).toString();
+                .put("outputtype", format)
+                .put("key", key)
+                .put("url",documentUrl).toString();
 
         byte[] postDataBytes = json.toString().getBytes("UTF-8");
 
@@ -3362,8 +3369,8 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
 
         if (documentserverSecret != null && !documentserverSecret.trim().isEmpty()) {
           String jwtToken = Jwts.builder().setPayload(json)
-                                .signWith(Keys.hmacShaKeyFor(documentserverSecret.getBytes()))
-                                .compact();
+                  .signWith(Keys.hmacShaKeyFor(documentserverSecret.getBytes()))
+                  .compact();
           connection.setRequestProperty("Authorization", "Bearer " + jwtToken);
         }
 
@@ -3395,6 +3402,7 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
     }
     return null;
   }
+
 
   private byte[] downloadConvertedFile(String convertedFileUrl) {
     HttpURLConnection connection = null;

@@ -392,5 +392,22 @@ public interface OnlyofficeEditorService {
    */
   boolean isDocumentCoedited(String key);
 
-  byte[] convertNodeContentToPdf(Node node, String userId);
+  /**
+   * Convert the provided node to PDF file
+   * @param node Document node
+   * @param userId user name
+   * @return binary content of the PDF
+   */
+  byte[] convertNodeContentToPdf(Node node, String userId) throws RepositoryException;
+
+  /**
+   * Convert the provided node to requested format
+   * @param node Document node
+   * @param format output content format
+   * @param originalFileType input content format
+   * @param userId user name
+   * @return binary content of the PDF
+   */
+
+  byte[] convertNodeContent(Node node, String format, String originalFileType, String userId);
 }

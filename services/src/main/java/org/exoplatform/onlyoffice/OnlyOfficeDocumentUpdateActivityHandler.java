@@ -9,10 +9,12 @@ import javax.jcr.RepositoryException;
 
 import org.apache.commons.chain.Context;
 
+import org.exoplatform.commons.utils.CommonsUtils;
 import org.exoplatform.container.ExoContainerContext;
 import org.exoplatform.services.cms.documents.DocumentUpdateActivityHandler;
 import org.exoplatform.services.ext.action.InvocationContext;
 import org.exoplatform.services.listener.Event;
+import org.exoplatform.services.thumbnail.ImageThumbnailService;
 import org.exoplatform.wcm.ext.component.activity.listener.FileUpdateActivityListener;
 
 /**
@@ -48,6 +50,8 @@ public class OnlyOfficeDocumentUpdateActivityHandler extends FileUpdateActivityL
     Context context = event.getSource();
     Property currentProperty = (Property) context.get(InvocationContext.CURRENT_ITEM);
     Node currentNode = currentProperty.getParent().getParent();
+    ImageThumbnailService imageThumbnailService = CommonsUtils.getService(ImageThumbnailService.class);
+    imageThumbnailService.deleteThumbnails(OfficeDocumentsThumbnailPlugin.DOCUMENTS_OFFICE, currentNode.getUUID());
     // If there is no manually added comment from the editor
     if (!isCommentedNode(currentNode)) {
       String lastModifier = currentNode.getProperty("exo:lastModifier").getString();
