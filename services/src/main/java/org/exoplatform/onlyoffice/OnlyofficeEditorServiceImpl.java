@@ -29,6 +29,8 @@ import java.net.URI;
 import java.net.URL;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
+import java.security.DigestInputStream;
+import java.security.MessageDigest;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -67,6 +69,7 @@ import javax.jcr.lock.Lock;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.io.input.AutoCloseInputStream;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.tomcat.util.buf.HexUtils;
 import org.json.JSONObject;
 import org.picocontainer.Startable;
 
@@ -1262,12 +1265,31 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
   public void start() {
     InputStream is = null;
     Session session = null;
-    try {
+    String nodetypeConfigurationFile = "/conf/portal/jcr/onlyoffice-nodetypes.xml";
+    try (DigestInputStream ds= new DigestInputStream(OnlyofficeEditorService.class.getResourceAsStream(nodetypeConfigurationFile), MessageDigest.getInstance("MD5"))) {
       String workspace = jcrService.getCurrentRepository().getConfiguration().getDefaultWorkspaceName();
       session = jcrService.getCurrentRepository().getSystemSession(workspace);
       ExtendedNodeTypeManager nodeTypeManager = (ExtendedNodeTypeManager) session.getWorkspace().getNodeTypeManager();
-      is = OnlyofficeEditorService.class.getResourceAsStream("/conf/portal/jcr/onlyoffice-nodetypes.xml");
-      nodeTypeManager.registerNodeTypes(is, ExtendedNodeTypeManager.REPLACE_IF_EXISTS, NodeTypeDataManager.TEXT_XML);
+
+      byte[] buffer = new byte[4096];
+      while (ds.read(buffer) != -1) {
+        // Read file to compute MD5 checksum
+      }
+      String md5sum = HexUtils.toHexString(ds.getMessageDigest().digest());
+      SettingService settingService = CommonsUtils.getService(SettingService.class);
+      SettingValue<?> settingValue = settingService.get(Context.GLOBAL,
+                                                        Scope.APPLICATION.id("OnlyOffice"),
+                                                        "nodetype-configuration-md5");
+      if (settingValue == null || !md5sum.equals(settingValue.getValue())) {
+        LOG.debug("Nodetype configuration MD5 checksum has changed: {} != {}, update nodetypes.", md5sum, settingValue != null ? settingValue.getValue() : "null");
+        //nodetype configuration has changed, we need to update it
+        is = OnlyofficeEditorService.class.getResourceAsStream(nodetypeConfigurationFile);
+        nodeTypeManager.registerNodeTypes(is, ExtendedNodeTypeManager.REPLACE_IF_EXISTS, NodeTypeDataManager.TEXT_XML);
+        // Update the setting value with the new MD5 checksum
+        settingService.set(Context.GLOBAL, Scope.APPLICATION.id("OnlyOffice"), "nodetype-configuration-md5", new SettingValue<>(md5sum));
+      } else {
+        LOG.debug("Nodetype configuration MD5 checksum is the same: {}, nodetypes are not updated.", md5sum);
+      }
     } catch (Exception e) {
       LOG.error("Cannot update nodetypes.", e);
     } finally {
