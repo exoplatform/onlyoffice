@@ -669,7 +669,7 @@ public class Config implements Externalizable {
        * Instantiates a new views the permissions.
        */
       protected FillFormPermissions() {
-        super(false, false,false,true );
+        super(true, false,false,true );
       }
     }
 
