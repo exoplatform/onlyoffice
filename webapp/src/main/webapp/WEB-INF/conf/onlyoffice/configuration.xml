@@ -325,68 +325,6 @@
     </component-plugin>
   </external-component-plugins>
 
-  <!-- FileViewer plugin to show document preview in Explorer/Stream -->
-  <external-component-plugins>
-    <target-component>org.exoplatform.webui.ext.UIExtensionManager</target-component>
-    <component-plugin>
-      <name>File dynamic viewer</name>
-      <set-method>registerUIExtensionPlugin</set-method>
-      <type>org.exoplatform.webui.ext.UIExtensionPlugin</type>
-      <init-params>
-        <object-param>
-          <name>Office</name>
-          <object type="org.exoplatform.webui.ext.UIExtension">
-            <field name="type">
-              <string>org.exoplatform.ecm.dms.FileViewer</string>
-            </field>
-            <field name="rank">
-              <int>80</int>
-            </field>
-            <field name="name">
-              <string>Office</string>
-            </field>
-            <field name="category">
-              <string>FileViewer</string>
-            </field>
-            <field name="component">
-              <string>org.exoplatform.onlyoffice.webui.OnlyofficeFileViewer</string>
-            </field>
-            <field name="extendedFilters">
-              <collection type="java.util.ArrayList">
-                <value>
-                  <object type="org.exoplatform.webui.ext.filter.impl.FileFilter">
-                    <field name="mimeTypes">
-                      <collection type="java.util.ArrayList">
-                        <value>
-                          <string>application/vnd.openxmlformats-officedocument.wordprocessingml.document</string>
-                        </value>
-                        <value>
-                          <string>application/vnd.openxmlformats-officedocument.spreadsheetml.sheet</string>
-                        </value>
-                        <value>
-                          <string>application/vnd.openxmlformats-officedocument.presentationml.presentation</string>
-                        </value>
-                        <value>
-                          <string>application/vnd.openxmlformats-officedocument.presentationml.template</string>
-                        </value>
-                        <value>
-                          <string>application/vnd.openxmlformats-officedocument.wordprocessingml.document.form</string>
-                        </value>
-                        <value>
-                          <string>application/pdf</string>
-                        </value>
-                      </collection>
-                    </field>
-                  </object>
-                </value>
-              </collection>
-            </field>
-          </object>
-        </object-param>
-      </init-params>
-    </component-plugin>
-  </external-component-plugins>
-
   <external-component-plugins>
   <target-component>org.exoplatform.commons.addons.AddOnService</target-component>
     <component-plugin>
