@@ -70,6 +70,7 @@ import org.apache.commons.io.IOUtils;
 import org.apache.commons.io.input.AutoCloseInputStream;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.tomcat.util.buf.HexUtils;
+import org.exoplatform.services.jcr.ext.utils.VersionHistoryUtils;
 import org.json.JSONObject;
 import org.picocontainer.Startable;
 
@@ -2235,21 +2236,10 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
           // manage version only if node already mix:versionable
           if (checkout(node)) {
             // Make a new version from the downloaded state
+            VersionHistoryUtils.createVersion(node);
             if(LOG.isDebugEnabled()) {
-              LOG.debug("Node checkouted (Node (id={},path={}), userId={}). Will now checkin",
-                        node.getUUID(), node.getPath(), userId);
-            }
-            node.checkin();
-            if(LOG.isDebugEnabled()) {
-              LOG.debug("Node checked in (Node (id={},path={}), userId={}). Will now checkout",
-                        node.getUUID(), node.getPath(), userId);
-            }
-            // Since 1.2.0-RC01 we check-out the document to let (more) other
-            // actions in ECMS appear on it
-            node.checkout();
-            if(LOG.isDebugEnabled()) {
-              LOG.debug("Node checkouted (Node (id={},path={}), userId={})",
-                        node.getUUID(), node.getPath(), userId);
+              LOG.debug("New version created (Node (id={},path={}), userId={})",
+                      node.getUUID(), node.getPath(), userId);
             }
             // Remove properties from node
             node.setProperty("eoo:versionOwner", "");
