@@ -1325,6 +1325,8 @@
       var $editorPage = $("#OnlyofficeEditorPage");
       if ($editorPage.length > 0) {
         if (!docEditor) {
+          // Init Extensions
+          Vue?.prototype?.$utils?.includeExtensions('OnlyofficeExtension');
           // show loading while upload to editor - it is already added by WebUI
           // side
           var $container = $editorPage.find(".onlyofficeContainer");
