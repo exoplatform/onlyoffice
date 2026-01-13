@@ -577,6 +577,10 @@
      * Create back button url.
      */
       var getBackUrl = function(config) {
+      if (config.editorConfig && config.editorConfig.canAccess === false) {
+        const url = new URL(window.location.origin + eXo.env.portal.context + "/" + eXo.env.portal.portalName + "/restricted-drive");
+        return url.toString();
+      }
       if(!config.backTo){
         return config.explorerUrl;
       }
