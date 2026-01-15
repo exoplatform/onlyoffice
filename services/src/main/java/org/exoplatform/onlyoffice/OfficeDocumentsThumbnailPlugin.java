@@ -19,9 +19,7 @@ package org.exoplatform.onlyoffice;
 
 import java.io.ByteArrayInputStream;
 
-import javax.jcr.Node;
-import javax.jcr.RepositoryException;
-import javax.jcr.Session;
+import javax.jcr.*;
 
 import org.exoplatform.commons.exception.ObjectNotFoundException;
 import org.exoplatform.commons.utils.CommonsUtils;
@@ -37,6 +35,7 @@ import org.exoplatform.services.security.Identity;
 
 import io.meeds.portal.thumbnail.model.FileContent;
 import io.meeds.portal.thumbnail.plugin.ImageThumbnailPlugin;
+import org.exoplatform.services.security.IdentityConstants;
 
 public class OfficeDocumentsThumbnailPlugin extends ImageThumbnailPlugin {
 
@@ -99,5 +98,28 @@ public class OfficeDocumentsThumbnailPlugin extends ImageThumbnailPlugin {
         sessionProvider.close();
     }
     return null;
+  }
+
+  @Override
+  public boolean hasAccessPermission(String fileId, String userName) {
+    UserACL userACL = CommonsUtils.getService(UserACL.class);
+    RepositoryService repositoryService = CommonsUtils.getService(RepositoryService.class);
+    SessionProvider sessionProvider = null;
+    try {
+      Identity identityAcl = CommonsUtils.getService(UserACL.class).getUserIdentity(userName);
+      if (identityAcl == null) {
+        identityAcl = new Identity(IdentityConstants.ANONIM);
+      }
+      sessionProvider = getUserSessionProvider(repositoryService, identityAcl);
+      Session session = sessionProvider.getSession("collaboration", repositoryService.getDefaultRepository());
+      return session.getNodeByUUID(fileId) != null;
+    } catch (AccessDeniedException | ItemNotFoundException e) {
+      return false;
+    } catch (Exception e) {
+      throw new IllegalStateException("Error checking access rights for on document'" + fileId + "' fro user " + userName, e);
+    } finally {
+      assert sessionProvider != null;
+      sessionProvider.close();
+    }
   }
 }
