@@ -705,6 +705,7 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
           String ecmsPageLink = explorerLink(path);
           builder.explorerUri(explorerUri(schema, host, port, ecmsPageLink));
           builder.secret(documentserverSecret);
+          builder.canAccessDocumentLocation(canAccessDocumentLocation(node, userId));
 
           config = builder.build();
 
@@ -728,6 +729,7 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
       config.getEditorPage().setComment(nodeComment(node));
       config.getEditorPage().setLastModifier(getLastModifier(node));
       config.getEditorPage().setLastModified(getLastModified(node));
+      config.getEditorConfig().setCanAccessDocumentLocation(canAccessDocumentLocation(node, userId));
 
       cachedEditorConfigStorage.saveConfig(config.getDocument().getKey(), config,false);
       cachedEditorConfigStorage.saveConfig(config.getDocId(),config,false);
@@ -819,6 +821,7 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
     } else {
       builder.setAllowEdition(false);
     }
+    builder.canAccessDocumentLocation(canAccessDocumentLocation(node, userId));
 
     Config config = builder.build();
     // Create users' config map and add first user
@@ -1205,6 +1208,31 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
     }
     return getPages(versions, itemParPage, pageNum);
   }
+
+  private String extractSpacePrettyName(String path) {
+    if (path == null) {
+      return null;
+    }
+    String[] parts = path.split("/");
+
+    if (parts.length > 3 && "Groups".equals(parts[1]) && "spaces".equals(parts[2])) {
+      return parts[3];
+    }
+    return null;
+  }
+  private boolean canAccessDocumentLocation(Node node, String userId) throws RepositoryException {
+    String path = node.getPath();
+    String[] permissions = new String[] { PermissionType.READ };
+    if (path.startsWith(usersPath)) {
+      return PermissionUtil.hasPermissions(node, userId, permissions);
+    }
+    if (path.startsWith(groupsPath)) {
+        String spaceName = extractSpacePrettyName(path);
+        Space space = spaceService.getSpaceByPrettyName(spaceName);
+        return space != null && (PermissionUtil.hasPermissions(node, userId, permissions) || spaceService.isMember(space, userId));
+    }
+    return false;
+}
 
   private <T> List<T> getPages(List<T> c, Integer pageSize, int nb) {
     if (c == null || c.isEmpty())

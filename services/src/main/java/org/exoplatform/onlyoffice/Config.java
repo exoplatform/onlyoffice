@@ -143,9 +143,9 @@ public class Config implements Externalizable {
     // Editor.User
     protected String       userId, name;
     
+    protected boolean      canAccessDocumentLocation;
   
-  
-    protected boolean allowEdition = true;
+    protected boolean      allowEdition = true;
 
     /**
      * Instantiates a new builder.
@@ -433,6 +433,17 @@ public class Config implements Externalizable {
     }
 
     /**
+     * Sets can access document path or not.
+     *
+     * @param canAccess the access document path
+     * @return the builder
+     */
+    public Builder canAccessDocumentLocation(boolean canAccess) {
+      this.canAccessDocumentLocation = canAccess;
+      return this;
+    }
+
+    /**
      * Download url.
      *
      * @param downloadUrl the download url
@@ -485,6 +496,7 @@ public class Config implements Externalizable {
       Document document = new Document(key, fileType, title, url, info, permissions);
       Editor.User user = new Editor.User(userId, name);
       Editor editor = new Editor(callbackUrl, lang, mode, user);
+      editor.setCanAccessDocumentLocation(this.canAccessDocumentLocation);
       EditorPage editorPage = new EditorPage(comment, renameAllowed, displayPath, lastModifier, lastModified,drive);
       Config config = new Config(documentserverUrl,
                                  platformRestUrl,
@@ -921,6 +933,8 @@ public class Config implements Externalizable {
     /** The mode. */
     protected String       mode;
 
+    protected boolean      canAccessDocumentLocation;
+
     /**
      * Instantiates a new editor.
      *
@@ -935,6 +949,25 @@ public class Config implements Externalizable {
       this.lang = lang;
       this.mode = mode != null && mode.equals("fillform") ? "edit" : mode;
       this.user = user;
+    }
+
+    /**
+     * Sets if can access to document path.
+     *
+     * @param canAccess the can access variable
+     */
+    public void setCanAccessDocumentLocation(boolean canAccess) {
+      this.canAccessDocumentLocation = canAccess;
+    }
+
+
+    /**
+     * Is canAccessDocumentLocation.
+     *
+     * @return the isCanAccessDocumentLocation
+     */
+    public Boolean isCanAccessDocumentLocation() {
+      return canAccessDocumentLocation;
     }
 
     /**
