@@ -823,6 +823,12 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
     }
     builder.canAccessDocumentLocation(canAccessDocumentLocation(node, userId));
 
+    boolean canAccessDocument = false;
+    if (path.startsWith(usersPath)) {
+      canAccessDocument = canEditDocument(node);
+    }
+    builder.canAccess(canAccessDocument);
+
     Config config = builder.build();
     // Create users' config map and add first user
     ConcurrentHashMap<String, Config> configs = new ConcurrentHashMap<>();
