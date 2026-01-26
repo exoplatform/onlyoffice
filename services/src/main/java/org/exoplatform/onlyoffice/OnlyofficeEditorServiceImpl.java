@@ -740,7 +740,9 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
       config.getEditorPage().setComment(nodeComment(node));
       config.getEditorPage().setLastModifier(getLastModifier(node));
       config.getEditorPage().setLastModified(getLastModified(node));
-      config.getEditorConfig().setCanAccessDocumentLocation(canAccessDocumentLocation(node, userId));
+      if (path.startsWith(usersPath)) {
+        config.getEditorConfig().setCanAccess(canEditDocument(node));
+      }
 
       cachedEditorConfigStorage.saveConfig(config.getDocument().getKey(), config,false);
       cachedEditorConfigStorage.saveConfig(config.getDocId(),config,false);
