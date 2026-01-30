@@ -705,6 +705,13 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
           String ecmsPageLink = explorerLink(path);
           builder.explorerUri(explorerUri(schema, host, port, ecmsPageLink));
           builder.secret(documentserverSecret);
+          boolean canAccessDocument = false;
+          if (path.startsWith(usersPath)) {
+            canAccessDocument = canEditDocument(node);
+          } else {
+            canAccessDocument = true;
+          }
+          builder.canAccess(canAccessDocument);
 
           config = builder.build();
 
@@ -730,6 +737,8 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
       config.getEditorPage().setLastModified(getLastModified(node));
       if (path.startsWith(usersPath)) {
         config.getEditorConfig().setCanAccess(canEditDocument(node));
+      } else {
+        config.getEditorConfig().setCanAccess(true);
       }
 
       cachedEditorConfigStorage.saveConfig(config.getDocument().getKey(), config,false);
@@ -826,6 +835,8 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
     boolean canAccessDocument = false;
     if (path.startsWith(usersPath)) {
       canAccessDocument = canEditDocument(node);
+    } else {
+      canAccessDocument = true;
     }
     builder.canAccess(canAccessDocument);
 
