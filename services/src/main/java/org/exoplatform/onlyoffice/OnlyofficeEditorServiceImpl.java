@@ -705,7 +705,7 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
           String ecmsPageLink = explorerLink(path);
           builder.explorerUri(explorerUri(schema, host, port, ecmsPageLink));
           builder.secret(documentserverSecret);
-          builder.canAccessDocumentLocation(canAccessDocumentLocation(node, userId));
+          builder.canAccessDocumentLocation(canAccessDocumentLocation(path, userId));
 
           config = builder.build();
 
@@ -729,9 +729,7 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
       config.getEditorPage().setComment(nodeComment(node));
       config.getEditorPage().setLastModifier(getLastModifier(node));
       config.getEditorPage().setLastModified(getLastModified(node));
-      if (path.startsWith(usersPath)) {
-        config.getEditorConfig().setCanAccess(canEditDocument(node));
-      }
+      config.getEditorConfig().setCanAccessDocumentLocation(canAccessDocumentLocation(path, userId));
 
       cachedEditorConfigStorage.saveConfig(config.getDocument().getKey(), config,false);
       cachedEditorConfigStorage.saveConfig(config.getDocId(),config,false);
@@ -823,13 +821,7 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
     } else {
       builder.setAllowEdition(false);
     }
-    builder.canAccessDocumentLocation(canAccessDocumentLocation(node, userId));
-
-    boolean canAccessDocument = false;
-    if (path.startsWith(usersPath)) {
-      canAccessDocument = canEditDocument(node);
-    }
-    builder.canAccess(canAccessDocument);
+    builder.canAccessDocumentLocation(canAccessDocumentLocation(path, userId));
 
     Config config = builder.build();
     // Create users' config map and add first user
@@ -1228,16 +1220,14 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
     }
     return null;
   }
-  private boolean canAccessDocumentLocation(Node node, String userId) throws RepositoryException {
-    String path = node.getPath();
-    String[] permissions = new String[] { PermissionType.READ };
+  private boolean canAccessDocumentLocation(String path, String userId) {
     if (path.startsWith(usersPath)) {
-      return PermissionUtil.hasPermissions(node, userId, permissions);
+        return path.contains(userId);
     }
     if (path.startsWith(groupsPath)) {
         String spaceName = extractSpacePrettyName(path);
         Space space = spaceService.getSpaceByPrettyName(spaceName);
-        return space != null && (PermissionUtil.hasPermissions(node, userId, permissions) || spaceService.isMember(space, userId));
+        return space != null && spaceService.isMember(space, userId);
     }
     return false;
 }
