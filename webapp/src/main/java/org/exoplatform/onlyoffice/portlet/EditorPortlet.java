@@ -36,6 +36,7 @@ import javax.portlet.RenderMode;
 import javax.portlet.RenderRequest;
 import javax.portlet.RenderResponse;
 
+import org.exoplatform.commons.utils.HTMLSanitizer;
 import org.w3c.dom.Element;
 
 import org.exoplatform.container.ExoContainer;
@@ -186,7 +187,8 @@ public class EditorPortlet extends GenericPortlet {
             }
           }
           if (backTo != null) {
-            config.setBackTo(backTo);
+            String sanitizedBackUrl = HTMLSanitizer.sanitize(backTo);
+            config.setBackTo(sanitizedBackUrl);
           }
         } else {
           showError(i18n.getString("OnlyofficeEditorClient.ErrorTitle"),
