@@ -186,7 +186,7 @@ public class EditorPortlet extends GenericPortlet {
               config.getEditorConfig().setLang(Locale.getDefault().getLanguage());
             }
           }
-          if (backTo != null) {
+          if (backTo != null && backTo.matches("^/(?!/).*")) {
             String sanitizedBackUrl = HTMLSanitizer.sanitize(backTo);
             config.setBackTo(sanitizedBackUrl);
           }
