@@ -685,7 +685,7 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
           builder.userName(user.getDisplayName());
           builder.lastModifier(getLastModifier(node));
           builder.lastModified(getLastModified(node));
-          String key = generateId(workspace, path).toString();
+          String key = generateId(workspace, path, getLastModified(node)).toString();
 
           builder.key(key);
           StringBuilder platformUrl = platformUrl(schema, host, port);
@@ -787,7 +787,7 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
       builder.userId(user.getUserName());
       builder.userName(user.getDisplayName());
     }
-    String key = generateId(workspace, path).toString();
+    String key = generateId(workspace, path, getLastModified(node)).toString();
     builder.key(key);
     StringBuilder platformUrl = platformUrl(schema, host, port);
 
@@ -1866,10 +1866,13 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
    * @param path the path
    * @return the uuid
    */
-  protected UUID generateId(String workspace, String path) {
+  protected UUID generateId(String workspace, String path, String lastModified) {
     StringBuilder s = new StringBuilder();
     s.append(workspace);
     s.append(path);
+    if (lastModified != null) {
+      s.append(lastModified);
+    }
     return UUID.nameUUIDFromBytes(s.toString().getBytes());
   }
 
@@ -3497,7 +3500,7 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
     builder.userName(user.getDisplayName());
     builder.lastModifier(getLastModifier(node));
     builder.lastModified(getLastModified(node));
-    String key = generateId(workspace, node.getPath()).toString();
+    String key = generateId(workspace, node.getPath(), getLastModified(node)).toString();
 
     builder.key(key);
     String platformUrl = System.getProperty("exo.base.url");
