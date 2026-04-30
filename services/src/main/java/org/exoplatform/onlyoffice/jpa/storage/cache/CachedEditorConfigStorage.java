@@ -26,7 +26,7 @@ public class CachedEditorConfigStorage implements EditorConfigStorage {
   @Override
   public Map<String, Config> getConfigsByKey(String key) {
     Map<String, Config> configs = configCache.get(key);
-    if (configs != null) {
+    if (configs != null && !configs.isEmpty()) {
       return configs;
     }
     configs = storage.getConfigsByKey(key);
@@ -39,7 +39,7 @@ public class CachedEditorConfigStorage implements EditorConfigStorage {
   @Override
   public Map<String, Config> getConfigsByDocId(String docId) {
     Map<String, Config> configs = configCache.get(docId);
-    if (configs != null) {
+    if (configs != null && !configs.isEmpty()) {
       return configs;
     }
     configs = storage.getConfigsByDocId(docId);
