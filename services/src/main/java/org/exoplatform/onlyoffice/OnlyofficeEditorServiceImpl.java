@@ -44,6 +44,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.NoSuchElementException;
+import java.util.Random;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -69,6 +70,7 @@ import org.apache.commons.io.IOUtils;
 import org.apache.commons.io.input.AutoCloseInputStream;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.tomcat.util.buf.HexUtils;
+import org.exoplatform.services.jcr.ext.utils.VersionHistoryUtils;
 import org.json.JSONObject;
 import org.picocontainer.Startable;
 
@@ -85,8 +87,9 @@ import org.exoplatform.container.configuration.ConfigurationException;
 import org.exoplatform.container.xml.InitParams;
 import org.exoplatform.container.xml.PropertiesParam;
 import org.exoplatform.ecm.utils.lock.LockUtil;
-import org.exoplatform.ecm.utils.permission.PermissionUtil;
 import org.exoplatform.ecm.utils.text.Text;
+import org.exoplatform.ecm.utils.permission.PermissionUtil;
+import org.exoplatform.services.wcm.utils.Utils;
 import org.exoplatform.onlyoffice.Config.Editor;
 import org.exoplatform.onlyoffice.jcr.NodeFinder;
 import org.exoplatform.onlyoffice.jpa.storage.cache.CachedEditorConfigStorage;
@@ -116,7 +119,6 @@ import org.exoplatform.services.jcr.ext.ActivityTypeUtils;
 import org.exoplatform.services.jcr.ext.app.SessionProviderService;
 import org.exoplatform.services.jcr.ext.common.SessionProvider;
 import org.exoplatform.services.jcr.ext.hierarchy.NodeHierarchyCreator;
-import org.exoplatform.services.jcr.ext.utils.VersionHistoryUtils;
 import org.exoplatform.services.jcr.impl.core.NodeImpl;
 import org.exoplatform.services.listener.ListenerService;
 import org.exoplatform.services.log.ExoLogger;
@@ -131,7 +133,6 @@ import org.exoplatform.services.security.ConversationState;
 import org.exoplatform.services.security.Identity;
 import org.exoplatform.services.security.IdentityRegistry;
 import org.exoplatform.services.wcm.core.NodetypeConstant;
-import org.exoplatform.services.wcm.utils.Utils;
 import org.exoplatform.services.wcm.utils.WCMCoreUtils;
 import org.exoplatform.social.core.activity.model.ExoSocialActivity;
 import org.exoplatform.social.core.activity.model.ExoSocialActivityImpl;
@@ -166,6 +167,9 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
   private static final String    UTF_8                    = "utf-8";
 
   public static final String SPACE_APP_ID = "exosocial:spaces";
+
+  /** The Constant RANDOM. */
+  protected static final Random  RANDOM                   = new Random();
 
   /** The Constant CONFIG_DS_HOST. */
   public static final String     CONFIG_DS_HOST           = "documentserver-host";
@@ -1842,6 +1846,9 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
     StringBuilder s = new StringBuilder();
     s.append(workspace);
     s.append(path);
+    s.append(System.currentTimeMillis());
+    s.append(String.valueOf(RANDOM.nextLong()));
+
     return UUID.nameUUIDFromBytes(s.toString().getBytes());
   }
 
