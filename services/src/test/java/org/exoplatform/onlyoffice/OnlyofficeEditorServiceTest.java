@@ -1461,4 +1461,45 @@ public class OnlyofficeEditorServiceTest extends BaseCommonsTestCase {
     node.remove();
   }
 
+  @Test
+  public void testVersionOwnerReadFromLiveNode() throws Exception {
+    startSessionAs(USER_USERNAME);
+    Node node = createDocument("Test Document.docx", "nt:file", "testContent", false);
+    String nodePath = node.getPath();
+    Config config = editorService.createEditor("http", "127.0.0.1", 8080, USER_USERNAME, null, node.getUUID(), OnlyofficeEditorService.EDIT_MODE);
+    String key = config.getDocument().getKey();
+
+    DocumentStatus openStatus = new DocumentStatus.Builder().status(1L)
+                                                            .users(new String[] { USER_USERNAME })
+                                                            .userId(USER_USERNAME)
+                                                            .key(key)
+                                                            .saved(true)
+                                                            .build();
+    editorService.updateDocument(openStatus);
+
+    assertTrue("Node should be versionable", node.isNodeType("mix:versionable"));
+
+    editorService.downloadVersion(USER_USERNAME, key, false, false, null, null);
+
+    Node reloaded = editorService.getDocument(null, nodePath);
+    assertTrue("eoo:versionOwner should be present on live node after save",
+               reloaded.hasProperty("eoo:versionOwner"));
+
+    editorService.downloadVersion(USER_USERNAME, key, false, true, null, null);
+
+    reloaded = editorService.getDocument(null, nodePath);
+    assertTrue("eoo:versionOwner should be present on live node after forcesave",
+               reloaded.hasProperty("eoo:versionOwner"));
+
+    editorService.downloadVersion(USER_USERNAME, key, false, false, null, null);
+
+    reloaded = editorService.getDocument(null, nodePath);
+    assertTrue("eoo:versionOwner should be present on live node after second normal save",
+               reloaded.hasProperty("eoo:versionOwner"));
+
+    javax.jcr.version.VersionHistory vh = reloaded.getVersionHistory();
+    assertTrue("Should have at least 2 versions (root + saved)", vh.getAllVersions().getSize() >= 2);
+    node.remove();
+  }
+
 }
