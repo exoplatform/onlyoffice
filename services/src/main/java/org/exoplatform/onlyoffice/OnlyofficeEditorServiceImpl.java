@@ -2137,16 +2137,11 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
                         node.getUUID(), node.getPath(), userId);
             }
           }
-          // Use current node insted of frozen one when it doesn't exist yet.
-          Node frozen = node;
           boolean versionable = node.isNodeType("mix:versionable");
-          if (versionable && node.getBaseVersion().hasNode("jcr:frozenNode")) {
-            frozen = node.getBaseVersion().getNode("jcr:frozenNode");
-          }
 
           if(LOG.isDebugEnabled()) {
-            LOG.debug("Current Base version is (id={},path{}) (Node (id={},path={}), userId={})",
-                      frozen.getUUID(), frozen.getPath(),node.getUUID(), node.getPath(), userId);
+            LOG.debug("Node is versionable={} (Node (id={},path={}), userId={})",
+                      versionable, node.getUUID(), node.getPath(), userId);
           }
           // Used in DocumentUpdateActivityListener
           boolean sameModifier = false;
@@ -2221,9 +2216,14 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
           }
 
 
+          // Read eoo:versionOwner from the live node.
+          // The frozen node snapshot always captures the cleared ("") value written
+          // just before checkin, so it cannot detect same-user accumulation across
+          // co-editing forcesave cycles. The live node holds the current session's
+          // ownership state set at the end of the previous save cycle.
           String versioningUser = null;
-          if (frozen.hasProperty("eoo:versionOwner")) {
-            versioningUser = frozen.getProperty("eoo:versionOwner").getString();
+          if (node.hasProperty("eoo:versionOwner")) {
+            versioningUser = node.getProperty("eoo:versionOwner").getString();
           }
 
           if(LOG.isDebugEnabled()) {
