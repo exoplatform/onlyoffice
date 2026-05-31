@@ -123,9 +123,9 @@ public class EditorPortlet extends GenericPortlet {
       try {
         requireJS().require("SHARED/bts_tooltip");
         if (OnlyofficeEditorService.VIEW_MODE.equals(mode)) {
-          callModule("initViewer(" + config.toJSON() + ");");
+          callModule("eXo.env.portal.addOnLoadCallback(() => onlyoffice.initViewer(" + config.toJSON() + "));");
         } else {
-          callModule("initEditor(" + config.toJSON() + ");");
+          callModule("eXo.env.portal.addOnLoadCallback(() => onlyoffice.initEditor(" + config.toJSON() + "));");
         }
       } catch (JsonException e) {
         LOG.error("Error converting editor configuration to JSON for node by ID: {}", config.getDocId(), e);

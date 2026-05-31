@@ -1,5 +1,7 @@
 package org.exoplatform.onlyoffice;
 
+import static org.mockito.ArgumentMatchers.any;
+
 import java.util.Calendar;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -12,18 +14,17 @@ import javax.jcr.Session;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.ArrayUtils;
-import org.exoplatform.services.cms.documents.DocumentService;
-import org.exoplatform.services.cms.drives.DriveData;
-import org.exoplatform.services.cms.drives.ManageDriveService;
-import org.exoplatform.social.core.space.model.Space;
-import org.exoplatform.social.core.space.spi.SpaceService;
 import org.junit.Test;
+import org.mockito.Mockito;
 
 import org.exoplatform.commons.testing.BaseCommonsTestCase;
 import org.exoplatform.component.test.ConfigurationUnit;
 import org.exoplatform.component.test.ConfiguredBy;
 import org.exoplatform.component.test.ContainerScope;
 import org.exoplatform.container.ExoContainerContext;
+import org.exoplatform.services.cms.documents.DocumentService;
+import org.exoplatform.services.cms.drives.DriveData;
+import org.exoplatform.services.cms.drives.ManageDriveService;
 import org.exoplatform.services.jcr.access.PermissionType;
 import org.exoplatform.services.jcr.ext.ActivityTypeUtils;
 import org.exoplatform.services.jcr.ext.app.SessionProviderService;
@@ -34,11 +35,11 @@ import org.exoplatform.services.log.Log;
 import org.exoplatform.services.security.ConversationState;
 import org.exoplatform.services.security.Identity;
 import org.exoplatform.services.security.MembershipEntry;
+import org.exoplatform.social.core.space.model.Space;
+import org.exoplatform.social.core.space.spi.SpaceService;
 
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
-import org.mockito.Mockito;
-import static org.mockito.Matchers.*;
 
 @ConfiguredBy({
   @ConfigurationUnit(scope = ContainerScope.PORTAL, path = "conf/test/exo-onlyoffice-editor-services-test-configuration.xml")

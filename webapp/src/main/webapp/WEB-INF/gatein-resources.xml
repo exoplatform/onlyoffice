@@ -62,10 +62,6 @@
       <minify>false</minify>
       <path>/js/redux.min.js</path>
     </script>
-    <depends>
-      <module>redux</module>
-      <as>Redux</as>
-    </depends>
   </module>
   <module>
     <name>onlyoffice</name>

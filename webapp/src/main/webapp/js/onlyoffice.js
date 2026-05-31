@@ -184,6 +184,8 @@
 
     // CometD transport bus
     var cometd, cometdContext;
+    // Resolved once "cometd" above is actually usable (see init())
+    var cometdReady = $.Deferred();
 
     // Current config (actual for editor page only)
     var currentConfig;
@@ -237,56 +239,62 @@
       if (subscribedDocuments.docId) {
         return;
       }
-      var subscription = cometd.subscribe("/eXo/Application/Onlyoffice/editor/" + docId, function(message) {
-        // Channel message handler
-        var result = tryParseJson(message);
-        if (dispatchableEvents.includes(result.type)) {
-          store.dispatch(result);
-        }
-      }, cometdContext, function(subscribeReply) {
-        // Subscription status callback
-        if (subscribeReply.successful) {
-          // The server successfully subscribed this client to the channel.
-          log("Document updates subscribed successfully: " + JSON.stringify(subscribeReply));
-          subscribedDocuments.docId = subscription;
-        } else {
-          var err = subscribeReply.error ? subscribeReply.error : (subscribeReply.failure ? subscribeReply.failure.reason :
-            "Undefined");
-          log("Document updates subscription failed for " + docId, err);
-        }
+      cometdReady.done(function() {
+        var subscription = cometd.subscribe("/eXo/Application/Onlyoffice/editor/" + docId, function(message) {
+          // Channel message handler
+          var result = tryParseJson(message);
+          if (dispatchableEvents.includes(result.type)) {
+            store.dispatch(result);
+          }
+        }, cometdContext, function(subscribeReply) {
+          // Subscription status callback
+          if (subscribeReply.successful) {
+            // The server successfully subscribed this client to the channel.
+            log("Document updates subscribed successfully: " + JSON.stringify(subscribeReply));
+            subscribedDocuments.docId = subscription;
+          } else {
+            var err = subscribeReply.error ? subscribeReply.error : (subscribeReply.failure ? subscribeReply.failure.reason :
+              "Undefined");
+            log("Document updates subscription failed for " + docId, err);
+          }
+        });
       });
     };
 
     var unsubscribeDocument = function(docId) {
-      var subscription = subscribedDocuments.docId;
-      if (subscription) {
-        cometd.unsubscribe(subscription, {}, function(unsubscribeReply) {
-          if (unsubscribeReply.successful) {
-            // The server successfully unsubscribed this client to the channel.
-            log("Document updates unsubscribed successfully for: " + docId);
-            delete subscribedDocuments.docId;
-          } else {
-            var err = unsubscribeReply.error ? unsubscribeReply.error :
-              (unsubscribeReply.failure ? unsubscribeReply.failure.reason : "Undefined");
-            log("Document updates unsubscription failed for " + docId, err);
-          }
-        });
-      }
+      cometdReady.done(function() {
+        var subscription = subscribedDocuments.docId;
+        if (subscription) {
+          cometd.unsubscribe(subscription, {}, function(unsubscribeReply) {
+            if (unsubscribeReply.successful) {
+              // The server successfully unsubscribed this client to the channel.
+              log("Document updates unsubscribed successfully for: " + docId);
+              delete subscribedDocuments.docId;
+            } else {
+              var err = unsubscribeReply.error ? unsubscribeReply.error :
+                (unsubscribeReply.failure ? unsubscribeReply.failure.reason : "Undefined");
+              log("Document updates unsubscription failed for " + docId, err);
+            }
+          });
+        }
+      });
     };
 
     var publishDocument = function(docId, data) {
       var deferred = $.Deferred();
-      cometd.publish("/eXo/Application/Onlyoffice/editor/" + docId, data, cometdContext, function(publishReply) {
-        // Publication status callback
-        if (publishReply.successful) {
-          deferred.resolve();
-          // The server successfully subscribed this client to the channel.
-          log("Document update published successfully: " + JSON.stringify(publishReply));
-        } else {
-          deferred.reject();
-          var err = publishReply.error ? publishReply.error : (publishReply.failure ? publishReply.failure.reason : "Undefined");
-          log("Document updates publication failed for " + docId, err);
-        }
+      cometdReady.done(function() {
+        cometd.publish("/eXo/Application/Onlyoffice/editor/" + docId, data, cometdContext, function(publishReply) {
+          // Publication status callback
+          if (publishReply.successful) {
+            deferred.resolve();
+            // The server successfully subscribed this client to the channel.
+            log("Document update published successfully: " + JSON.stringify(publishReply));
+          } else {
+            deferred.reject();
+            var err = publishReply.error ? publishReply.error : (publishReply.failure ? publishReply.failure.reason : "Undefined");
+            log("Document updates publication failed for " + docId, err);
+          }
+        });
       });
       return deferred;
     };
@@ -449,27 +457,32 @@
     var init = function(userId, cometdConf, userMessages) {
       if (userId == currentUserId) {
         log("Already initialized user: " + userId);
-      } else if (userId) {
-        currentUserId = userId;
+      } else if (userId && cometdConf) {
         log("Initialize user: " + userId);
         if (userMessages) {
           messages = userMessages;
         }
-        if (cometdConf) {
-          cCometD.configure({
-            "url": prefixUrl + cometdConf.path,
-            "exoId": userId,
-            "exoToken": cometdConf.token,
-            "maxNetworkDelay": 30000,
-            "connectTimeout": 60000
-          });
-          cometdContext = {
-            "exoContainerName": cometdConf.containerName
-          };
-          cometd = cCometD;
-        }
+        cometdContext = {
+          "exoContainerName": cometdConf.containerName
+        };
+        currentUserId = userId;
+        // Configure the shared CometD client here: this module runs on the
+        // activity stream, the documents explorer and the preview, where the
+        // editorsupport portlet (and its initConfig) is not present. The
+        // commons-cometd3 wrapper performs the handshake (with the eXo secret)
+        // on the first subscribe/publish, so configure() is all that is needed
+        // for the subscriptions queued behind cometdReady.
+        cCometD.configure({
+          "url": prefixUrl + cometdConf.path,
+          "exoId": userId,
+          "exoToken": cometdConf.token,
+          "maxNetworkDelay": 30000,
+          "connectTimeout": 60000
+        });
+        cometd = cCometD;
+        cometdReady.resolve();
       } else {
-        log("Cannot initialize user: " + userId);
+        log("Cannot initialize user: ", userId, cometdConf);
       }
     };
     
@@ -562,12 +575,9 @@
 
         log("ONLYOFFICE editor config: " + JSON.stringify(config));
 
-        if ((typeof DocsAPI === "undefined") || (typeof DocsAPI.DocEditor === "undefined")) {
-          log("ERROR: ONLYOFFICE script load timeout: " + config.documentserverJsUrl);
-          process.reject("ONLYOFFICE script load timeout. Ensure Document Server is running and accessible.");
-        } else {
-          process.resolve(config);
-        }
+        var retries = 15;
+        var timeout = 200;
+        waitDocsAPI(process, config, retries, timeout);
       } else {
         process.reject("Editor config not found");
       }
