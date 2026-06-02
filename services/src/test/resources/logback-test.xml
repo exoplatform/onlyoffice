@@ -1,0 +1,4 @@
+<configuration>
+  <logger name="org.exoplatform.onlyoffice.OnlyofficeEditorServiceImpl" level="DEBUG"/>
+  <root level="INFO"/>
+</configuration>

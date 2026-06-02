@@ -1370,5 +1370,136 @@ public class OnlyofficeEditorServiceTest extends BaseCommonsTestCase {
     node.remove();
   }
 
+  @Test
+  public void testVersionAccumulationSameUser() throws Exception {
+    startSessionAs(USER_USERNAME);
+    Node node = createDocument("Test Document.docx", "nt:file", "testContent", false);
+    Config config = editorService.createEditor("http", "127.0.0.1", 8080, USER_USERNAME, null, node.getUUID(), OnlyofficeEditorService.EDIT_MODE);
+    String key = config.getDocument().getKey();
+
+    DocumentStatus openStatus = new DocumentStatus.Builder().status(1L)
+                                                            .users(new String[] { USER_USERNAME })
+                                                            .userId(USER_USERNAME)
+                                                            .key(key)
+                                                            .saved(true)
+                                                            .build();
+    editorService.updateDocument(openStatus);
+
+    editorService.downloadVersion(USER_USERNAME, key, false, false, null, null);
+    editorService.downloadVersion(USER_USERNAME, key, false, false, null, null);
+
+    List<Version> versions = editorService.getVersions("portal-test", node.getUUID(), 10, 0);
+    assertNotNull(versions);
+    assertEquals("Same user saves create versions (each downloadVersion call creates 1 version)", 2, versions.size());
+    Version v1 = versions.get(0);
+    Version v2 = versions.get(1);
+    assertEquals(USER_USERNAME, v1.getAuthor());
+    assertEquals(USER_USERNAME, v2.getAuthor());
+    node.remove();
+  }
+
+  @Test
+  public void testVersionAccumulationDifferentUsers() throws Exception {
+    startSessionAs(USER_USERNAME);
+    Node node = createDocument("Test Document.docx", "nt:file", "testContent", false);
+    Config config = editorService.createEditor("http", "127.0.0.1", 8080, USER_USERNAME, null, node.getUUID(), OnlyofficeEditorService.EDIT_MODE);
+    String key = config.getDocument().getKey();
+
+    DocumentStatus openStatus = new DocumentStatus.Builder().status(1L)
+                                                            .users(new String[] { USER_USERNAME })
+                                                            .userId(USER_USERNAME)
+                                                            .key(key)
+                                                            .saved(true)
+                                                            .build();
+    editorService.updateDocument(openStatus);
+
+    editorService.downloadVersion(USER_USERNAME, key, false, false, null, null);
+
+    editorService.createEditor("http", "127.0.0.1", 8080, "root", null, node.getUUID(), OnlyofficeEditorService.EDIT_MODE);
+    DocumentStatus openStatus2 = new DocumentStatus.Builder().status(1L)
+                                                             .users(new String[] { "root" })
+                                                             .userId("root")
+                                                             .key(key)
+                                                             .saved(true)
+                                                             .build();
+    editorService.updateDocument(openStatus2);
+    editorService.downloadVersion("root", key, false, false, null, null);
+
+    List<Version> versions = editorService.getVersions("portal-test", node.getUUID(), 10, 0);
+    assertNotNull(versions);
+    assertEquals("Different user saves produce separate versions", 2, versions.size());
+    assertEquals(USER_USERNAME, versions.get(0).getAuthor());
+    assertEquals("root", versions.get(1).getAuthor());
+    node.remove();
+  }
+
+  @Test
+  public void testVersionAccumulationAfterForcesave() throws Exception {
+    startSessionAs(USER_USERNAME);
+    Node node = createDocument("Test Document.docx", "nt:file", "testContent", false);
+    Config config = editorService.createEditor("http", "127.0.0.1", 8080, USER_USERNAME, null, node.getUUID(), OnlyofficeEditorService.EDIT_MODE);
+    String key = config.getDocument().getKey();
+
+    DocumentStatus openStatus = new DocumentStatus.Builder().status(1L)
+                                                            .users(new String[] { USER_USERNAME })
+                                                            .userId(USER_USERNAME)
+                                                            .key(key)
+                                                            .saved(true)
+                                                            .build();
+    editorService.updateDocument(openStatus);
+
+    editorService.downloadVersion(USER_USERNAME, key, false, false, null, null);
+    editorService.downloadVersion(USER_USERNAME, key, false, true, null, null);
+    editorService.downloadVersion(USER_USERNAME, key, false, false, null, null);
+
+    List<Version> versions = editorService.getVersions("portal-test", node.getUUID(), 10, 0);
+    assertNotNull(versions);
+    assertEquals("Three saves (normal, forcesave, normal) produce 3 versions", 3, versions.size());
+    assertEquals(USER_USERNAME, versions.get(0).getAuthor());
+    assertEquals(USER_USERNAME, versions.get(1).getAuthor());
+    assertEquals(USER_USERNAME, versions.get(2).getAuthor());
+    node.remove();
+  }
+
+  @Test
+  public void testVersionOwnerReadFromLiveNode() throws Exception {
+    startSessionAs(USER_USERNAME);
+    Node node = createDocument("Test Document.docx", "nt:file", "testContent", false);
+    String nodePath = node.getPath();
+    Config config = editorService.createEditor("http", "127.0.0.1", 8080, USER_USERNAME, null, node.getUUID(), OnlyofficeEditorService.EDIT_MODE);
+    String key = config.getDocument().getKey();
+
+    DocumentStatus openStatus = new DocumentStatus.Builder().status(1L)
+                                                            .users(new String[] { USER_USERNAME })
+                                                            .userId(USER_USERNAME)
+                                                            .key(key)
+                                                            .saved(true)
+                                                            .build();
+    editorService.updateDocument(openStatus);
+
+    assertTrue("Node should be versionable", node.isNodeType("mix:versionable"));
+
+    editorService.downloadVersion(USER_USERNAME, key, false, false, null, null);
+
+    Node reloaded = editorService.getDocument(null, nodePath);
+    assertTrue("eoo:versionOwner should be present on live node after save",
+               reloaded.hasProperty("eoo:versionOwner"));
+
+    editorService.downloadVersion(USER_USERNAME, key, false, true, null, null);
+
+    reloaded = editorService.getDocument(null, nodePath);
+    assertTrue("eoo:versionOwner should be present on live node after forcesave",
+               reloaded.hasProperty("eoo:versionOwner"));
+
+    editorService.downloadVersion(USER_USERNAME, key, false, false, null, null);
+
+    reloaded = editorService.getDocument(null, nodePath);
+    assertTrue("eoo:versionOwner should be present on live node after second normal save",
+               reloaded.hasProperty("eoo:versionOwner"));
+
+    javax.jcr.version.VersionHistory vh = reloaded.getVersionHistory();
+    assertTrue("Should have at least 2 versions (root + saved)", vh.getAllVersions().getSize() >= 2);
+    node.remove();
+  }
 
 }
