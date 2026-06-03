@@ -1003,7 +1003,11 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
             config.closed();
             broadcastEvent(status, OnlyofficeEditorService.EDITOR_CLOSED_EVENT);
           }
-          configs.values().forEach(c -> cachedEditorConfigStorage.deleteConfig(List.of(key,c.getDocId()), c));
+          configs.values().forEach(c -> {
+            if (!c.isCreated()) {
+              cachedEditorConfigStorage.deleteConfig(List.of(key, c.getDocId()), c);
+            }
+          });
         } else if (statusCode == 3) {
           // it's an error of saving in Onlyoffice
           // we sync to remote editors list first
@@ -1054,7 +1058,9 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
           //as this status is sent only when the last user closed without modification,
           //we can delete all configs of this doc
           configs.values().forEach(c -> {
-            cachedEditorConfigStorage.deleteConfig(List.of(key,c.getDocId()), c);
+            if (!c.isCreated()) {
+              cachedEditorConfigStorage.deleteConfig(List.of(key, c.getDocId()), c);
+            }
           });
         } else if (statusCode == 6) {
           // forcedsave done, save the version with its URL
@@ -1066,7 +1072,6 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
           if (status.saved == null || status.isSaved()) {
             LOG.debug("Document is save, and we need to download it (Node (id={}), userId={})",
                         status.getConfig().getDocId(), status.getUserId());
-            status.setConfig(getEditorByKey(status.getUserId(), key));
             downloadVersion(status);
           } else {
             saveLink(status.getUserId(), key, status.getUrl());
@@ -1979,13 +1984,8 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
     try {
       download(status);
       Config config = status.getConfig();
-      if (config.isClosed()) {
-          cachedEditorConfigStorage.deleteConfig(List.of(config.getDocId(),config.getDocument().getKey()),config);
-      } else {
-        config.getEditorConfig().getUser().setLastSaved(System.currentTimeMillis());
-        updateCache(config);
-      }
-
+      config.getEditorConfig().getUser().setLastSaved(System.currentTimeMillis());
+      updateCache(config);
     } catch (RepositoryException | OnlyofficeEditorException e) {
       LOG.error("Error occured while downloading document [Version]. docId: " + status.getConfig().getDocId(), e);
     }
