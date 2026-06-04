@@ -1236,6 +1236,7 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
     }
     return null;
   }
+
   private boolean canAccessDocumentLocation(Node node, String userId) throws RepositoryException {
     String path = node.getPath();
     String[] permissions = new String[] { PermissionType.READ };
@@ -1243,12 +1244,15 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
       return PermissionUtil.hasPermissions(node, userId, permissions);
     }
     if (path.startsWith(groupsPath)) {
-        String spaceName = extractSpacePrettyName(path);
-        Space space = spaceService.getSpaceByPrettyName(spaceName);
-        return space != null && (PermissionUtil.hasPermissions(node, userId, permissions) || spaceService.isMember(space, userId));
+      String spaceName = extractSpacePrettyName(path);
+      Space space = spaceService.getSpaceByPrettyName(spaceName);
+      if (space == null && spaceName != null) {
+        space = spaceService.getSpaceByGroupId("/spaces/" + spaceName);
+      }
+      return space != null && (PermissionUtil.hasPermissions(node, userId, permissions) || spaceService.isMember(space, userId));
     }
     return false;
-}
+  }
 
   private <T> List<T> getPages(List<T> c, Integer pageSize, int nb) {
     if (c == null || c.isEmpty())
