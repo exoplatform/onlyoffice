@@ -554,13 +554,24 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
    *          other users
    * @return the editor
    * @throws OnlyofficeEditorException the onlyoffice editor exception
-   * @throws RepositoryException the repository exception
    */
-  protected Config getEditor(String userId, String docId, boolean createCoEditing) throws OnlyofficeEditorException,
-                                                                                   RepositoryException {
+  protected Config getEditor(String userId, String docId, boolean createCoEditing) throws OnlyofficeEditorException {
     Map<String, Config> configs = cachedEditorConfigStorage.getConfigsByDocId(docId);
     if (configs != null && !configs.isEmpty()) {
       Config config = configs.get(userId);
+      if (config != null && createCoEditing && configs.size() > 1) {
+        String documentKey = config.getDocument().getKey();
+        Config userConfig = config;
+        boolean keyMatchesAnother = configs.values()
+                                           .stream()
+                                           .filter(c -> c != userConfig)
+                                           .anyMatch(c -> c.getDocument().getKey().equals(documentKey));
+        if (!keyMatchesAnother) {
+          cachedEditorConfigStorage.deleteConfig(List.of(documentKey, config.getDocId()), config);
+          configs.remove(userId);
+          config = null;
+        }
+      }
       DocumentStatus.Builder statusBuilder = new DocumentStatus.Builder();
       statusBuilder.users(new String[] { userId });
       if (config == null && createCoEditing) {
