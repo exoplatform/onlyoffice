@@ -554,13 +554,24 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
    *          other users
    * @return the editor
    * @throws OnlyofficeEditorException the onlyoffice editor exception
-   * @throws RepositoryException the repository exception
    */
-  protected Config getEditor(String userId, String docId, boolean createCoEditing) throws OnlyofficeEditorException,
-                                                                                   RepositoryException {
+  protected Config getEditor(String userId, String docId, boolean createCoEditing) throws OnlyofficeEditorException {
     Map<String, Config> configs = cachedEditorConfigStorage.getConfigsByDocId(docId);
     if (configs != null && !configs.isEmpty()) {
       Config config = configs.get(userId);
+      if (config != null && createCoEditing && configs.size() > 1) {
+        String documentKey = config.getDocument().getKey();
+        Config userConfig = config;
+        boolean keyMatchesAnother = configs.values()
+                                           .stream()
+                                           .filter(c -> c != userConfig)
+                                           .anyMatch(c -> c.getDocument().getKey().equals(documentKey));
+        if (!keyMatchesAnother) {
+          cachedEditorConfigStorage.deleteConfig(List.of(documentKey, config.getDocId()), config);
+          configs.remove(userId);
+          config = null;
+        }
+      }
       DocumentStatus.Builder statusBuilder = new DocumentStatus.Builder();
       statusBuilder.users(new String[] { userId });
       if (config == null && createCoEditing) {
@@ -1003,7 +1014,11 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
             config.closed();
             broadcastEvent(status, OnlyofficeEditorService.EDITOR_CLOSED_EVENT);
           }
-          configs.values().forEach(c -> cachedEditorConfigStorage.deleteConfig(List.of(key,c.getDocId()), c));
+          configs.values().forEach(c -> {
+            if (!c.isCreated()) {
+              cachedEditorConfigStorage.deleteConfig(List.of(key, c.getDocId()), c);
+            }
+          });
         } else if (statusCode == 3) {
           // it's an error of saving in Onlyoffice
           // we sync to remote editors list first
@@ -1054,7 +1069,9 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
           //as this status is sent only when the last user closed without modification,
           //we can delete all configs of this doc
           configs.values().forEach(c -> {
-            cachedEditorConfigStorage.deleteConfig(List.of(key,c.getDocId()), c);
+            if (!c.isCreated()) {
+              cachedEditorConfigStorage.deleteConfig(List.of(key, c.getDocId()), c);
+            }
           });
         } else if (statusCode == 6) {
           // forcedsave done, save the version with its URL
@@ -1066,7 +1083,6 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
           if (status.saved == null || status.isSaved()) {
             LOG.debug("Document is save, and we need to download it (Node (id={}), userId={})",
                         status.getConfig().getDocId(), status.getUserId());
-            status.setConfig(getEditorByKey(status.getUserId(), key));
             downloadVersion(status);
           } else {
             saveLink(status.getUserId(), key, status.getUrl());
@@ -1979,13 +1995,8 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
     try {
       download(status);
       Config config = status.getConfig();
-      if (config.isClosed()) {
-          cachedEditorConfigStorage.deleteConfig(List.of(config.getDocId(),config.getDocument().getKey()),config);
-      } else {
-        config.getEditorConfig().getUser().setLastSaved(System.currentTimeMillis());
-        updateCache(config);
-      }
-
+      config.getEditorConfig().getUser().setLastSaved(System.currentTimeMillis());
+      updateCache(config);
     } catch (RepositoryException | OnlyofficeEditorException e) {
       LOG.error("Error occured while downloading document [Version]. docId: " + status.getConfig().getDocId(), e);
     }
