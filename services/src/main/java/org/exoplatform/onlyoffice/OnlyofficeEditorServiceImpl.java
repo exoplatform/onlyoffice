@@ -672,6 +672,9 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
           builder.comment(nodeComment(node));
           builder.drive(getDrive(node));
           builder.mode(mode);
+          if (isSuspendDownloadDocument()) {
+            builder.setRestrictedDownload(true);
+          }
           builder.renameAllowed(canRenameDocument(node));
           builder.isActivity(ActivityTypeUtils.getActivityId(node) != null);
           try {

@@ -147,6 +147,8 @@ public class Config implements Externalizable {
   
     protected boolean      allowEdition = true;
 
+    protected boolean      restrictedDownload;
+
     /**
      * Instantiates a new builder.
      *
@@ -465,6 +467,11 @@ public class Config implements Externalizable {
       return this;
     }
 
+    public Builder setRestrictedDownload(boolean restrictedDownload) {
+      this.restrictedDownload = restrictedDownload;
+      return this;
+    }
+
     /**
      * Builds the.
      *
@@ -486,7 +493,9 @@ public class Config implements Externalizable {
 
       Document.Info info = new Document.Info(owner, uploaded, folder);
       Document.Permissions permissions;
-      if (this.mode != null && this.mode.equals("fillform")) {
+      if (this.restrictedDownload) {
+        permissions = new Document.EditRestrictedPermissions();
+      } else if (this.mode != null && this.mode.equals("fillform")) {
         permissions = new Document.FillFormPermissions();
       } else if (this.allowEdition) {
         permissions = new Document.EditPermissions();
@@ -682,6 +691,13 @@ public class Config implements Externalizable {
        */
       protected FillFormPermissions() {
         super(true, false,false,true );
+      }
+    }
+
+    public static class EditRestrictedPermissions extends Permissions {
+
+      protected EditRestrictedPermissions() {
+        super(false, true, true, false);
       }
     }
 
