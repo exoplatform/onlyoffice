@@ -13,8 +13,10 @@ import org.exoplatform.commons.utils.CommonsUtils;
 import org.exoplatform.container.ExoContainerContext;
 import org.exoplatform.services.cms.documents.DocumentUpdateActivityHandler;
 import org.exoplatform.services.ext.action.InvocationContext;
+import org.exoplatform.services.jcr.impl.core.NodeImpl;
 import org.exoplatform.services.listener.Event;
 import org.exoplatform.services.thumbnail.ImageThumbnailService;
+import org.exoplatform.services.wcm.core.NodetypeConstant;
 import org.exoplatform.wcm.ext.component.activity.listener.FileUpdateActivityListener;
 
 /**
@@ -39,8 +41,8 @@ public class OnlyOfficeDocumentUpdateActivityHandler extends FileUpdateActivityL
    * Instantiates a new document update activity listener.
    */
   public OnlyOfficeDocumentUpdateActivityHandler() {
-    editorService = (OnlyofficeEditorService) ExoContainerContext.getCurrentContainer()
-                                                                 .getComponentInstanceOfType(OnlyofficeEditorService.class);
+    editorService = ExoContainerContext.getCurrentContainer()
+                                       .getComponentInstanceOfType(OnlyofficeEditorService.class);
   }
 
   
@@ -51,7 +53,10 @@ public class OnlyOfficeDocumentUpdateActivityHandler extends FileUpdateActivityL
     Property currentProperty = (Property) context.get(InvocationContext.CURRENT_ITEM);
     Node currentNode = currentProperty.getParent().getParent();
     ImageThumbnailService imageThumbnailService = CommonsUtils.getService(ImageThumbnailService.class);
-    imageThumbnailService.deleteThumbnails(OfficeDocumentsThumbnailPlugin.DOCUMENTS_OFFICE, currentNode.getUUID());
+    String nodeId = getNodeId(currentNode);
+    if (nodeId != null) {
+      imageThumbnailService.deleteThumbnails(OfficeDocumentsThumbnailPlugin.DOCUMENTS_OFFICE, nodeId);
+    }
     // If there is no manually added comment from the editor
     if (!isCommentedNode(currentNode)) {
       String lastModifier = currentNode.getProperty("exo:lastModifier").getString();
@@ -72,6 +77,7 @@ public class OnlyOfficeDocumentUpdateActivityHandler extends FileUpdateActivityL
     return true;
   }
 
+
   /**
    * Checks if a node has comment.
    *
@@ -85,6 +91,16 @@ public class OnlyOfficeDocumentUpdateActivityHandler extends FileUpdateActivityL
       return commentId != null && !commentId.isEmpty();
     }
     return false;
+  }
+
+  private String getNodeId(Node node) throws RepositoryException {
+    if (node.isNodeType(NodetypeConstant.MIX_REFERENCEABLE)) {
+      return node.getUUID();
+    } else if (node instanceof NodeImpl nodeImpl) {
+      return nodeImpl.getIdentifier();
+    } else {
+      return null;
+    }
   }
 
 }
