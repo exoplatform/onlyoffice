@@ -1200,6 +1200,8 @@
         success: function(data) {
           var html = "";
           for (var i = 0; i < data.length; i++) {
+            let versionLabels = data[i].versionLabels
+            versionLabels = DOMPurify.sanitize(versionLabels);
             html += "<table class='tableContentStyle'>" + "<tr class='tableHead'>" + "<th class='displayAvatarFullName'>" +
               "<div class='avatarCircle'>" + "<img src='/rest/v1/social/users/" +
               data[i].author +
@@ -1218,7 +1220,7 @@
               "<tr class='tableContent'>" +
               "<th>" +
               "<div class='editors-comment-versions b' rel='tooltip' data-placement='bottom'  data-original-title='" +
-              data[i].versionLabels + "'>" + data[i].versionLabels + "</div>" + "</th>" + "</tr>" + "</table>";
+              versionLabels + "'>" + versionLabels + "</div>" + "</th>" + "</tr>" + "</table>";
           };
 
           // Test update DOM versions list or load more versions
