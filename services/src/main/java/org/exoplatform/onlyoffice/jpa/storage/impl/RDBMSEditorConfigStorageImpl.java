@@ -44,6 +44,30 @@ public class RDBMSEditorConfigStorageImpl implements EditorConfigStorage {
                                                        (key1, key2) -> key1));
   }
 
+  @Override
+  @ExoTransactional
+  public Map<String,Config> getActiveConfigsByDocId(String docId) {
+    List<EditorConfigEntity> entities = editorConfigDAO.getActiveConfigByDocId(docId);
+    return entities.stream()
+                   .collect(Collectors.toConcurrentMap(EditorConfigEntity::getEditorUserUserid,
+                                                       this::buildFromEntity,
+                                                       (key1, key2) -> key1));
+  }
+
+  @Override
+  @ExoTransactional
+  public List<Config> getClosedConfigsBefore(long expirationTime) {
+    List<EditorConfigEntity> entities = editorConfigDAO.getClosedConfigBefore(expirationTime);
+    return entities.stream().map(this::buildFromEntity).collect(Collectors.toList());
+  }
+
+  @Override
+  @ExoTransactional
+  public int deleteClosedConfigsBefore(long expirationTime) {
+    List<EditorConfigEntity> entities = editorConfigDAO.getClosedConfigBefore(expirationTime);
+    entities.forEach(editorConfigDAO::delete);
+    return entities.size();
+  }
 
 
   @Override
@@ -176,10 +200,18 @@ public class RDBMSEditorConfigStorageImpl implements EditorConfigStorage {
     Config result = builder.build();
     result.setError(entity.getError());
     result.setDatabaseId(entity.getId());
-    result.setOpen(entity.isOpen());
-    result.setClosing(entity.isClosing());
     result.setOpenedTime(entity.getOpenedTime());
     result.setClosedTime(entity.getClosedTime());
+    if (entity.isOpen()) {
+      result.setOpen(true);
+      result.setClosing(false);
+    } else if (entity.isClosing()) {
+      result.setOpen(false);
+      result.setClosing(true);
+    } else if (entity.getClosedTime() != null) {
+      result.setOpen(false);
+      result.setClosing(false);
+    }
 
     result.getEditorConfig().getUser().setLastModified(entity.getEditorUserLastModified());
     result.getEditorConfig().getUser().setLastSaved(entity.getEditorUserLastSaved());

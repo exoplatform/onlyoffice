@@ -254,7 +254,11 @@ public class EditorService implements ResourceContainer {
                 editors.updateDocument(statusBuilder.build());
                 resp.entity("{\"error\": 0}");
               } catch (BadParameterException e) {
-                LOG.warn("Bad parameter to update status for " + key + ". " + e.getMessage());
+                if (LOG.isDebugEnabled()) {
+                  LOG.warn("Bad parameter to update status for {}. ", key, e);
+                } else {
+                  LOG.warn("Bad parameter to update status for {}. Error: {}", key, e.getMessage());
+                }
                 resp.error(e.getMessage()).status(Status.BAD_REQUEST);
               } catch (OnlyofficeEditorException e) {
                 LOG.error("Error handling status for " + key, e);
@@ -329,7 +333,11 @@ public class EditorService implements ResourceContainer {
               resp.error("User not provided").status(Status.BAD_REQUEST);
             }
           } catch (BadParameterException e) {
-            LOG.warn("Bad parameter to downloading content for " + key + ". " + e.getMessage());
+            if (LOG.isDebugEnabled()) {
+              LOG.warn("Bad parameter to downloading content for {}. ", key, e);
+            } else {
+              LOG.warn("Bad parameter to downloading content for {}. Error: {}", key, e.getMessage());
+            }
             resp.error(e.getMessage()).status(Status.BAD_REQUEST);
           } catch (OnlyofficeEditorException e) {
             LOG.error("Error downloading content for " + key, e);
@@ -441,7 +449,11 @@ public class EditorService implements ResourceContainer {
             resp.error("User not authenticated").status(Status.UNAUTHORIZED);
           }
         } catch (BadParameterException e) {
-          LOG.warn("Bad parameter for creating editor config " + workspace + ":" + path + ". " + e.getMessage());
+          if (LOG.isDebugEnabled()) {
+            LOG.warn("Bad parameter for creating editor config {}:{}. ", workspace, path, e);
+          } else {
+            LOG.warn("Bad parameter for creating editor config {}:{}. Error: {}", workspace, path, e.getMessage());
+          }
           resp.error(e.getMessage()).status(Status.BAD_REQUEST);
         } catch (OnlyofficeEditorException e) {
           LOG.error("Error creating editor config " + workspace + ":" + path, e);
@@ -511,7 +523,11 @@ public class EditorService implements ResourceContainer {
           ChangeState status = editors.getState(userId, key);
           resp.entity(status).ok();
         } catch (BadParameterException e) {
-          LOG.warn("Bad parameter for getting document state " + userId + "@" + key + ". " + e.getMessage());
+          if (LOG.isDebugEnabled()) {
+            LOG.warn("Bad parameter for creating editor config userId = {}, key = {}.", userId, key, e);
+          } else {
+            LOG.warn("Bad parameter for creating editor config userId = {}, key = {}. Error: {}", userId, key, e.getMessage());
+          }
           resp.error(e.getMessage()).status(Status.BAD_REQUEST);
         } catch (OnlyofficeEditorException e) {
           LOG.error("Error getting document state " + userId + "@" + key, e);
@@ -684,7 +700,11 @@ public class EditorService implements ResourceContainer {
           return host;
         }
       } catch (Exception e) {
-        LOG.warn("Cannot obtain client hostname by its IP " + clientIp + ": " + e.getMessage());
+        if (LOG.isDebugEnabled()) {
+          LOG.warn("Cannot obtain client hostname by its IP {}", clientIp, e);
+        } else {
+          LOG.warn("Cannot obtain client hostname by its IP {}. Error: ", clientIp, e.getMessage());
+        }
       }
     }
     host = request.getRemoteHost();

@@ -183,6 +183,12 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
   /** The Constant CONFIG_DS_SECRET. */
   public static final String     CONFIG_DS_SECRET         = "documentserver-secret";
 
+  /** Retention for closed editor configs kept to handle late OnlyOffice callbacks. */
+  public static final String     CONFIG_CLOSED_CONFIG_RETENTION_MS = "editor-config-closed-retention-ms";
+
+  /** Default closed config retention: two hours. */
+  protected static final long    DEFAULT_CLOSED_CONFIG_RETENTION_MS = 2 * 60 * 60 * 1000L;
+
   /**
    * Configuration key for Document Server's allowed hosts in requests from a DS
    * to eXo side.
@@ -556,7 +562,7 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
    * @throws OnlyofficeEditorException the onlyoffice editor exception
    */
   protected Config getEditor(String userId, String docId, boolean createCoEditing) throws OnlyofficeEditorException {
-    Map<String, Config> configs = cachedEditorConfigStorage.getConfigsByDocId(docId);
+    Map<String, Config> configs = cachedEditorConfigStorage.getActiveConfigsByDocId(docId);
     if (configs != null && !configs.isEmpty()) {
       Config config = configs.get(userId);
       if (config != null && createCoEditing && configs.size() > 1) {
@@ -623,6 +629,7 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
                              String userId,
                              String workspace,
                              String docId, String mode) throws OnlyofficeEditorException, RepositoryException {
+    cleanupExpiredClosedConfigs();
     if (workspace == null) {
       workspace = jcrService.getCurrentRepository().getConfiguration().getDefaultWorkspaceName();
     }
@@ -646,7 +653,7 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
       // we should care about concurrent calls here
       activeLock.lock();
       try {
-        Map<String, Config> configs = cachedEditorConfigStorage.getConfigsByDocId(docId);
+        Map<String, Config> configs = cachedEditorConfigStorage.getActiveConfigsByDocId(docId);
         if (configs != null && !configs.isEmpty()) {
           config = getEditor(userId, docId, true);
           if (config == null) {
@@ -930,6 +937,94 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
   }
 
   /**
+   * Grace period for retaining closed configs so late OnlyOffice callbacks can still be resolved.
+   */
+  protected long closedConfigRetentionMs() {
+    String value = config.get(CONFIG_CLOSED_CONFIG_RETENTION_MS);
+    if (StringUtils.isNotBlank(value)) {
+      try {
+        return Long.parseLong(value);
+      } catch (NumberFormatException e) {
+        LOG.warn("Invalid value for " + CONFIG_CLOSED_CONFIG_RETENTION_MS + ": " + value + ". Using default.");
+      }
+    }
+    return DEFAULT_CLOSED_CONFIG_RETENTION_MS;
+  }
+
+  /**
+   * Opportunistic cleanup of old closed configs
+   */
+  protected void cleanupExpiredClosedConfigs() {
+    try {
+      long expirationTime = System.currentTimeMillis() - closedConfigRetentionMs();
+      int deleted = cachedEditorConfigStorage.deleteClosedConfigsBefore(expirationTime);
+      if (deleted > 0 && LOG.isDebugEnabled()) {
+        LOG.debug("Deleted {} expired OnlyOffice editor configs", deleted);
+      }
+    } catch (Exception e) {
+      LOG.warn("Cannot cleanup expired OnlyOffice editor configs", e);
+    }
+  }
+
+  /**
+   * Resolve the config to use for a callback. OnlyOffice can send callbacks with
+   * userdata.userId, users[0], or the callback URL user.
+   */
+  protected Config resolveStatusConfig(DocumentStatus status, Map<String, Config> configs) {
+    String statusUserId = status.getUserId();
+    if (StringUtils.isNotBlank(statusUserId)) {
+      return configs.get(statusUserId);
+    }
+
+    String lastUserId = status.getLastUser();
+    if (StringUtils.isNotBlank(lastUserId)) {
+      return configs.get(lastUserId);
+    }
+
+    if (configs.size() == 1) {
+      return configs.values().iterator().next();
+    }
+    return null;
+  }
+
+  protected String[] safeUsers(DocumentStatus status) {
+    return status.getUsers() != null ? status.getUsers() : new String[0];
+  }
+
+  protected int activeConfigCount(Map<String, Config> configs) {
+    if (configs == null || configs.isEmpty()) {
+      return 0;
+    }
+    return (int) configs.values()
+                        .stream()
+                        .filter(c -> c != null && !c.isClosed())
+                        .count();
+  }
+
+  /**
+   * Mark every config for the key closed and retain it for late callbacks.
+   */
+  protected void closeConfigs(String key, Map<String, Config> configs) {
+    if (configs == null || configs.isEmpty()) {
+      return;
+    }
+    configs.values().forEach(c -> {
+      if (c != null) {
+        c.closed();
+        cachedEditorConfigStorage.saveConfig(List.of(key, c.getDocId()), c, false);
+      }
+    });
+  }
+
+  protected boolean hasActiveConfigForDifferentKey(String docId, String key) {
+    Map<String, Config> activeConfigs = cachedEditorConfigStorage.getActiveConfigsByDocId(docId);
+    return activeConfigs != null
+        && activeConfigs.values()
+                        .stream()
+                        .anyMatch(c -> c != null && !key.equals(c.getDocument().getKey()));
+  }
+
+  /**
    * {@inheritDoc}
    */
   @Override
@@ -940,7 +1035,7 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
       if (config != null) {
         validateUser(userId, config);
         String[] users = getActiveUsers(configs);
-        return new ChangeState(false, config.getError(), users);
+        return new ChangeState(config.isClosed() && users.length == 0, config.getError(), users);
       } else {
         throw new BadParameterException("User editor not found " + userId);
       }
@@ -957,166 +1052,126 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
   public void updateDocument(DocumentStatus status) throws OnlyofficeEditorException, RepositoryException {
     String key = status.getKey();
     Map<String, Config> configs = cachedEditorConfigStorage.getConfigsByKey(key);
-    if (configs != null && !configs.isEmpty()) {
-      Config config = configs.get(status.getUserId());
-      if (config != null) {
-        status.setConfig(config);
-        validateUser(status.getUserId(), config);
+    if (configs == null || configs.isEmpty()) {
+      throw new BadParameterException("File key not found " + key);
+    }
 
-        String nodePath = nodePath(config.getWorkspace(), config.getPath());
+    Config config = resolveStatusConfig(status, configs);
+    if (config == null) {
+      throw new BadParameterException("User editor not found " + status.getUserId());
+    }
 
-        // status of the document. Can have the following values:
-        // 0 - no document with the key identifier could be found,
-        // 1 - document is being edited (user opened an editor),
-        // 2 - document is ready for saving (last user closed it),
-        // 3 - document saving error has occurred,
-        // 4 - document is closed with no changes (last user closed it)
-        // 6 - document is being edited, but the current document state is
-        // saved,
-        // 7 - error has occurred while force saving the document.
-        long statusCode = status.getStatus();
+    status.setConfig(config);
+    validateUser(config.getEditorConfig().getUser().getId(), config);
 
-        if (LOG.isDebugEnabled()) {
-          LOG.debug(">> Onlyoffice status " + statusCode + " for " + key + ". URL: " + status.getUrl() + ". Users: "
-              + Arrays.toString(status.getUsers()) + " << Local file: " + nodePath);
-        }
+    String nodePath = nodePath(config.getWorkspace(), config.getPath());
 
-        if (statusCode == 0) {
-          // Onlyoffice doesn't know about such document: we clean our records
-          // and raise an error
-          cachedEditorConfigStorage.deleteConfig(List.of(key,config.getDocId()), config);
-          LOG.warn("Received Onlyoffice status: no document with the key identifier could be found. Key: " + key + ". Document: "
-              + nodePath);
-          throw new OnlyofficeEditorException("Error editing document: document ID not found");
-        } else if (statusCode == 1) {
-          // while "document is being edited" (1) will come just before
-          // "document is ready for saving"
-          // (2) we could do nothing at this point, indeed need study how
-          // Onlyoffice behave in different
-          // situations when user leave page open or browser
-          // hangs/crashes/killed - it still could be useful
-          // here to make a cleanup
-          // Sync users from the status to active config: this should close
-          // configs of gone users
-          syncUsers(configs, status.getUsers());
-        } else if (statusCode == 2) {
-          Editor.User lastUser = getUser(key, status.getLastUser());
-          Editor.User lastModifier = getLastModifier(key);
-          // We download if there were modifications after the last saving.
-          if (!lastModifier.getId().equals(lastUser.getId()) ||
-              (lastModifier.getId().equals(lastUser.getId()) && lastUser.getLastModified() > lastUser.getLastSaved())) {
-            //lastUser is the user which send the last modification to OO
-            //lastModifier is the user which eXo knows as last modifier
-            //if lastModifier!=lastUser, it means that there a modification in OO which is not in eXo.
-            //in this case, we download from OO to exo
+    // status of the document. Can have the following values:
+    // 0 - no document with the key identifier could be found,
+    // 1 - document is being edited (user opened an editor),
+    // 2 - document is ready for saving (last user closed it),
+    // 3 - document saving error has occurred,
+    // 4 - document is closed with no changes (last user closed it)
+    // 6 - document is being edited, but the current document state is saved,
+    // 7 - error has occurred while force saving the document.
+    long statusCode = status.getStatus();
 
-            //if lastModifer and last user are the same, we download from oo to exo only if
-            //lastModifiedDate>lastSavedDate
-            downloadClosed(status);
-          } else {
-            config.closed();
-            broadcastEvent(status, OnlyofficeEditorService.EDITOR_CLOSED_EVENT);
-          }
-          configs.values().forEach(c -> {
-            if (!c.isCreated()) {
-              cachedEditorConfigStorage.deleteConfig(List.of(key, c.getDocId()), c);
-            }
-          });
-        } else if (statusCode == 3) {
-          // it's an error of saving in Onlyoffice
-          // we sync to remote editors list first
-          syncUsers(configs, status.getUsers());
-          if (configs.size() <= 1) {
-            // if one or zero users we can save it
-            String url = status.getUrl();
-            if (url != null && url.length() > 0) {
-              // if URL available then we can download it assuming it's last
-              // successful modification the same behaviour as for status (2)
-              downloadClosed(status);
-              cachedEditorConfigStorage.deleteConfig(List.of(key,config.getDocId()), config);
-              config.setError("Error in editor (" + status.getError() + "). Last change was successfully saved");
-              fireError(status);
-              broadcastEvent(status, OnlyofficeEditorService.EDITOR_ERROR_EVENT);
-              LOG.warn("Received Onlyoffice error of saving document. Key: " + key + ". Users: "
-                  + Arrays.toString(status.getUsers()) + ". Error: " + status.getError()
-                  + ". Last change was successfully saved for " + nodePath);
-            } else {
-              // if error without content URL and last user: it's error state
-              LOG.warn("Received Onlyoffice error of saving document without changes URL. Key: " + key + ". Users: "
-                  + Arrays.toString(status.getUsers()) + ". Document: " + nodePath + ". Error: " + status.getError());
-              config.setError("Error in editor (" + status.getError() + "). No changes saved");
-              // Update cached (for replicated cache)
-              cachedEditorConfigStorage.saveConfig(List.of(key,config.getDocId()), config,false);
-              fireError(status);
-              broadcastEvent(status, OnlyofficeEditorService.EDITOR_ERROR_EVENT);
-              // No sense to throw an ex here: it will be caught by the
-              // caller (REST) and returned to the Onlyoffice server as 500
-              // response, but it doesn't deal with it and will try send the
-              // status again.
-            }
-          } else {
-            // otherwise we assume other user will save it later
-            LOG.warn("Received Onlyoffice error of saving document with several editors. Key: " + key + ". Users: "
-                + Arrays.toString(status.getUsers()) + ". Document: " + nodePath);
-            config.setError("Error in editor. Document still in editing state");
-            // Update cached (for replicated cache)
-            cachedEditorConfigStorage.saveConfig(List.of(key,config.getDocId()), config,false);
-            fireError(status);
-            broadcastEvent(status, OnlyofficeEditorService.EDITOR_ERROR_EVENT);
-          }
-        } else if (statusCode == 4) {
-          // user(s) haven't changed the document but closed it: sync users to
-          // fire onLeaved event(s)
-          syncUsers(configs, status.getUsers());
-          // and remove this document from active configs
-          //as this status is sent only when the last user closed without modification,
-          //we can delete all configs of this doc
-          configs.values().forEach(c -> {
-            if (!c.isCreated()) {
-              cachedEditorConfigStorage.deleteConfig(List.of(key, c.getDocId()), c);
-            }
-          });
-        } else if (statusCode == 6) {
-          // forcedsave done, save the version with its URL
-          if (LOG.isDebugEnabled()) {
-            LOG.debug("Received Onlyoffice forced saved document. Key: " + key + ". Users: " + Arrays.toString(status.getUsers())
-                + ". Document " + nodePath + ". URL: " + status.getUrl() + ". Download: " + status.isSaved());
-          }
-          // Here we decide if we need to download content or just save the link
-          if (status.saved == null || status.isSaved()) {
-            LOG.debug("Document is save, and we need to download it (Node (id={}), userId={})",
-                        status.getConfig().getDocId(), status.getUserId());
-            downloadVersion(status);
-          } else {
-            saveLink(status.getUserId(), key, status.getUrl());
-          }
+    if (LOG.isDebugEnabled()) {
+      LOG.debug(">> Onlyoffice status " + statusCode + " for " + key + ". URL: " + status.getUrl() + ". Users: "
+          + Arrays.toString(status.getUsers()) + " << Local file: " + nodePath);
+    }
 
-        } else if (statusCode == 7) {
-          // For forcedsave error, we may decide next step according
-          // status.getError():
-          // TODO more precise error handling:
-          // 0 No errors.
-          // 1 Document key is missing or no document with such key could be
-          // found.
-          // 2 Callback url not correct.
-          // 3 Internal server error.
-          // 4 No changes were applied to the document before the forcesave
-          // command was received.
-          // 5 Command not correct.
-          // 6 Invalid token.
-          LOG.error("Received Onlyoffice error of forced saving of document. Key: " + key + ". Users: "
-              + Arrays.toString(status.getUsers()) + ". Document: " + nodePath + ". Error: " + status.getError() + ". URL: "
-              + status.getUrl() + ". Download: " + status.isSaved());
+    if (statusCode == 0) {
+      // Onlyoffice doesn't know about such document. Keep a closed record for a grace period
+      // instead of hard deleting immediately, so concurrent platform flows can still resolve it.
+      config.setError("Error editing document: document ID not found");
+      closeConfigs(key, configs);
+      LOG.warn("Received Onlyoffice status: no document with the key identifier could be found. Key: " + key + ". Document: "
+          + nodePath);
+      throw new OnlyofficeEditorException("Error editing document: document ID not found");
+    } else if (statusCode == 1) {
+      // If this is a late open notification for an old key after a new active key was created,
+      // keep the old config closed and do not reactivate it for docId lookup.
+      if (config.isClosed() && hasActiveConfigForDifferentKey(config.getDocId(), key)) {
+        LOG.warn("Ignoring late open status for superseded OnlyOffice key " + key + ". Document: " + nodePath);
+      } else {
+        syncUsers(configs, safeUsers(status));
+      }
+    } else if (statusCode == 2) {
+      Editor.User lastUser = getUser(key, status.getLastUser());
+      if (lastUser == null) {
+        lastUser = config.getEditorConfig().getUser();
+      }
+      Editor.User lastModifier = getLastModifier(key);
+      if (lastModifier == null) {
+        lastModifier = lastUser;
+      }
+      // Download if OO provides a URL, or if our local timestamps indicate unsaved changes.
+      boolean hasUrl = StringUtils.isNotBlank(status.getUrl());
+      boolean hasUnsavedChanges = lastModifier != null && lastUser != null
+          && (!lastModifier.getId().equals(lastUser.getId()) || lastUser.getLastModified() > lastUser.getLastSaved());
+      if (hasUrl || hasUnsavedChanges) {
+        downloadClosed(status);
+      } else {
+        config.closed();
+        cachedEditorConfigStorage.saveConfig(List.of(key, config.getDocId()), config, false);
+        broadcastEvent(status, OnlyofficeEditorService.EDITOR_CLOSED_EVENT);
+      }
+      closeConfigs(key, configs);
+    } else if (statusCode == 3) {
+      // it's an error of saving in Onlyoffice
+      syncUsers(configs, safeUsers(status));
+      if (activeConfigCount(configs) <= 1) {
+        String url = status.getUrl();
+        if (StringUtils.isNotBlank(url)) {
+          // if URL available then we can download it assuming it's last successful modification
+          downloadClosed(status);
+          config.setError("Error in editor (" + status.getError() + "). Last change was successfully saved");
+          cachedEditorConfigStorage.saveConfig(List.of(key, config.getDocId()), config, false);
+          fireError(status);
+          broadcastEvent(status, OnlyofficeEditorService.EDITOR_ERROR_EVENT);
+          LOG.warn("Received Onlyoffice error of saving document. Key: " + key + ". Users: "
+              + Arrays.toString(status.getUsers()) + ". Error: " + status.getError()
+              + ". Last change was successfully saved for " + nodePath);
         } else {
-          // warn unexpected status, wait for next status
-          LOG.warn("Received Onlyoffice unexpected status. Key: " + key + ". URL: " + status.getUrl() + ". Users: "
-              + status.getUsers() + ". Document: " + nodePath);
+          LOG.warn("Received Onlyoffice error of saving document without changes URL. Key: " + key + ". Users: "
+              + Arrays.toString(status.getUsers()) + ". Document: " + nodePath + ". Error: " + status.getError());
+          config.setError("Error in editor (" + status.getError() + "). No changes saved");
+          cachedEditorConfigStorage.saveConfig(List.of(key, config.getDocId()), config,false);
+          fireError(status);
+          broadcastEvent(status, OnlyofficeEditorService.EDITOR_ERROR_EVENT);
         }
       } else {
-        throw new BadParameterException("User editor not found " + status.getUserId());
+        LOG.warn("Received Onlyoffice error of saving document with several editors. Key: " + key + ". Users: "
+            + Arrays.toString(status.getUsers()) + ". Document: " + nodePath);
+        config.setError("Error in editor. Document still in editing state");
+        cachedEditorConfigStorage.saveConfig(List.of(key, config.getDocId()), config,false);
+        fireError(status);
+        broadcastEvent(status, OnlyofficeEditorService.EDITOR_ERROR_EVENT);
       }
+    } else if (statusCode == 4) {
+      syncUsers(configs, safeUsers(status));
+      closeConfigs(key, configs);
+    } else if (statusCode == 6) {
+      if (LOG.isDebugEnabled()) {
+        LOG.debug("Received Onlyoffice forced saved document. Key: " + key + ". Users: " + Arrays.toString(status.getUsers())
+            + ". Document " + nodePath + ". URL: " + status.getUrl() + ". Download: " + status.isSaved());
+      }
+      if (status.saved == null || status.isSaved()) {
+        LOG.debug("Document is save, and we need to download it (Node (id={}), userId={})",
+                    status.getConfig().getDocId(), status.getUserId());
+        downloadVersion(status);
+      } else {
+        saveLink(status.getUserId(), key, status.getUrl());
+      }
+
+    } else if (statusCode == 7) {
+      LOG.error("Received Onlyoffice error of forced saving of document. Key: " + key + ". Users: "
+          + Arrays.toString(status.getUsers()) + ". Document: " + nodePath + ". Error: " + status.getError() + ". URL: "
+          + status.getUrl() + ". Download: " + status.isSaved());
     } else {
-      throw new BadParameterException("File key not found " + key);
+      LOG.warn("Received Onlyoffice unexpected status. Key: " + key + ". URL: " + status.getUrl() + ". Users: "
+          + status.getUsers() + ". Document: " + nodePath);
     }
   }
 
@@ -1449,9 +1504,14 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
     Config config = null;
     try {
       config = getEditorByKey(userId, key);
+      if (config == null) {
+        LOG.warn("Cannot download OnlyOffice version: config not found. userId: " + userId + ", key: " + key);
+        return;
+      }
       docId = config.getDocId();
     } catch (RepositoryException | OnlyofficeEditorException e) {
       LOG.error("Cannot obtain config. docId: " + docId, e);
+      return;
     }
     DocumentStatus status = new DocumentStatus.Builder().config(config)
                                                         .key(key)
@@ -1686,17 +1746,6 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
   }
 
   @Override
-  public void closeWithoutModification(String userId, String key) {
-    Map<String, Config> configs = cachedEditorConfigStorage.getConfigsByKey(key);
-    if (configs.keySet().size()>1) {
-      Config config = configs.get(userId);
-      if (config!=null && config.isClosed()) {
-        cachedEditorConfigStorage.deleteConfig(key, config);
-      }
-    }
-  }
-
-  @Override
   public boolean isDocumentCoedited(String key) {
     Map<String, Config> configs = cachedEditorConfigStorage.getConfigsByKey(key);
     return configs != null && !configs.isEmpty() && configs.size() > 1;
@@ -1737,7 +1786,7 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
       download(status);
       config.getEditorConfig().getUser().setLastSaved(System.currentTimeMillis());
       config.closed(); // reset transient closing state
-      cachedEditorConfigStorage.deleteConfig(List.of(config.getDocument().getKey(),config.getDocId()),config);
+      cachedEditorConfigStorage.saveConfig(List.of(config.getDocument().getKey(), config.getDocId()), config, false);
     } catch (OnlyofficeEditorException | RepositoryException e) {
       LOG.error("Error occured while downloading document content [Closed]. docId: " + config.getDocId(), e);
     }
@@ -1838,7 +1887,11 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
                   .getString();
       }
     } catch (RepositoryException e) {
-      LOG.error(e.getMessage(), e);
+      if (LOG.isDebugEnabled()) {
+        LOG.warn("Error while retrieving the mimetype of node {}. Return empty mimetype. Error: {}", node, e.getMessage());
+      } else {
+        LOG.warn("Error while retrieving the mimetype of node {}. Return empty mimetype.", node, e);
+      }
     }
     return "";
   }
@@ -2005,7 +2058,8 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
       config.getEditorConfig().getUser().setLastSaved(System.currentTimeMillis());
       updateCache(config);
     } catch (RepositoryException | OnlyofficeEditorException e) {
-      LOG.error("Error occured while downloading document [Version]. docId: " + status.getConfig().getDocId(), e);
+      Config config = status.getConfig();
+      LOG.error("Error occured while downloading document [Version]. docId: " + (config != null ? config.getDocId() : null), e);
     }
   }
 

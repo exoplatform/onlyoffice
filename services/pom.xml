@@ -37,7 +37,7 @@
     <rest.api.doc.version>1.0</rest.api.doc.version>
     <rest.api.doc.description>OnlyOffice addon rest endpoints</rest.api.doc.description>
 
-    <exo.test.coverage.ratio>0.39</exo.test.coverage.ratio>
+    <exo.test.coverage.ratio>0.50</exo.test.coverage.ratio>
   </properties>
 
   <dependencies>
