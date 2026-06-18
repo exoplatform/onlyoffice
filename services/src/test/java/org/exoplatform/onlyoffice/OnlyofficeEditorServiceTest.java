@@ -1093,11 +1093,10 @@ public class OnlyofficeEditorServiceTest extends BaseCommonsTestCase {
     editorService.updateDocument(status);
 
     // Then
-    assertNull(editorService.getEditorByKey(USER_USERNAME,documentKey));
-
-//    assertTrue(config.isClosed());
-//    assertFalse(config.isOpen());
-//    assertNotSame(config.getEditorConfig().getUser().getLastSaved(), 0);
+    Config retainedConfig = editorService.getEditorByKey(USER_USERNAME, documentKey);
+    assertNotNull(retainedConfig);
+    assertTrue(retainedConfig.isClosed());
+    assertFalse(retainedConfig.isOpen());
     node.remove();
   }
 
@@ -1282,7 +1281,268 @@ public class OnlyofficeEditorServiceTest extends BaseCommonsTestCase {
     editorService.updateDocument(status);
 
     Config result = editorService.getEditorByKey(USER_USERNAME,config.getDocument().getKey());
-    assertNull(result);
+    assertNotNull(result);
+    assertTrue(result.isClosed());
+    assertFalse(result.isOpen());
+    node.remove();
+  }
+
+
+  /**
+   * Test late status 2 after status 4. The config must remain resolvable by key
+   * during the grace period so a late final-save callback does not fail with
+   * File key not found.
+   */
+  @Test
+  public void testLateFinalSaveAfterClosedWithoutChangesKeepsConfigResolvable() throws Exception {
+    startSessionAs(USER_USERNAME);
+    Node node = createDocument("Test Document.docx", "nt:file", "testContent", true);
+    Config config = editorService.createEditor("http", "127.0.0.1", 8080, USER_USERNAME, null, node.getUUID(), OnlyofficeEditorService.EDIT_MODE);
+    String key = config.getDocument().getKey();
+
+    DocumentStatus openStatus = new DocumentStatus.Builder().status(1L)
+                                                            .users(new String[] { USER_USERNAME })
+                                                            .userId(USER_USERNAME)
+                                                            .key(key)
+                                                            .build();
+    editorService.updateDocument(openStatus);
+
+    DocumentStatus closedStatus = new DocumentStatus.Builder().status(4L)
+                                                              .users(new String[] {})
+                                                              .userId(USER_USERNAME)
+                                                              .key(key)
+                                                              .build();
+    editorService.updateDocument(closedStatus);
+
+    Config closedConfig = editorService.getEditorByKey(USER_USERNAME, key);
+    assertNotNull(closedConfig);
+    assertTrue(closedConfig.isClosed());
+
+    DocumentStatus lateFinalStatus = new DocumentStatus.Builder().status(2L)
+                                                                 .users(new String[] { USER_USERNAME })
+                                                                 .userId(USER_USERNAME)
+                                                                 .key(key)
+                                                                 .build();
+    editorService.updateDocument(lateFinalStatus);
+
+    Config retainedConfig = editorService.getEditorByKey(USER_USERNAME, key);
+    assertNotNull(retainedConfig);
+    assertTrue(retainedConfig.isClosed());
+    node.remove();
+  }
+
+  /**
+   * Test reopening after a terminal close creates a fresh active key while the
+   * old key remains resolvable for late callbacks.
+   */
+  @Test
+  public void testReopenAfterCloseCreatesNewKeyAndRetainsOldKey() throws Exception {
+    startSessionAs(USER_USERNAME);
+    Node node = createDocument("Test Document.docx", "nt:file", "testContent", true);
+    Config firstConfig = editorService.createEditor("http",
+                                                    "127.0.0.1",
+                                                    8080,
+                                                    USER_USERNAME,
+                                                    null,
+                                                    node.getUUID(),
+                                                    OnlyofficeEditorService.EDIT_MODE);
+    String oldKey = firstConfig.getDocument().getKey();
+
+    DocumentStatus openStatus = new DocumentStatus.Builder().status(1L)
+                                                            .users(new String[] { USER_USERNAME })
+                                                            .userId(USER_USERNAME)
+                                                            .key(oldKey)
+                                                            .build();
+    editorService.updateDocument(openStatus);
+
+    DocumentStatus closedStatus = new DocumentStatus.Builder().status(4L)
+                                                              .users(new String[] {})
+                                                              .userId(USER_USERNAME)
+                                                              .key(oldKey)
+                                                              .build();
+    editorService.updateDocument(closedStatus);
+
+    Config secondConfig = editorService.createEditor("http",
+                                                     "127.0.0.1",
+                                                     8080,
+                                                     USER_USERNAME,
+                                                     null,
+                                                     node.getUUID(),
+                                                     OnlyofficeEditorService.EDIT_MODE);
+    String newKey = secondConfig.getDocument().getKey();
+
+    assertFalse(oldKey.equals(newKey));
+    Config oldConfig = editorService.getEditorByKey(USER_USERNAME, oldKey);
+    assertNotNull(oldConfig);
+    assertTrue(oldConfig.isClosed());
+    assertNotNull(editorService.getEditorByKey(USER_USERNAME, newKey));
+    node.remove();
+  }
+
+  /**
+   * Test a closed config does not block another user from opening the same
+   * document.
+   */
+  @Test
+  public void testClosedConfigDoesNotBlockAnotherUserOpeningDocument() throws Exception {
+    startSessionAs(USER_USERNAME);
+    Node node = createDocument("Test Document.docx", "nt:file", "testContent", true);
+    Config firstConfig = editorService.createEditor("http",
+                                                    "127.0.0.1",
+                                                    8080,
+                                                    USER_USERNAME,
+                                                    null,
+                                                    node.getUUID(),
+                                                    OnlyofficeEditorService.EDIT_MODE);
+    String oldKey = firstConfig.getDocument().getKey();
+
+    DocumentStatus openStatus = new DocumentStatus.Builder().status(1L)
+                                                            .users(new String[] { USER_USERNAME })
+                                                            .userId(USER_USERNAME)
+                                                            .key(oldKey)
+                                                            .build();
+    editorService.updateDocument(openStatus);
+
+    DocumentStatus closeStatus = new DocumentStatus.Builder().status(4L)
+                                                             .users(new String[] {})
+                                                             .userId(USER_USERNAME)
+                                                             .key(oldKey)
+                                                             .build();
+    editorService.updateDocument(closeStatus);
+
+    Config rootConfig = editorService.createEditor("http",
+                                                   "127.0.0.1",
+                                                   8080,
+                                                   "root",
+                                                   null,
+                                                   node.getUUID(),
+                                                   OnlyofficeEditorService.EDIT_MODE);
+
+    assertNotNull(rootConfig);
+    assertFalse(oldKey.equals(rootConfig.getDocument().getKey()));
+    assertNotNull(editorService.getEditorByKey(USER_USERNAME, oldKey));
+    assertNotNull(editorService.getEditorByKey("root", rootConfig.getDocument().getKey()));
+    node.remove();
+  }
+
+  /**
+   * Test a terminal callback without a usable user id can resolve the only
+   * config for the key.
+   */
+  @Test
+  public void testTerminalCallbackWithoutUserIdFallsBackToOnlyConfig() throws Exception {
+    startSessionAs(USER_USERNAME);
+    Node node = createDocument("Test Document.docx", "nt:file", "testContent", true);
+    Config config = editorService.createEditor("http",
+                                               "127.0.0.1",
+                                               8080,
+                                               USER_USERNAME,
+                                               null,
+                                               node.getUUID(),
+                                               OnlyofficeEditorService.EDIT_MODE);
+    String key = config.getDocument().getKey();
+
+    DocumentStatus status = new DocumentStatus.Builder().status(4L)
+                                                        .users(new String[] {})
+                                                        .key(key)
+                                                        .build();
+    editorService.updateDocument(status);
+
+    Config closedConfig = editorService.getEditorByKey(USER_USERNAME, key);
+    assertNotNull(closedConfig);
+    assertTrue(closedConfig.isClosed());
+    node.remove();
+  }
+
+  /**
+   * Test duplicate terminal final-save callbacks are idempotent and keep the
+   * key resolvable.
+   */
+  @Test
+  public void testDuplicateFinalSaveCallbackIsIdempotent() throws Exception {
+    startSessionAs(USER_USERNAME);
+    Node node = createDocument("Test Document.docx", "nt:file", "testContent", true);
+    Config config = editorService.createEditor("http",
+                                               "127.0.0.1",
+                                               8080,
+                                               USER_USERNAME,
+                                               null,
+                                               node.getUUID(),
+                                               OnlyofficeEditorService.EDIT_MODE);
+    String key = config.getDocument().getKey();
+
+    DocumentStatus status = new DocumentStatus.Builder().status(2L)
+                                                        .users(new String[] { USER_USERNAME })
+                                                        .userId(USER_USERNAME)
+                                                        .key(key)
+                                                        .build();
+    editorService.updateDocument(status);
+    editorService.updateDocument(status);
+
+    Config retainedConfig = editorService.getEditorByKey(USER_USERNAME, key);
+    assertNotNull(retainedConfig);
+    assertTrue(retainedConfig.isClosed());
+    node.remove();
+  }
+
+  /**
+   * Test status 3 with a content URL retains the config and persists the
+   * recovery error.
+   */
+  @Test
+  public void testSavingErrorWithContentUrlRetainsConfigAndPersistsError() throws Exception {
+    startSessionAs(USER_USERNAME);
+    Node node = createDocument("Test Document.docx", "nt:file", "testContent", true);
+    Config config = editorService.createEditor("http",
+                                               "127.0.0.1",
+                                               8080,
+                                               USER_USERNAME,
+                                               null,
+                                               node.getUUID(),
+                                               OnlyofficeEditorService.EDIT_MODE);
+    String key = config.getDocument().getKey();
+
+    DocumentStatus status = new DocumentStatus.Builder().status(3L)
+                                                        .users(new String[] { USER_USERNAME })
+                                                        .userId(USER_USERNAME)
+                                                        .url("http://127.0.0.1:8080/editor/")
+                                                        .key(key)
+                                                        .build();
+    editorService.updateDocument(status);
+
+    Config retainedConfig = editorService.getEditorByKey(USER_USERNAME, key);
+    assertNotNull(retainedConfig);
+    assertNotNull(retainedConfig.getError());
+    assertEquals("Error in editor (0). Last change was successfully saved", retainedConfig.getError());
+    node.remove();
+  }
+
+  /**
+   * Test local state after soft close reports saved with no active users.
+   */
+  @Test
+  public void testGetStateAfterSoftCloseReportsSaved() throws Exception {
+    startSessionAs(USER_USERNAME);
+    Node node = createDocument("Test Document.docx", "nt:file", "testContent", true);
+    Config config = editorService.createEditor("http",
+                                               "127.0.0.1",
+                                               8080,
+                                               USER_USERNAME,
+                                               null,
+                                               node.getUUID(),
+                                               OnlyofficeEditorService.EDIT_MODE);
+    String key = config.getDocument().getKey();
+
+    DocumentStatus closeStatus = new DocumentStatus.Builder().status(4L)
+                                                             .users(new String[] {})
+                                                             .userId(USER_USERNAME)
+                                                             .key(key)
+                                                             .build();
+    editorService.updateDocument(closeStatus);
+
+    ChangeState state = editorService.getState(USER_USERNAME, key);
+    assertTrue(state.isSaved());
+    assertEquals(0, state.getUsers().length);
     node.remove();
   }
 

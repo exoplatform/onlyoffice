@@ -551,7 +551,7 @@ public class CometdOnlyofficeService implements Startable {
         // Sometimes the number of users equals 1, even if it's the last
         // user. In that case the Command Service will respond with error 3,
         // and we just ignore it
-        if (users.length > 0) {
+        if (users.length > 0 && lastUser != null) {
           if (lastUser.getLinkSaved() >= lastUser.getLastModified()) {
             if (LOG.isDebugEnabled()) {
               LOG.debug("Downloading from existing link. User: {}, Key: {}, Link: {}",
@@ -590,6 +590,10 @@ public class CometdOnlyofficeService implements Startable {
       }
 
       Editor.User user = editors.getUser(key, userId);
+      if (user == null) {
+        LOG.warn("Cannot handle document version event: user config not found. User: {}, Key: {}", userId, key);
+        return;
+      }
       if (user.getLinkSaved() >= user.getLastModified()) {
         if (LOG.isDebugEnabled()) {
           LOG.debug("Downloading from existing link. User: {}, Key: {}, Link: {}", user.getId(), key, user.getDownloadLink());

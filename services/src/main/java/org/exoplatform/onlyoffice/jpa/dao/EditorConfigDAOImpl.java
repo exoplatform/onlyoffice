@@ -24,4 +24,20 @@ public class EditorConfigDAOImpl extends GenericDAOJPAImpl<EditorConfigEntity, L
     query.setParameter("docId", docId);
     return query.getResultList();
   }
+  @Override
+  public List<EditorConfigEntity> getActiveConfigByDocId(String docId) {
+    TypedQuery<EditorConfigEntity> query = getEntityManager()
+        .createNamedQuery("EditorConfigEntity.getActiveConfigByDocId",EditorConfigEntity.class);
+    query.setParameter("docId", docId);
+    return query.getResultList();
+  }
+
+  @Override
+  public List<EditorConfigEntity> getClosedConfigBefore(long expirationTime) {
+    TypedQuery<EditorConfigEntity> query = getEntityManager()
+        .createNamedQuery("EditorConfigEntity.getClosedConfigBefore",EditorConfigEntity.class);
+    query.setParameter("expirationTime", expirationTime);
+    return query.getResultList();
+  }
+
 }
