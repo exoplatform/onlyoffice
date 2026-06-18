@@ -9,5 +9,7 @@ public interface EditorConfigDAO extends GenericDAO<EditorConfigEntity,Long> {
 
   List<EditorConfigEntity> getConfigByKey(String key);
   List<EditorConfigEntity> getConfigByDocId(String docId);
+  List<EditorConfigEntity> getActiveConfigByDocId(String docId);
+  List<EditorConfigEntity> getClosedConfigBefore(long expirationTime);
 
 }

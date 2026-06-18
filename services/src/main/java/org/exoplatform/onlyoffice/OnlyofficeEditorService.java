@@ -383,8 +383,6 @@ public interface OnlyofficeEditorService {
 
   String getDocumentServiceSecret();
 
-  void closeWithoutModification(String userId, String key);
-
   /**
    * Checks if the document is opened for edition by multiple users
    * @param key Document key
