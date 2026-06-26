@@ -752,6 +752,21 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
       config.getEditorPage().setLastModified(getLastModified(node));
       config.getEditorConfig().setCanAccessDocumentLocation(canAccessDocumentLocation(node, userId));
 
+      boolean currentlyRestricted = config.getDocument().getPermissions() instanceof Config.Document.EditRestrictedPermissions;
+      if (isSuspendDownloadDocument() != currentlyRestricted) {
+        Config.Document.Permissions newPermissions;
+        if (isSuspendDownloadDocument()) {
+          newPermissions = new Config.Document.EditRestrictedPermissions();
+        } else if (config.getEditorConfig().getMode() != null && config.getEditorConfig().getMode().equals("fillform")) {
+          newPermissions = new Config.Document.FillFormPermissions();
+        } else if (config.getDocument().getPermissions().isEdit()) {
+          newPermissions = new Config.Document.EditPermissions();
+        } else {
+          newPermissions = new Config.Document.NoPermissions();
+        }
+        config.setDocument(config.getDocument().withPermissions(newPermissions));
+      }
+
       cachedEditorConfigStorage.saveConfig(config.getDocument().getKey(), config,false);
       cachedEditorConfigStorage.saveConfig(config.getDocId(),config,false);
 

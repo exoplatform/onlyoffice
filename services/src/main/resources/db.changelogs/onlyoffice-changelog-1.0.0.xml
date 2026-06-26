@@ -124,4 +124,17 @@
     <sql>ALTER TABLE OO_EDITOR_CONFIG MODIFY COLUMN EDITOR_PAGE_LAST_MODIFIED varchar(250) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci;</sql>
   </changeSet>
 
+  <changeSet author="onlyoffice" id="1.0.0-exo-87595-01">
+    <preConditions onFail="MARK_RAN">
+      <not>
+        <columnExists tableName="OO_EDITOR_CONFIG" columnName="RESTRICTED_DOWNLOAD"/>
+      </not>
+    </preConditions>
+    <addColumn tableName="OO_EDITOR_CONFIG">
+      <column name="RESTRICTED_DOWNLOAD" type="BOOLEAN" defaultValueBoolean="false">
+        <constraints nullable="false"/>
+      </column>
+    </addColumn>
+  </changeSet>
+
 </databaseChangeLog>
