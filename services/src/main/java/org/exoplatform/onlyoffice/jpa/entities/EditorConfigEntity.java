@@ -115,9 +115,6 @@ public class EditorConfigEntity {
   @Column(name = "PERMISSION_ALLOWEDIT")
   private boolean permissionAllowEdit;
 
-  @Column(name = "RESTRICTED_DOWNLOAD")
-  private boolean restrictedDownload;
-
   @Column(name = "EDITOR_CALLBACKURL")
   private String editorCallbackUrl;
 
@@ -383,14 +380,6 @@ public class EditorConfigEntity {
 
   public void setPermissionAllowEdit(boolean permissionAllowEdit) {
     this.permissionAllowEdit = permissionAllowEdit;
-  }
-
-  public boolean isRestrictedDownload() {
-    return restrictedDownload;
-  }
-
-  public void setRestrictedDownload(boolean restrictedDownload) {
-    this.restrictedDownload = restrictedDownload;
   }
 
   public String getEditorCallbackUrl() {

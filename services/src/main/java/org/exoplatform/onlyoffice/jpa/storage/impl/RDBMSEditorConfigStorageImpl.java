@@ -147,7 +147,6 @@ public class RDBMSEditorConfigStorageImpl implements EditorConfigStorage {
     result.setDocumentInfoUploaded(config.getDocument().getInfo().getUploaded());
     result.setDocumentInfoFolder(config.getDocument().getInfo().getFolder());
     result.setPermissionAllowEdit(config.getDocument().getPermissions().isEdit());
-    result.setRestrictedDownload(config.getDocument().getPermissions() instanceof Config.Document.EditRestrictedPermissions);
     result.setEditorCallbackUrl(config.getEditorConfig().getCallbackUrl());
     result.setEditorLang(config.getEditorConfig().getLang());
     result.setEditorMode(config.getEditorConfig().getMode());
@@ -197,7 +196,6 @@ public class RDBMSEditorConfigStorageImpl implements EditorConfigStorage {
     builder.explorerUri(entity.getExplorerUrl());
     builder.secret(getDocumentServiceSecret());
     builder.setAllowEdition(entity.isPermissionAllowEdit());
-    builder.setRestrictedDownload(entity.isRestrictedDownload());
 
     Config result = builder.build();
     result.setError(entity.getError());
