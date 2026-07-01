@@ -804,6 +804,16 @@ public class Config implements Externalizable {
     public Permissions getPermissions() {
       return permissions;
     }
+
+    /**
+     * Creates a copy of this document with different permissions.
+     *
+     * @param newPermissions the new permissions
+     * @return a new Document with the given permissions
+     */
+    public Document withPermissions(Permissions newPermissions) {
+      return new Document(key, fileType, title, url, info, newPermissions);
+    }
   }
 
   /**
@@ -1261,7 +1271,7 @@ public class Config implements Externalizable {
     writeUTF(out, editorPage.lastModified);
     writeUTF(out, editorPage.drive);
 
-    // Document: key, fileType, title, url, info(owner, uploaded, folder)
+    // Document: key, fileType, title, url, info(owner, uploaded, folder), permissions type
     writeUTF(out, document.getKey());
     writeUTF(out, document.getFileType());
     writeUTF(out, document.getTitle());
@@ -1270,6 +1280,7 @@ public class Config implements Externalizable {
     writeUTF(out, documentInfo.getOwner());
     writeUTF(out, documentInfo.getUploaded());
     writeUTF(out, documentInfo.getFolder());
+    writeUTF(out, document.getPermissions().getClass().getName());
 
     // Editor: callbackUrl, lang, mode, user(userId, name)
     writeUTF(out, editorConfig.getCallbackUrl());
@@ -1333,7 +1344,7 @@ public class Config implements Externalizable {
     String edrive = in.readUTF();
     this.editorPage = new EditorPage(ecomment, erenameAllowed, edisplayPath, emodifier, emodified,edrive);
 
-    // Document: key, fileType, title, url, info(owner, uploaded, folder)
+    // Document: key, fileType, title, url, info(owner, uploaded, folder), permissions type
     String dkey = in.readUTF();
     String dfileType = in.readUTF();
     String dtitle = in.readUTF();
@@ -1342,7 +1353,18 @@ public class Config implements Externalizable {
     String dicreated = in.readUTF();
     String difolder = in.readUTF();
     Document.Info dinfo = new Document.Info(diauthor, dicreated, difolder);
-    this.document = new Document(dkey, dfileType, dtitle, durl, dinfo, new Document.EditPermissions());
+    String permissionsType = in.readUTF();
+    Document.Permissions permissions;
+    if (Document.EditRestrictedPermissions.class.getName().equals(permissionsType)) {
+      permissions = new Document.EditRestrictedPermissions();
+    } else if (Document.FillFormPermissions.class.getName().equals(permissionsType)) {
+      permissions = new Document.FillFormPermissions();
+    } else if (Document.NoPermissions.class.getName().equals(permissionsType)) {
+      permissions = new Document.NoPermissions();
+    } else {
+      permissions = new Document.EditPermissions();
+    }
+    this.document = new Document(dkey, dfileType, dtitle, durl, dinfo, permissions);
 
     // Editor: callbackUrl, lang, mode, user(userId, name)
     String ecallbackUrl = in.readUTF();
@@ -1395,6 +1417,15 @@ public class Config implements Externalizable {
    */
   public void setToken(String token) {
     this.token = token;
+  }
+
+  /**
+   * Sets the document.
+   *
+   * @param document the document
+   */
+  public void setDocument(Document document) {
+    this.document = document;
   }
 
   /**
