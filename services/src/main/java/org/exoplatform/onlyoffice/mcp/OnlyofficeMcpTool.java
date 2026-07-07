@@ -693,7 +693,11 @@ public class OnlyofficeMcpTool implements McpToolPlugin {
           if (colCount == 0) {
             throw new IllegalArgumentException("add_table rows must contain at least one column.");
           }
-          s.append("var oTable = Api.CreateTable(").append(colCount).append(", ").append(rowCount).append(");\n");
+          // ONLYOFFICE Document Builder's Api.CreateTable is (nRows, nCols) — rows first.
+          // Emitting (colCount, rowCount) built a table with too few rows, so GetRow(r) for
+          // the later rows threw "Row index out of bounds" (docbuilder ExitCode error:-80).
+          // Verified against the live Document Server: CreateTable(rowCount, colCount) is correct.
+          s.append("var oTable = Api.CreateTable(").append(rowCount).append(", ").append(colCount).append(");\n");
           s.append("oTable.SetWidth(\"percent\", 100);\n");
           for (int r = 0; r < rowCount; r++) {
             JSONArray cols = rows.optJSONArray(r);

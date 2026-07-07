@@ -70,6 +70,18 @@ import org.exoplatform.upload.UploadService;
  * stubbed through the tool's protected seams so every tool's orchestration, its
  * Document Builder script generation and its error mapping can be exercised
  * without a live Document Server or JCR.
+ * <p>
+ * <b>Golden-string tests.</b> The {@code goldenScript_*} tests below are
+ * regression guards: they pin the <i>exact</i> Document Builder JavaScript the
+ * generators emit for representative inputs (captured via an {@code
+ * ArgumentCaptor} on the mocked {@code runDocBuilderScript}). They protect the
+ * verified-correct emission — notably {@code Api.CreateTable(rowCount, colCount)}
+ * (rows first) — from silent regressions. They do NOT prove the emitted API is
+ * accepted by a Document Server: true API-correctness (arg order, method names,
+ * signatures) was validated manually by running each generated script through a
+ * live Document Server docbuilder endpoint and asserting a valid OOXML result
+ * with the expected content. Re-run that DS integration check whenever a
+ * generator's emitted API surface changes.
  */
 public class OnlyofficeMcpToolTest {
 
@@ -404,6 +416,123 @@ public class OnlyofficeMcpToolTest {
   @Test
   public void exportDocumentAsPdf_blankId_throwsIllegalArgument() {
     assertThrows(IllegalArgumentException.class, () -> tool.exportDocumentAsPdf("  ", null));
+  }
+
+  // ---------------------------------------------------------------------------
+  // Golden-string regression guards (exact emitted Document Builder script).
+  // These pin the DS-verified emission; they run with NO Document Server.
+  // ---------------------------------------------------------------------------
+
+  /**
+   * add_table with 3 data rows + a header (4 total) x 3 columns must emit
+   * {@code Api.CreateTable(rowCount, colCount)} = {@code (4, 3)} (rows first) and
+   * address the last cell as {@code GetRow(3).GetCell(2)}. This is the exact bug
+   * the DS check caught: emitting {@code (colCount, rowCount)} built a 3-row table
+   * and {@code GetRow(3)} threw "Row index out of bounds".
+   */
+  @Test
+  public void goldenScript_addTable_rowsFirst_and_lastCellAddressing() throws Exception {
+    Node parent = mock(Node.class);
+    when(session.getNodeByUUID("folder-1")).thenReturn(parent);
+    stubStorage("folder-1", "report.docx", "docx-id");
+    when(editorService.runDocBuilderScript(anyString(), any(), eq("docx"), eq("result.docx"), eq(USER)))
+                                                                                                        .thenReturn(new byte[] { 1 });
+
+    String ops = "[{\"type\":\"add_table\",\"rows\":["
+        + "[\"H1\",\"H2\",\"H3\"],[\"a\",\"b\",\"c\"],[\"d\",\"e\",\"f\"],[\"g\",\"h\",\"i\"]]}]";
+    tool.editDocument(null, "folder-1", "report", ops);
+
+    String script = captureScript("docx", "result.docx");
+    assertTrue("rows-first CreateTable(4, 3)", script.contains("Api.CreateTable(4, 3)"));
+    assertTrue("last cell GetRow(3).GetCell(2)", script.contains("oTable.GetRow(3).GetCell(2)"));
+    assertTrue("header cell text", script.contains("oTable.GetRow(0).GetCell(0).GetContent().GetElement(0).AddText(\"H1\")"));
+    assertTrue("last cell text", script.contains("oTable.GetRow(3).GetCell(2).GetContent().GetElement(0).AddText(\"i\")"));
+    assertTrue("table width", script.contains("oTable.SetWidth(\"percent\", 100)"));
+    assertTrue("table pushed", script.contains("oDocument.Push(oTable)"));
+  }
+
+  /**
+   * set_cells over a 2x2 range starting at A1 must emit 0-based
+   * {@code GetRangeByNumber(row, col)} calls (row first), one per cell, with
+   * numeric values unquoted.
+   */
+  @Test
+  public void goldenScript_setCells_rangeByNumberRowColOrder() throws Exception {
+    Node parent = mock(Node.class);
+    when(session.getNodeByUUID("folder-1")).thenReturn(parent);
+    stubStorage("folder-1", "grid.xlsx", "xlsx-id");
+    when(editorService.runDocBuilderScript(anyString(), any(), eq("xlsx"), eq("result.xlsx"), eq(USER)))
+                                                                                                        .thenReturn(new byte[] { 1 });
+
+    String ops = "[{\"type\":\"set_cells\",\"start\":\"A1\",\"values\":[[\"Region\",\"Sales\"],[\"North\",120]]}]";
+    tool.editSpreadsheet(null, "folder-1", "grid", ops);
+
+    String script = captureScript("xlsx", "result.xlsx");
+    assertTrue(script.contains("oWorksheet.GetRangeByNumber(0, 0).SetValue(\"Region\")"));
+    assertTrue(script.contains("oWorksheet.GetRangeByNumber(0, 1).SetValue(\"Sales\")"));
+    assertTrue(script.contains("oWorksheet.GetRangeByNumber(1, 0).SetValue(\"North\")"));
+    assertTrue(script.contains("oWorksheet.GetRangeByNumber(1, 1).SetValue(120)"));
+  }
+
+  /**
+   * add_chart must emit the DS-verified 10-argument {@code AddChart} signature:
+   * {@code (range, true, type, styleIndex=2, extX, extY, fromCol, colOff, fromRow,
+   * rowOff)} where extX/extY are EMU (100*36000 / 70*36000).
+   */
+  @Test
+  public void goldenScript_addChart_tenArgSignature() throws Exception {
+    Node parent = mock(Node.class);
+    when(session.getNodeByUUID("folder-1")).thenReturn(parent);
+    stubStorage("folder-1", "chart.xlsx", "xlsx-id");
+    when(editorService.runDocBuilderScript(anyString(), any(), eq("xlsx"), eq("result.xlsx"), eq(USER)))
+                                                                                                        .thenReturn(new byte[] { 1 });
+
+    String ops = "[{\"type\":\"add_chart\",\"chart\":\"bar\",\"range\":\"Sheet1!$A$1:$B$2\",\"title\":\"Sales\"}]";
+    tool.editSpreadsheet(null, "folder-1", "chart", ops);
+
+    String script = captureScript("xlsx", "result.xlsx");
+    assertTrue(script.contains("var oChart = oWorksheet.AddChart(\"Sheet1!$A$1:$B$2\", true, \"bar\", 2, 3600000, 2520000, 3, 0, 8, 0)"));
+    assertTrue(script.contains("oChart.SetTitle(\"Sales\", 14)"));
+  }
+
+  /**
+   * add_slide must create+append a slide and drive the {@code __setSlideText}
+   * helper with the title and the bullets array literal.
+   */
+  @Test
+  public void goldenScript_addSlide_createAndSetText() throws Exception {
+    Node parent = mock(Node.class);
+    when(session.getNodeByUUID("folder-1")).thenReturn(parent);
+    stubStorage("folder-1", "deck.pptx", "pptx-id");
+    when(editorService.runDocBuilderScript(anyString(), any(), eq("pptx"), eq("result.pptx"), eq(USER)))
+                                                                                                        .thenReturn(new byte[] { 1 });
+
+    String ops = "[{\"type\":\"add_slide\",\"title\":\"Review\",\"bullets\":[\"One\",\"Two\"]}]";
+    tool.editPresentation(null, "folder-1", "deck", ops);
+
+    String script = captureScript("pptx", "result.pptx");
+    assertTrue(script.contains("var oSlide = Api.CreateSlide(); oPresentation.AddSlide(oSlide);"));
+    assertTrue(script.contains("__setSlideText(oSlide, \"Review\", [\"One\", \"Two\"]);"));
+  }
+
+  /**
+   * The MODIFY path must open the source asset with
+   * {@code builder.OpenFile("@@ASSET:input@@", "")} (not CreateFile) before
+   * applying operations.
+   */
+  @Test
+  public void goldenScript_modifyPath_opensAssetInsteadOfCreate() throws Exception {
+    Node node = stubExistingDocument("docx-1", "report.docx",
+                                     "application/vnd.openxmlformats-officedocument.wordprocessingml.document");
+    when(editorService.runDocBuilderScript(anyString(), any(), eq("docx"), eq("result.docx"), eq(USER)))
+                                                                                                        .thenReturn(new byte[] { 1 });
+
+    tool.editDocument("docx-1", null, null, "[{\"type\":\"add_paragraph\",\"text\":\"More\"}]");
+
+    verify(editorService).saveNewVersion(eq(node), any(byte[].class), eq(USER));
+    String script = captureScript("docx", "result.docx");
+    assertTrue(script.contains("builder.OpenFile(\"@@ASSET:input@@\", \"\");"));
+    assertTrue("modify path must not CreateFile", !script.contains("builder.CreateFile"));
   }
 
   // ---------------------------------------------------------------------------
