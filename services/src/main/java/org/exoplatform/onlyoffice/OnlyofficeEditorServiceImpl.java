@@ -19,6 +19,7 @@
 package org.exoplatform.onlyoffice;
 
 import java.io.BufferedInputStream;
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -36,6 +37,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
@@ -395,6 +397,26 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
 
   protected final String                                          convertUrl;
 
+  /** The ONLYOFFICE Document Builder (docbuilder) HTTP API url. */
+  protected final String                                          docbuilderUrl;
+
+  /**
+   * Time-to-live of a short-lived, single-use asset staged in-memory to be
+   * fetched by the Document Server during a Document Builder run (script, the
+   * existing file being modified, images).
+   */
+  protected static final long                                     DOCBUILDER_ASSET_TTL_MS = 120000L;
+
+  /**
+   * In-memory registry of short-lived, single-use assets served to the Document
+   * Server for Document Builder runs, keyed by an unguessable random key. Each
+   * entry is removed on first fetch (single-use) or when it expires, and is
+   * served through the SAME host-restricted, {@code validateToken}-guarded
+   * {@code /onlyoffice/editor/content/{userId}/{key}} endpoint as the editor
+   * content (no new / unauthenticated file endpoint is introduced).
+   */
+  protected final Map<String, StagedAsset>                        docBuilderAssets        = new ConcurrentHashMap<>();
+
   /** The document server secret. */
   protected final String                                          documentserverSecret;
 
@@ -499,6 +521,7 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
     this.convertUrl = new StringBuilder(documentserverUrl).append("/converter").toString();
     this.documentserverUrl = new StringBuilder(documentserverUrl).append("/web-apps/").toString();
     this.commandServiceUrl = new StringBuilder(documentserverUrl).append("/coauthoring/CommandService.ashx").toString();
+    this.docbuilderUrl = new StringBuilder(documentserverUrl).append("/docbuilder").toString();
     this.documentserverAccessOnly = Boolean.parseBoolean(config.get(CONFIG_DS_ACCESS_ONLY));
     this.documentserverSecret = config.get(CONFIG_DS_SECRET);
     this.documentserverAllowedhosts = getDocumentserverAllowedHosts(config.get(CONFIG_DS_ALLOWEDHOSTS));
@@ -868,6 +891,30 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
    */
   @Override
   public DocumentContent getContent(String userId, String key) throws OnlyofficeEditorException, RepositoryException {
+    // Document Builder assets (script / existing file / images) are staged
+    // in-memory and served through this same endpoint. They are single-use:
+    // removed on first fetch. The host restriction and token validation are
+    // enforced by the REST layer (canDownloadBy + validateToken) before we get
+    // here, exactly as for the editor content below.
+    StagedAsset staged = docBuilderAssets.remove(key);
+    if (staged != null) {
+      if (System.currentTimeMillis() > staged.expiresAt) {
+        throw new BadParameterException("Document Builder asset expired or already consumed: " + key);
+      }
+      final String stagedMime = staged.mimeType;
+      final InputStream stagedData = new ByteArrayInputStream(staged.data);
+      return new DocumentContent() {
+        @Override
+        public String getType() {
+          return stagedMime;
+        }
+
+        @Override
+        public InputStream getData() {
+          return stagedData;
+        }
+      };
+    }
     Map<String, Config> configs = cachedEditorConfigStorage.getConfigsByKey(key);
     boolean viewMode = false;
     if (configs == null || configs.isEmpty()) {
@@ -3546,6 +3593,273 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
       }
     }
     return null;
+  }
+
+  @Override
+  public byte[] runDocBuilderScript(String scriptBody,
+                                    Map<String, byte[]> assets,
+                                    String outputFormat,
+                                    String outputName,
+                                    String userId) {
+    if (scriptBody == null || scriptBody.trim().isEmpty()) {
+      throw new IllegalArgumentException("The Document Builder script is empty; nothing to run.");
+    }
+    String base = System.getProperty("exo.base.url");
+    if (base == null || base.trim().isEmpty()) {
+      throw new IllegalStateException("The platform base URL (exo.base.url) is not configured, so the Document Server "
+          + "cannot fetch the Document Builder script and assets. Configure exo.base.url to a URL the Document Server can reach.");
+    }
+    if (base.endsWith("/")) {
+      base = base.substring(0, base.length() - 1);
+    }
+    String rest = PortalContainer.getCurrentRestContextName();
+    String uid = (userId == null || userId.trim().isEmpty()) ? "null" : userId;
+    long expiresAt = System.currentTimeMillis() + DOCBUILDER_ASSET_TTL_MS;
+    List<String> stagedKeys = new ArrayList<>();
+    try {
+      // 1) Stage every referenced asset (existing file to modify, images) and
+      // substitute its @@ASSET:<name>@@ placeholder with a short-lived, single-use,
+      // token-guarded URL. The Document Server fetches in-script URLs WITHOUT an
+      // Authorization header, so the signed token is carried as a query parameter
+      // that the content endpoint validates through validateToken.
+      String resolvedScript = scriptBody;
+      if (assets != null) {
+        for (Map.Entry<String, byte[]> entry : assets.entrySet()) {
+          String name = entry.getKey();
+          byte[] data = entry.getValue();
+          if (data == null) {
+            continue;
+          }
+          String key = stageDocBuilderAsset(data, mimeForAsset(name), expiresAt);
+          stagedKeys.add(key);
+          String cleanUrl = docBuilderAssetUrl(base, rest, uid, key);
+          String assetUrl = cleanUrl + "?token=" + signKeyToken(key);
+          resolvedScript = resolvedScript.replace("@@ASSET:" + name + "@@", assetUrl);
+        }
+      }
+      // 2) Stage the resolved script itself. The Document Server fetches the
+      // script URL WITH an Authorization: Bearer <jwt payload.url=scriptUrl>
+      // header it signs itself, which validateToken accepts (url endsWith key).
+      String scriptKey = stageDocBuilderAsset(resolvedScript.getBytes(StandardCharsets.UTF_8), "text/plain", expiresAt);
+      stagedKeys.add(scriptKey);
+      String scriptUrl = docBuilderAssetUrl(base, rest, uid, scriptKey);
+      // 3) Run the builder and download the produced file.
+      byte[] result = postDocBuilder(scriptUrl, outputName);
+      if (result == null || result.length == 0) {
+        throw new IllegalStateException("The Document Server ran the Document Builder but returned no file. "
+            + "Verify the operations are valid for a " + outputFormat + " document.");
+      }
+      return result;
+    } finally {
+      // Defensive cleanup: single-use fetch already removes each key; this drops
+      // any asset the Document Server never fetched (e.g. on failure).
+      for (String key : stagedKeys) {
+        docBuilderAssets.remove(key);
+      }
+    }
+  }
+
+  /**
+   * Stages a byte asset in the in-memory registry under a fresh unguessable key
+   * and returns that key. Package-visible for the Document Builder path only.
+   */
+  protected String stageDocBuilderAsset(byte[] data, String mimeType, long expiresAt) {
+    String key = "bldr_" + UUID.randomUUID().toString().replace("-", "");
+    docBuilderAssets.put(key, new StagedAsset(data, mimeType, expiresAt));
+    return key;
+  }
+
+  private String docBuilderAssetUrl(String base, String rest, String userId, String key) {
+    return base + "/" + rest + "/onlyoffice/editor/content/" + userId + "/" + key;
+  }
+
+  /**
+   * Signs a JWT whose {@code payload.key} claim equals the given key, so
+   * {@link #validateToken(String, String)} accepts it (same shape the Document
+   * Server itself emits for the {@code payload.url} case).
+   */
+  private String signKeyToken(String key) {
+    if (documentserverSecret == null || documentserverSecret.trim().isEmpty()) {
+      return "";
+    }
+    Map<String, Object> inner = new HashMap<>();
+    inner.put("key", key);
+    Map<String, Object> claims = new HashMap<>();
+    claims.put("payload", inner);
+    return Jwts.builder().setClaims(claims).signWith(Keys.hmacShaKeyFor(documentserverSecret.getBytes())).compact();
+  }
+
+  private static String mimeForAsset(String name) {
+    String n = name == null ? "" : name.toLowerCase(Locale.ROOT);
+    if (n.endsWith(".png")) {
+      return "image/png";
+    }
+    if (n.endsWith(".jpg") || n.endsWith(".jpeg")) {
+      return "image/jpeg";
+    }
+    if (n.endsWith(".gif")) {
+      return "image/gif";
+    }
+    if (n.endsWith(".docx")) {
+      return "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+    }
+    if (n.endsWith(".xlsx")) {
+      return "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+    }
+    if (n.endsWith(".pptx")) {
+      return "application/vnd.openxmlformats-officedocument.presentationml.presentation";
+    }
+    return "application/octet-stream";
+  }
+
+  /**
+   * POSTs the docbuilder command and downloads the produced file. The request is
+   * signed exactly like {@link #convertNodeContent} (JWT over the request body,
+   * carried both as the {@code token} field and the {@code Authorization} header).
+   */
+  private byte[] postDocBuilder(String scriptUrl, String outputName) {
+    HttpURLConnection connection = null;
+    try {
+      JSONObject body = new JSONObject();
+      body.put("async", false);
+      body.put("url", scriptUrl);
+      String signedJson = body.toString();
+      String token = null;
+      if (documentserverSecret != null && !documentserverSecret.trim().isEmpty()) {
+        token = Jwts.builder().setPayload(signedJson).signWith(Keys.hmacShaKeyFor(documentserverSecret.getBytes())).compact();
+        body.put("token", token);
+      }
+      byte[] postDataBytes = body.toString().getBytes(StandardCharsets.UTF_8);
+
+      URL url = new URL(docbuilderUrl);
+      connection = (HttpURLConnection) url.openConnection();
+      connection.setRequestMethod("POST");
+      connection.setRequestProperty("Content-Type", "application/json; charset=UTF-8");
+      connection.setRequestProperty("Content-Length", String.valueOf(postDataBytes.length));
+      if (token != null) {
+        connection.setRequestProperty("Authorization", "Bearer " + token);
+      }
+      connection.setDoOutput(true);
+      connection.setDoInput(true);
+      try (OutputStream outputStream = connection.getOutputStream()) {
+        outputStream.write(postDataBytes);
+      }
+      String response;
+      try (InputStream in = new BufferedInputStream(connection.getInputStream())) {
+        response = IOUtils.toString(in, "UTF-8");
+      }
+      if (LOG.isDebugEnabled()) {
+        LOG.debug("Document Builder responded: {}", response);
+      }
+      JSONObject responseJson = new JSONObject(response);
+      if (responseJson.has("error")) {
+        throw new IllegalStateException(docBuilderErrorMessage(responseJson.get("error")));
+      }
+      if (responseJson.has("urls")) {
+        JSONObject urls = responseJson.getJSONObject("urls");
+        if (urls.length() > 0) {
+          String fileUrl = null;
+          if (outputName != null && urls.has(outputName)) {
+            fileUrl = urls.getString(outputName);
+          } else {
+            fileUrl = urls.getString(urls.keys().next());
+          }
+          return downloadConvertedFile(fileUrl);
+        }
+      }
+      throw new IllegalStateException("The Document Server produced no output file from the Document Builder script. "
+          + "Raw response: " + response);
+    } catch (IllegalStateException e) {
+      throw e;
+    } catch (Exception e) {
+      LOG.error("Error running the Document Builder", e);
+      throw new IllegalStateException("Could not run the Document Builder on the Document Server: " + e.getMessage());
+    } finally {
+      if (connection != null) {
+        connection.disconnect();
+      }
+    }
+  }
+
+  private static String docBuilderErrorMessage(Object errorCode) {
+    String code = String.valueOf(errorCode);
+    String detail;
+    switch (code) {
+      case "-8":
+        detail = "invalid or missing token (JWT). Check the Document Server secret configuration.";
+        break;
+      case "-7":
+        detail = "error reading the request.";
+        break;
+      case "-6":
+        detail = "error while accessing the document builder database.";
+        break;
+      case "-5":
+        detail = "incorrect password / unsupported encrypted document.";
+        break;
+      case "-4":
+        detail = "error while downloading a referenced file (the script, the source document or an image). "
+            + "Verify the asset URLs are reachable from the Document Server.";
+        break;
+      case "-3":
+        detail = "conversion error while building the document.";
+        break;
+      case "-2":
+        detail = "conversion timeout.";
+        break;
+      case "-1":
+        detail = "unknown Document Builder error.";
+        break;
+      default:
+        detail = "error code " + code + ".";
+        break;
+    }
+    return "The Document Server rejected the Document Builder script: " + detail;
+  }
+
+  @Override
+  public void saveNewVersion(Node node, byte[] content, String userId) throws RepositoryException {
+    if (content == null || content.length == 0) {
+      throw new IllegalArgumentException("The new document content is empty; the existing version is left unchanged.");
+    }
+    Node data = nodeContent(node);
+    data.setProperty("jcr:data", new ByteArrayInputStream(content));
+    data.setProperty("jcr:lastModified", Calendar.getInstance());
+    if (node.canAddMixin("exo:modify")) {
+      node.addMixin("exo:modify");
+    }
+    if (userId != null && node.isNodeType("exo:modify")) {
+      node.setProperty("exo:lastModifier", userId);
+      node.setProperty("exo:dateModified", Calendar.getInstance());
+    }
+    node.save();
+    try {
+      VersionHistoryUtils.createVersion(node);
+    } catch (Exception e) {
+      // Versioning is best-effort: the new content is already saved on the node.
+      LOG.warn("Could not create a version for node {} after a Document Builder edit: {}",
+               node.getPath(),
+               e.getMessage());
+    }
+  }
+
+  /**
+   * A short-lived, single-use asset staged in-memory to be fetched by the
+   * Document Server during a Document Builder run.
+   */
+  protected static final class StagedAsset {
+
+    private final byte[] data;
+
+    private final String mimeType;
+
+    private final long   expiresAt;
+
+    protected StagedAsset(byte[] data, String mimeType, long expiresAt) {
+      this.data = data;
+      this.mimeType = mimeType;
+      this.expiresAt = expiresAt;
+    }
   }
 
   private Config createConfigForConversion(String userId, Node node) throws OnlyofficeEditorException, RepositoryException {

@@ -322,6 +322,11 @@ public class EditorService implements ResourceContainer {
         String token = request.getHeader("Authorization");
         if (token != null) {
           token = token.replace("Bearer", "").trim();
+        } else {
+          // The Document Server fetches in-script Document Builder asset URLs
+          // (OpenFile / CreateImage) without an Authorization header, so the
+          // signed token is carried as a query parameter for those fetches.
+          token = uriInfo.getQueryParameters().getFirst("token");
         }
         if (editors.validateToken(token, key)) {
           try {
