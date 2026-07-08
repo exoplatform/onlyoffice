@@ -39,7 +39,7 @@
     {
       "name": "edit_presentation",
       "title": "Create or modify a presentation (pptx)",
-      "description": "Creates a new PowerPoint presentation (pptx) or modifies an existing one via the ONLYOFFICE Document Builder. Pass 'document_id' to MODIFY (saved back as a new version), or 'parent_folder_id' and 'name' to CREATE a new presentation. The 'operations' argument is a JSON ARRAY STRING (parsed server-side) of these operation objects: {\"type\":\"add_slide\",\"layout\":\"title|content|closing\",\"title\":\"Quarterly Review\",\"bullets\":[\"Revenue up 20%\",\"Two new markets\"]} appends a slide with a title and bullet lines; {\"type\":\"set_slide\",\"index\":0,\"title\":\"...\",\"bullets\":[...]} replaces the content of the slide at that 0-based index; {\"type\":\"add_image\",\"slide\":1,\"url\":\"https://.../pic.png\"} or {\"type\":\"add_image\",\"slide\":1,\"document_id\":\"<uuid>\"} adds an image (from an http(s) URL or a DMS image file) onto a slide. Requires the ONLYOFFICE Document Server to be installed and running.",
+      "description": "Creates a new PowerPoint presentation (pptx) or modifies an existing one via the ONLYOFFICE Document Builder. Pass 'document_id' to MODIFY (saved back as a new version), or 'parent_folder_id' and 'name' to CREATE a new presentation. The 'operations' argument is a JSON ARRAY STRING (parsed server-side) of these operation objects: {\"type\":\"add_slide\",\"layout\":\"title|content|closing\",\"title\":\"Quarterly Review\",\"bullets\":[\"Revenue up 20%\",\"Two new markets\"]} appends a slide with a title and bullet lines; {\"type\":\"set_slide\",\"index\":0,\"title\":\"...\",\"bullets\":[...]} replaces the content of the slide at that 0-based index; {\"type\":\"add_image\",\"slide\":1,\"url\":\"https://.../pic.png\"} or {\"type\":\"add_image\",\"slide\":1,\"document_id\":\"<uuid>\"} adds an image (from an http(s) URL or a DMS image file) onto a slide. To embed an image the user attached in this chat, emit an add_image op WITHOUT url/document_id (e.g. {\"type\":\"add_image\",\"slide\":1}) and leave the top-level attachment_object_type/attachment_object_id parameters to be filled from the attachment. Requires the ONLYOFFICE Document Server to be installed and running.",
       "input_schema": {
         "type": "object",
         "properties": {
@@ -58,6 +58,14 @@
           "operations": {
             "type": "string",
             "description": "A JSON array string of presentation operations (add_slide, set_slide, add_image)."
+          },
+          "attachment_object_type": {
+            "type": "string",
+            "description": "Object type of an image the user attached in the chat; auto-filled by the assistant. Used as the image source for any add_image op that has no url/document_id."
+          },
+          "attachment_object_id": {
+            "type": "string",
+            "description": "Object id of an image the user attached in the chat; auto-filled by the assistant. Paired with attachment_object_type."
           }
         },
         "required": [
@@ -75,7 +83,7 @@
     {
       "name": "edit_document",
       "title": "Create or modify a text document (docx)",
-      "description": "Creates a new Word document (docx) or modifies an existing one via the ONLYOFFICE Document Builder. Pass 'document_id' to MODIFY (saved back as a new version), or 'parent_folder_id' and 'name' to CREATE a new document. The 'operations' argument is a JSON ARRAY STRING (parsed server-side) of these operation objects: {\"type\":\"add_heading\",\"level\":1,\"text\":\"...\"}; {\"type\":\"add_paragraph\",\"text\":\"...\",\"bold\":false,\"italic\":false}; {\"type\":\"add_table\",\"rows\":[[\"Item\",\"Value\"],[\"Total\",\"42000\"]]}; {\"type\":\"add_image\",\"url\":\"https://.../pic.png\"} or {\"type\":\"add_image\",\"document_id\":\"<uuid>\"}; {\"type\":\"replace_text\",\"search\":\"{{name}}\",\"replace\":\"ACME\"}. To author a whole document from rich HTML instead, send a single {\"type\":\"set_html\",\"html\":\"<h1>..</h1>\"} operation (CREATE only; it uses the HTML->docx conversion API and cannot be combined with other operations). Requires the ONLYOFFICE Document Server to be installed and running.",
+      "description": "Creates a new Word document (docx) or modifies an existing one via the ONLYOFFICE Document Builder. Pass 'document_id' to MODIFY (saved back as a new version), or 'parent_folder_id' and 'name' to CREATE a new document. The 'operations' argument is a JSON ARRAY STRING (parsed server-side) of these operation objects: {\"type\":\"add_heading\",\"level\":1,\"text\":\"...\"}; {\"type\":\"add_paragraph\",\"text\":\"...\",\"bold\":false,\"italic\":false}; {\"type\":\"add_table\",\"rows\":[[\"Item\",\"Value\"],[\"Total\",\"42000\"]]}; {\"type\":\"add_image\",\"url\":\"https://.../pic.png\"} or {\"type\":\"add_image\",\"document_id\":\"<uuid>\"}; {\"type\":\"replace_text\",\"search\":\"{{name}}\",\"replace\":\"ACME\"}. To embed an image the user attached in this chat, emit an add_image op WITHOUT url/document_id (e.g. {\"type\":\"add_image\"}) and leave the top-level attachment_object_type/attachment_object_id parameters to be filled from the attachment. To author a whole document from rich HTML instead, send a single {\"type\":\"set_html\",\"html\":\"<h1>..</h1>\"} operation (CREATE only; it uses the HTML->docx conversion API and cannot be combined with other operations). Requires the ONLYOFFICE Document Server to be installed and running.",
       "input_schema": {
         "type": "object",
         "properties": {
@@ -94,6 +102,14 @@
           "operations": {
             "type": "string",
             "description": "A JSON array string of document operations (add_heading, add_paragraph, add_table, add_image, replace_text, or a single set_html)."
+          },
+          "attachment_object_type": {
+            "type": "string",
+            "description": "Object type of an image the user attached in the chat; auto-filled by the assistant. Used as the image source for any add_image op that has no url/document_id."
+          },
+          "attachment_object_id": {
+            "type": "string",
+            "description": "Object id of an image the user attached in the chat; auto-filled by the assistant. Paired with attachment_object_type."
           }
         },
         "required": [

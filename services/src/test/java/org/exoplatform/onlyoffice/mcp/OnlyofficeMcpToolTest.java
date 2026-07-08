@@ -50,6 +50,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 
+import org.exoplatform.commons.file.services.FileService;
 import org.exoplatform.documents.model.AbstractNode;
 import org.exoplatform.documents.model.FileNode;
 import org.exoplatform.documents.service.DocumentFileService;
@@ -61,6 +62,7 @@ import org.exoplatform.services.jcr.RepositoryService;
 import org.exoplatform.services.jcr.ext.common.SessionProvider;
 import org.exoplatform.services.security.ConversationState;
 import org.exoplatform.services.security.Identity;
+import org.exoplatform.social.attachment.AttachmentService;
 import org.exoplatform.social.core.manager.IdentityManager;
 import org.exoplatform.upload.UploadService;
 
@@ -99,6 +101,10 @@ public class OnlyofficeMcpToolTest {
 
   private UploadService           uploadService;
 
+  private AttachmentService       attachmentService;
+
+  private FileService             fileService;
+
   private OnlyofficeMcpTool       tool;
 
   private Session                 session;
@@ -111,13 +117,17 @@ public class OnlyofficeMcpToolTest {
     userAcl = mock(UserACL.class);
     repositoryService = mock(RepositoryService.class);
     uploadService = mock(UploadService.class);
+    attachmentService = mock(AttachmentService.class);
+    fileService = mock(FileService.class);
 
     tool = spy(new OnlyofficeMcpTool(editorService,
                                      documentFileService,
                                      identityManager,
                                      userAcl,
                                      repositoryService,
-                                     uploadService));
+                                     uploadService,
+                                     attachmentService,
+                                     fileService));
 
     ConversationState.setCurrent(new ConversationState(new Identity(USER)));
 
@@ -224,7 +234,7 @@ public class OnlyofficeMcpToolTest {
                                                                                                         .thenReturn(new byte[] { 7 });
 
     String ops = "[{\"type\":\"add_slide\",\"title\":\"Review\",\"bullets\":[\"One\",\"Two\"]}]";
-    OfficeDocumentModel result = tool.editPresentation(null, "folder-1", "deck", ops);
+    OfficeDocumentModel result = tool.editPresentation(null, "folder-1", "deck", ops, null, null);
 
     assertEquals("new-pptx-id", result.getId());
     String script = captureScript("pptx", "result.pptx");
@@ -241,7 +251,7 @@ public class OnlyofficeMcpToolTest {
                                                                                                         .thenReturn(new byte[] { 3 });
 
     OfficeDocumentModel result = tool.editPresentation("pptx-1", null, null,
-                                                       "[{\"type\":\"set_slide\",\"index\":0,\"title\":\"Hi\"}]");
+                                                       "[{\"type\":\"set_slide\",\"index\":0,\"title\":\"Hi\"}]", null, null);
 
     assertEquals("pptx-1", result.getId());
     verify(editorService).saveNewVersion(eq(node), any(byte[].class), eq(USER));
@@ -266,7 +276,7 @@ public class OnlyofficeMcpToolTest {
         + "{\"type\":\"add_paragraph\",\"text\":\"Body\"},"
         + "{\"type\":\"add_table\",\"rows\":[[\"A\",\"B\"],[\"1\",\"2\"]]},"
         + "{\"type\":\"replace_text\",\"search\":\"{{x}}\",\"replace\":\"y\"}]";
-    OfficeDocumentModel result = tool.editDocument(null, "folder-1", "report", ops);
+    OfficeDocumentModel result = tool.editDocument(null, "folder-1", "report", ops, null, null);
 
     assertEquals("new-docx-id", result.getId());
     String script = captureScript("docx", "result.docx");
@@ -284,7 +294,7 @@ public class OnlyofficeMcpToolTest {
                                                                                                         .thenReturn(new byte[] { 2 });
 
     OfficeDocumentModel result = tool.editDocument("docx-1", null, null,
-                                                   "[{\"type\":\"add_paragraph\",\"text\":\"More\"}]");
+                                                   "[{\"type\":\"add_paragraph\",\"text\":\"More\"}]", null, null);
 
     assertEquals("docx-1", result.getId());
     verify(editorService).saveNewVersion(eq(node), any(byte[].class), eq(USER));
@@ -304,7 +314,9 @@ public class OnlyofficeMcpToolTest {
     OfficeDocumentModel result = tool.editDocument(null,
                                                    "folder-1",
                                                    "page",
-                                                   "[{\"type\":\"set_html\",\"html\":\"<h1>Hi</h1>\"}]");
+                                                   "[{\"type\":\"set_html\",\"html\":\"<h1>Hi</h1>\"}]",
+                                                   null,
+                                                   null);
 
     assertEquals("html-docx-id", result.getId());
     verify(editorService).convertNodeContent(eq(tmp), eq("docx"), eq("html"), eq(USER));
@@ -313,19 +325,19 @@ public class OnlyofficeMcpToolTest {
   @Test
   public void editDocument_setHtml_withDocumentId_throwsIllegalArgument() {
     assertThrows(IllegalArgumentException.class,
-                 () -> tool.editDocument("doc-1", null, null, "[{\"type\":\"set_html\",\"html\":\"<p>x</p>\"}]"));
+                 () -> tool.editDocument("doc-1", null, null, "[{\"type\":\"set_html\",\"html\":\"<p>x</p>\"}]", null, null));
   }
 
   @Test
   public void editDocument_setHtml_mixedWithStructured_throwsIllegalArgument() {
     String ops = "[{\"type\":\"set_html\",\"html\":\"<p>x</p>\"},{\"type\":\"add_paragraph\",\"text\":\"y\"}]";
-    assertThrows(IllegalArgumentException.class, () -> tool.editDocument(null, "folder-1", "p", ops));
+    assertThrows(IllegalArgumentException.class, () -> tool.editDocument(null, "folder-1", "p", ops, null, null));
   }
 
   @Test
   public void editDocument_unsupportedOperation_throwsIllegalArgument() {
     assertThrows(IllegalArgumentException.class,
-                 () -> tool.editDocument(null, "folder-1", "p", "[{\"type\":\"add_footnote\",\"text\":\"x\"}]"));
+                 () -> tool.editDocument(null, "folder-1", "p", "[{\"type\":\"add_footnote\",\"text\":\"x\"}]", null, null));
   }
 
   // ---------------------------------------------------------------------------
@@ -440,7 +452,7 @@ public class OnlyofficeMcpToolTest {
 
     String ops = "[{\"type\":\"add_table\",\"rows\":["
         + "[\"H1\",\"H2\",\"H3\"],[\"a\",\"b\",\"c\"],[\"d\",\"e\",\"f\"],[\"g\",\"h\",\"i\"]]}]";
-    tool.editDocument(null, "folder-1", "report", ops);
+    tool.editDocument(null, "folder-1", "report", ops, null, null);
 
     String script = captureScript("docx", "result.docx");
     assertTrue("rows-first CreateTable(4, 3)", script.contains("Api.CreateTable(4, 3)"));
@@ -508,7 +520,7 @@ public class OnlyofficeMcpToolTest {
                                                                                                         .thenReturn(new byte[] { 1 });
 
     String ops = "[{\"type\":\"add_slide\",\"title\":\"Review\",\"bullets\":[\"One\",\"Two\"]}]";
-    tool.editPresentation(null, "folder-1", "deck", ops);
+    tool.editPresentation(null, "folder-1", "deck", ops, null, null);
 
     String script = captureScript("pptx", "result.pptx");
     assertTrue(script.contains("var oSlide = Api.CreateSlide(); oPresentation.AddSlide(oSlide);"));
@@ -527,7 +539,7 @@ public class OnlyofficeMcpToolTest {
     when(editorService.runDocBuilderScript(anyString(), any(), eq("docx"), eq("result.docx"), eq(USER)))
                                                                                                         .thenReturn(new byte[] { 1 });
 
-    tool.editDocument("docx-1", null, null, "[{\"type\":\"add_paragraph\",\"text\":\"More\"}]");
+    tool.editDocument("docx-1", null, null, "[{\"type\":\"add_paragraph\",\"text\":\"More\"}]", null, null);
 
     verify(editorService).saveNewVersion(eq(node), any(byte[].class), eq(USER));
     String script = captureScript("docx", "result.docx");

@@ -49,6 +49,7 @@ import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
 
 import org.exoplatform.commons.exception.ObjectNotFoundException;
+import org.exoplatform.commons.file.services.FileService;
 import org.exoplatform.documents.model.AbstractNode;
 import org.exoplatform.documents.model.DocumentFolderFilter;
 import org.exoplatform.documents.model.FileNode;
@@ -65,6 +66,7 @@ import org.exoplatform.services.jcr.ext.common.SessionProvider;
 import org.exoplatform.services.log.ExoLogger;
 import org.exoplatform.services.log.Log;
 import org.exoplatform.services.security.Identity;
+import org.exoplatform.social.attachment.AttachmentService;
 import org.exoplatform.social.core.manager.IdentityManager;
 import org.exoplatform.upload.UploadService;
 
@@ -137,18 +139,26 @@ public class OnlyofficeMcpTool implements McpToolPlugin {
 
   private final UploadService           uploadService;
 
+  private final AttachmentService       attachmentService;
+
+  private final FileService             fileService;
+
   public OnlyofficeMcpTool(OnlyofficeEditorService onlyofficeEditorService,
                            DocumentFileService documentFileService,
                            IdentityManager identityManager,
                            UserACL userAcl,
                            RepositoryService repositoryService,
-                           UploadService uploadService) {
+                           UploadService uploadService,
+                           AttachmentService attachmentService,
+                           FileService fileService) {
     this.onlyofficeEditorService = onlyofficeEditorService;
     this.documentFileService = documentFileService;
     this.identityManager = identityManager;
     this.userAcl = userAcl;
     this.repositoryService = repositoryService;
     this.uploadService = uploadService;
+    this.attachmentService = attachmentService;
+    this.fileService = fileService;
   }
 
   // ---------------------------------------------------------------------------
@@ -180,7 +190,8 @@ public class OnlyofficeMcpTool implements McpToolPlugin {
                                              String parentFolderId,
                                              String name,
                                              String operations) throws IllegalAccessException, ObjectNotFoundException {
-    return runEdit("xlsx", documentId, parentFolderId, name, operations);
+    // Spreadsheets have no add_image operation, so no image-attachment source is plumbed.
+    return runEdit("xlsx", documentId, parentFolderId, name, operations, null, null);
   }
 
   /**
@@ -194,18 +205,29 @@ public class OnlyofficeMcpTool implements McpToolPlugin {
    * <li>{@code {"type":"set_slide","index":0,"title":"...","bullets":[...]}} (replaces the slide content)</li>
    * <li>{@code {"type":"add_image","slide":1,"url":"https://.../pic.png"}} or {@code {"type":"add_image","slide":1,"document_id":"<uuid>"}}</li>
    * </ul>
+   * <p>
+   * When the user attaches an image in the EVA chat, the agent injects the
+   * chat-attachment reference into the top-level {@code attachmentObjectType} /
+   * {@code attachmentObjectId} parameters; any {@code add_image} operation that
+   * has neither {@code url} nor {@code document_id} then resolves its bytes from
+   * that attachment (see {@link #resolveImageBytes}).
    *
    * @param documentId optional JCR uuid of an existing presentation to modify
    * @param parentFolderId folder id where a new presentation is created (create mode)
    * @param name new presentation name WITHOUT extension (create mode)
    * @param operations a JSON array string of presentation operations
+   * @param attachmentObjectType object type of the EVA chat-attachment image source (auto-filled by the agent)
+   * @param attachmentObjectId object id of the EVA chat-attachment image source (auto-filled by the agent)
    * @return the created / modified document (id + name)
    */
   public OfficeDocumentModel editPresentation(String documentId,
                                               String parentFolderId,
                                               String name,
-                                              String operations) throws IllegalAccessException, ObjectNotFoundException {
-    return runEdit("pptx", documentId, parentFolderId, name, operations);
+                                              String operations,
+                                              String attachmentObjectType,
+                                              String attachmentObjectId) throws IllegalAccessException,
+                                                                         ObjectNotFoundException {
+    return runEdit("pptx", documentId, parentFolderId, name, operations, attachmentObjectType, attachmentObjectId);
   }
 
   /**
@@ -223,24 +245,34 @@ public class OnlyofficeMcpTool implements McpToolPlugin {
    * <li>{@code {"type":"set_html","html":"<h1>..</h1>"}} (CREATE only, must be the
    * only operation; authored via the HTML conversion path, not the Builder)</li>
    * </ul>
+   * <p>
+   * When the user attaches an image in the EVA chat, the agent injects the
+   * chat-attachment reference into the top-level {@code attachmentObjectType} /
+   * {@code attachmentObjectId} parameters; any {@code add_image} operation that
+   * has neither {@code url} nor {@code document_id} then resolves its bytes from
+   * that attachment (see {@link #resolveImageBytes}).
    *
    * @param documentId optional JCR uuid of an existing document to modify
    * @param parentFolderId folder id where a new document is created (create mode)
    * @param name new document name WITHOUT extension (create mode)
    * @param operations a JSON array string of document operations
+   * @param attachmentObjectType object type of the EVA chat-attachment image source (auto-filled by the agent)
+   * @param attachmentObjectId object id of the EVA chat-attachment image source (auto-filled by the agent)
    * @return the created / modified document (id + name)
    */
   public OfficeDocumentModel editDocument(String documentId,
                                           String parentFolderId,
                                           String name,
-                                          String operations) throws IllegalAccessException, ObjectNotFoundException {
+                                          String operations,
+                                          String attachmentObjectType,
+                                          String attachmentObjectId) throws IllegalAccessException, ObjectNotFoundException {
     // set_html is authored through the HTML->docx conversion API, not the
     // Builder. It is only supported as the sole operation of a CREATE call.
     JSONArray ops = parseOperations(operations);
     if (containsHtmlOp(ops)) {
       return createDocumentFromHtml(documentId, parentFolderId, name, ops);
     }
-    return runEdit("docx", documentId, parentFolderId, name, operations);
+    return runEdit("docx", documentId, parentFolderId, name, operations, attachmentObjectType, attachmentObjectId);
   }
 
   /**
@@ -254,7 +286,9 @@ public class OnlyofficeMcpTool implements McpToolPlugin {
                                       String documentId,
                                       String parentFolderId,
                                       String name,
-                                      String operations) throws IllegalAccessException, ObjectNotFoundException {
+                                      String operations,
+                                      String attachmentObjectType,
+                                      String attachmentObjectId) throws IllegalAccessException, ObjectNotFoundException {
     boolean modify = StringUtils.isNotBlank(documentId);
     if (!modify) {
       if (StringUtils.isBlank(parentFolderId)) {
@@ -286,10 +320,10 @@ public class OnlyofficeMcpTool implements McpToolPlugin {
           appendSpreadsheetOps(ops, script);
           break;
         case "pptx":
-          appendPresentationOps(ops, script, assets, userSession.session(), !modify);
+          appendPresentationOps(ops, script, assets, userSession.session(), !modify, attachmentObjectType, attachmentObjectId);
           break;
         default:
-          appendDocumentOps(ops, script, assets, userSession.session());
+          appendDocumentOps(ops, script, assets, userSession.session(), attachmentObjectType, attachmentObjectId);
           break;
       }
 
@@ -589,7 +623,13 @@ public class OnlyofficeMcpTool implements McpToolPlugin {
     }
   }
 
-  private void appendPresentationOps(JSONArray ops, StringBuilder s, Map<String, byte[]> assets, Session session, boolean create)
+  private void appendPresentationOps(JSONArray ops,
+                                     StringBuilder s,
+                                     Map<String, byte[]> assets,
+                                     Session session,
+                                     boolean create,
+                                     String attachmentObjectType,
+                                     String attachmentObjectId)
                                                                                                                   throws IllegalAccessException,
                                                                                                                   ObjectNotFoundException {
     s.append("var oPresentation = Api.GetPresentation();\n");
@@ -665,7 +705,7 @@ public class OnlyofficeMcpTool implements McpToolPlugin {
         case "add_image": {
           int index = op.optInt("slide", op.optInt("index", 0));
           String assetName = "img" + (imageIndex++);
-          assets.put(assetName + ".png", resolveImageBytes(op, session));
+          assets.put(assetName + ".png", resolveImageBytes(op, session, attachmentObjectType, attachmentObjectId));
           s.append("var oImgSlide = oPresentation.GetSlideByIndex(").append(index).append(");\n");
           s.append("if (oImgSlide) { var oImage = Api.CreateImage(\"@@ASSET:")
            .append(assetName)
@@ -679,9 +719,12 @@ public class OnlyofficeMcpTool implements McpToolPlugin {
     }
   }
 
-  private void appendDocumentOps(JSONArray ops, StringBuilder s, Map<String, byte[]> assets, Session session)
-                                                                                                             throws IllegalAccessException,
-                                                                                                             ObjectNotFoundException {
+  private void appendDocumentOps(JSONArray ops,
+                                 StringBuilder s,
+                                 Map<String, byte[]> assets,
+                                 Session session,
+                                 String attachmentObjectType,
+                                 String attachmentObjectId) throws IllegalAccessException, ObjectNotFoundException {
     s.append("var oDocument = Api.GetDocument();\n");
     int imageIndex = 0;
     for (int i = 0; i < ops.length(); i++) {
@@ -750,7 +793,7 @@ public class OnlyofficeMcpTool implements McpToolPlugin {
         }
         case "add_image": {
           String assetName = "img" + (imageIndex++);
-          assets.put(assetName + ".png", resolveImageBytes(op, session));
+          assets.put(assetName + ".png", resolveImageBytes(op, session, attachmentObjectType, attachmentObjectId));
           s.append("var oImg = Api.CreateImage(\"@@ASSET:")
            .append(assetName)
            .append(".png@@\", 120*").append(EMU).append(", 90*").append(EMU).append(");\n");
@@ -1001,7 +1044,17 @@ public class OnlyofficeMcpTool implements McpToolPlugin {
   // Image resolution (url via SSRF-guarded fetch, or a DMS document_id)
   // ---------------------------------------------------------------------------
 
-  private byte[] resolveImageBytes(JSONObject op, Session session) throws IllegalAccessException, ObjectNotFoundException {
+  // Resolves the bytes of an image referenced by an add_image operation, in a
+  // clear precedence order: (1) the op's explicit http(s) 'url', (2) the op's
+  // explicit DMS 'document_id', (3) a per-op attachment reference, then (4) the
+  // tool-level chat-attachment reference EVA injects (attachmentObjectType +
+  // attachmentObjectId) when the user attaches an image in the chat. Sources 3
+  // and 4 are read as the current user through the shared UploadToolUtils
+  // resolver, so platform ACLs are enforced (an unreadable object throws).
+  private byte[] resolveImageBytes(JSONObject op,
+                                   Session session,
+                                   String attachmentObjectType,
+                                   String attachmentObjectId) throws IllegalAccessException, ObjectNotFoundException {
     String url = op.optString("url", "");
     String imageDocumentId = op.optString("document_id", op.optString("image_document_id", ""));
     if (StringUtils.isNotBlank(url)) {
@@ -1012,8 +1065,24 @@ public class OnlyofficeMcpTool implements McpToolPlugin {
       Node imageNode = resolveNode(session, imageDocumentId);
       return readNodeBytes(imageNode, imageDocumentId);
     }
-    throw new IllegalArgumentException("An 'add_image' operation requires either a 'url' (http/https image) or a "
-        + "'document_id' (a DMS image file).");
+    // A per-op attachment reference overrides the tool-level one; otherwise fall
+    // back to the chat attachment EVA injected at the top level of the call.
+    String objectType = StringUtils.defaultIfBlank(op.optString("attachment_object_type", ""), attachmentObjectType);
+    String objectId = StringUtils.defaultIfBlank(op.optString("attachment_object_id", ""), attachmentObjectId);
+    if (StringUtils.isNotBlank(objectId)) {
+      Identity aclIdentity = userAcl.getUserIdentity(getCurrentUserName());
+      UploadToolUtils.FetchedContent fetched = UploadToolUtils.resolveImage(attachmentService,
+                                                                            fileService,
+                                                                            aclIdentity,
+                                                                            null,
+                                                                            null,
+                                                                            objectType,
+                                                                            objectId,
+                                                                            MAX_IMAGE_BYTES);
+      return fetched.bytes();
+    }
+    throw new IllegalArgumentException("An 'add_image' operation requires either a 'url' (http/https image), a "
+        + "'document_id' (a DMS image file), or an attached image (attachment_object_type + attachment_object_id).");
   }
 
   private byte[] readNodeBytes(Node node, String documentId) throws IllegalAccessException {
