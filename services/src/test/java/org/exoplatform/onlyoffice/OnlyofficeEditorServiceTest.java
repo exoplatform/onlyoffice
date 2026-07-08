@@ -1762,4 +1762,64 @@ public class OnlyofficeEditorServiceTest extends BaseCommonsTestCase {
     node.remove();
   }
 
+  /**
+   * Regression test for the MCP MODIFY versioning bug: saveNewVersion() on a
+   * versionable document that is left checked-in (the normal persisted state once
+   * a version exists) must make the NEW bytes the CURRENT/displayed content, not
+   * only add them to the version history while the live node stays on the prior
+   * version. Mirrors the editor save-back path which checks the node out before
+   * updating jcr:data and creating the version.
+   */
+  @Test
+  public void testSaveNewVersionAdvancesCurrentContentOnCheckedInNode() throws Exception {
+    startSessionAs(USER_USERNAME);
+    Node node = createDocument("Modify Version Test.docx", "nt:file", "v1-original-content", true);
+    String nodePath = node.getPath();
+
+    // Establish a prior version (v1) and leave the node checked-in, exactly the
+    // state in which the old saveNewVersion() failed to advance the current content.
+    node.checkin();
+    assertFalse("Precondition: the node must be checked-in before the modify", node.isCheckedOut());
+
+    byte[] newBytes = "v2-timeline-new-content".getBytes(java.nio.charset.StandardCharsets.UTF_8);
+    onlyofficeEditorService.saveNewVersion(node, newBytes, USER_USERNAME);
+
+    // Reload from the workspace to read the CURRENT (displayed) content.
+    Node reloaded = editorService.getDocument(null, nodePath);
+    String currentContent = reloaded.getNode("jcr:content").getProperty("jcr:data").getString();
+    assertEquals("saveNewVersion must make the new bytes the current/displayed content",
+                 "v2-timeline-new-content",
+                 currentContent);
+
+    // The prior content must be preserved as an older version, and the new content
+    // is now the base (current) version.
+    javax.jcr.version.VersionHistory vh = reloaded.getVersionHistory();
+    assertTrue("A prior version must be preserved in history (root + v1 [+ new])",
+               vh.getAllVersions().getSize() >= 2);
+
+    node.remove();
+  }
+
+  /**
+   * saveNewVersion() on a checked-out versionable node (e.g. right after a previous
+   * edit) must still make the new bytes current and create a new version.
+   */
+  @Test
+  public void testSaveNewVersionAdvancesCurrentContentOnCheckedOutNode() throws Exception {
+    startSessionAs(USER_USERNAME);
+    Node node = createDocument("Modify Version Test2.docx", "nt:file", "original", true);
+    String nodePath = node.getPath();
+    assertTrue("Precondition: freshly versionable node is checked-out", node.isCheckedOut());
+
+    byte[] newBytes = "brand-new-bytes".getBytes(java.nio.charset.StandardCharsets.UTF_8);
+    onlyofficeEditorService.saveNewVersion(node, newBytes, USER_USERNAME);
+
+    Node reloaded = editorService.getDocument(null, nodePath);
+    assertEquals("New bytes must be the current content",
+                 "brand-new-bytes",
+                 reloaded.getNode("jcr:content").getProperty("jcr:data").getString());
+
+    node.remove();
+  }
+
 }

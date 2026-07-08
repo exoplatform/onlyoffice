@@ -3822,24 +3822,79 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
     if (content == null || content.length == 0) {
       throw new IllegalArgumentException("The new document content is empty; the existing version is left unchanged.");
     }
-    Node data = nodeContent(node);
-    data.setProperty("jcr:data", new ByteArrayInputStream(content));
-    data.setProperty("jcr:lastModified", Calendar.getInstance());
-    if (node.canAddMixin("exo:modify")) {
-      node.addMixin("exo:modify");
+    // node.save() below fires a JCR SessionAction that triggers OnlyOffice's own
+    // DocumentUpdateActivityListener on THIS thread. That handler calls node(...) ->
+    // sessionProviders.getSessionProvider(null), which returns null on an MCP tool
+    // thread (no editor session / no thread-bound SessionProvider), so it NPEs and
+    // aborts the whole modify (edit_document / edit_spreadsheet / edit_presentation
+    // with a document_id). The MCP tool reads/writes through its own private user
+    // SessionProvider and never binds one to the thread-local SessionProviderService,
+    // so bind a provider here (only if the thread has none) for the duration of the
+    // save, and remove it afterwards so we don't leak it onto a pooled thread.
+    SessionProvider previousProvider = sessionProviders.getSessionProvider(null);
+    boolean providerBound = false;
+    if (previousProvider == null) {
+      sessionProviders.setSessionProvider(null, SessionProvider.createSystemProvider());
+      providerBound = true;
     }
-    if (userId != null && node.isNodeType("exo:modify")) {
-      node.setProperty("exo:lastModifier", userId);
-      node.setProperty("exo:dateModified", Calendar.getInstance());
-    }
-    node.save();
     try {
-      VersionHistoryUtils.createVersion(node);
-    } catch (Exception e) {
-      // Versioning is best-effort: the new content is already saved on the node.
-      LOG.warn("Could not create a version for node {} after a Document Builder edit: {}",
-               node.getPath(),
-               e.getMessage());
+      // A versionable document is left checked-in once a version exists (e.g. after a
+      // previous edit): its subtree is then read-only, so the new bytes must be written
+      // to a checked-out node, otherwise the live/current content stays on the prior
+      // version. Mirror the editor save-back path (see download()), which checks the
+      // node out before updating jcr:data.
+      checkout(node);
+      Node data = nodeContent(node);
+      data.setProperty("jcr:data", new ByteArrayInputStream(content));
+      data.setProperty("jcr:lastModified", Calendar.getInstance());
+      if (node.canAddMixin("exo:modify")) {
+        node.addMixin("exo:modify");
+      }
+      if (userId != null && node.isNodeType("exo:modify")) {
+        node.setProperty("exo:lastModifier", userId);
+        node.setProperty("exo:dateModified", Calendar.getInstance());
+      }
+      node.save();
+      // Evict any cached editor Config for this node so the next open mints a fresh
+      // document key. The editor caches a Config (with its document key) per docId, and
+      // the Document Server caches document content BY that key; an external write here
+      // (edit_document / edit_spreadsheet / edit_presentation on an existing doc) never
+      // invalidates that cache, so reopening the doc would show the pre-edit copy from
+      // the DS while JCR + version history already have the new content. Drop the cached
+      // configs (same eviction used in getEditor when a stale key is detected) to force a
+      // new key -> DS re-fetch -> the editor shows the just-written content.
+      try {
+        String docId = node.getUUID();
+        Map<String, Config> activeConfigs = cachedEditorConfigStorage.getActiveConfigsByDocId(docId);
+        if (activeConfigs != null) {
+          for (Config cfg : activeConfigs.values()) {
+            cachedEditorConfigStorage.deleteConfig(List.of(cfg.getDocument().getKey(), cfg.getDocId()), cfg);
+          }
+        }
+      } catch (Exception e) {
+        LOG.warn("Could not evict the cached editor config for node {} after a Document Builder edit: {}",
+                 node.getPath(),
+                 e.getMessage());
+      }
+      try {
+        // VersionHistoryUtils.createVersion() only snapshots the current live content
+        // into a new base (current) version when the node is already checked out
+        // (checkin + checkout); on a checked-in node it performs a bare checkout and
+        // creates NO version, leaving the displayed content on the previous version.
+        // Ensure the node is checked out first, exactly like the editor save-back path
+        // (download(): "if (checkout(node)) VersionHistoryUtils.createVersion(node)").
+        checkout(node);
+        VersionHistoryUtils.createVersion(node);
+      } catch (Exception e) {
+        // Versioning is best-effort: the new content is already saved on the node.
+        LOG.warn("Could not create a version for node {} after a Document Builder edit: {}",
+                 node.getPath(),
+                 e.getMessage());
+      }
+    } finally {
+      if (providerBound) {
+        sessionProviders.removeSessionProvider(null);
+      }
     }
   }
 

@@ -157,7 +157,8 @@ public class OnlyofficeMcpTool implements McpToolPlugin {
 
   /**
    * Creates or modifies a spreadsheet (xlsx). Pass {@code document_id} to MODIFY
-   * an existing spreadsheet (saved back as a new version), or {@code folder_id}
+   * an existing spreadsheet (saved back as a new version), or
+   * {@code parent_folder_id}
    * and {@code name} to CREATE a new one. The {@code operations} are applied via
    * the ONLYOFFICE Document Builder.
    * <p>
@@ -170,21 +171,22 @@ public class OnlyofficeMcpTool implements McpToolPlugin {
    * </ul>
    *
    * @param documentId optional JCR uuid of an existing spreadsheet to modify
-   * @param folderId folder id where a new spreadsheet is created (create mode)
+   * @param parentFolderId folder id where a new spreadsheet is created (create mode)
    * @param name new spreadsheet name WITHOUT extension (create mode)
    * @param operations a JSON array string of spreadsheet operations
    * @return the created / modified document (id + name)
    */
   public OfficeDocumentModel editSpreadsheet(String documentId,
-                                             String folderId,
+                                             String parentFolderId,
                                              String name,
                                              String operations) throws IllegalAccessException, ObjectNotFoundException {
-    return runEdit("xlsx", documentId, folderId, name, operations);
+    return runEdit("xlsx", documentId, parentFolderId, name, operations);
   }
 
   /**
    * Creates or modifies a presentation (pptx). Pass {@code document_id} to MODIFY
-   * (saved back as a new version) or {@code folder_id} + {@code name} to CREATE.
+   * (saved back as a new version) or {@code parent_folder_id} + {@code name} to
+   * CREATE.
    * <p>
    * Supported operations (a JSON array string):
    * <ul>
@@ -194,22 +196,22 @@ public class OnlyofficeMcpTool implements McpToolPlugin {
    * </ul>
    *
    * @param documentId optional JCR uuid of an existing presentation to modify
-   * @param folderId folder id where a new presentation is created (create mode)
+   * @param parentFolderId folder id where a new presentation is created (create mode)
    * @param name new presentation name WITHOUT extension (create mode)
    * @param operations a JSON array string of presentation operations
    * @return the created / modified document (id + name)
    */
   public OfficeDocumentModel editPresentation(String documentId,
-                                              String folderId,
+                                              String parentFolderId,
                                               String name,
                                               String operations) throws IllegalAccessException, ObjectNotFoundException {
-    return runEdit("pptx", documentId, folderId, name, operations);
+    return runEdit("pptx", documentId, parentFolderId, name, operations);
   }
 
   /**
    * Creates or modifies a text document (docx). Pass {@code document_id} to
-   * MODIFY (saved back as a new version) or {@code folder_id} + {@code name} to
-   * CREATE.
+   * MODIFY (saved back as a new version) or {@code parent_folder_id} +
+   * {@code name} to CREATE.
    * <p>
    * Supported operations (a JSON array string):
    * <ul>
@@ -223,22 +225,22 @@ public class OnlyofficeMcpTool implements McpToolPlugin {
    * </ul>
    *
    * @param documentId optional JCR uuid of an existing document to modify
-   * @param folderId folder id where a new document is created (create mode)
+   * @param parentFolderId folder id where a new document is created (create mode)
    * @param name new document name WITHOUT extension (create mode)
    * @param operations a JSON array string of document operations
    * @return the created / modified document (id + name)
    */
   public OfficeDocumentModel editDocument(String documentId,
-                                          String folderId,
+                                          String parentFolderId,
                                           String name,
                                           String operations) throws IllegalAccessException, ObjectNotFoundException {
     // set_html is authored through the HTML->docx conversion API, not the
     // Builder. It is only supported as the sole operation of a CREATE call.
     JSONArray ops = parseOperations(operations);
     if (containsHtmlOp(ops)) {
-      return createDocumentFromHtml(documentId, folderId, name, ops);
+      return createDocumentFromHtml(documentId, parentFolderId, name, ops);
     }
-    return runEdit("docx", documentId, folderId, name, operations);
+    return runEdit("docx", documentId, parentFolderId, name, operations);
   }
 
   /**
@@ -250,13 +252,13 @@ public class OnlyofficeMcpTool implements McpToolPlugin {
    */
   private OfficeDocumentModel runEdit(String format,
                                       String documentId,
-                                      String folderId,
+                                      String parentFolderId,
                                       String name,
                                       String operations) throws IllegalAccessException, ObjectNotFoundException {
     boolean modify = StringUtils.isNotBlank(documentId);
     if (!modify) {
-      if (StringUtils.isBlank(folderId)) {
-        throw new IllegalArgumentException("Provide either 'document_id' to modify an existing file, or 'folder_id' (and "
+      if (StringUtils.isBlank(parentFolderId)) {
+        throw new IllegalArgumentException("Provide either 'document_id' to modify an existing file, or 'parent_folder_id' (and "
             + "'name') to create a new one. Call get_root_folder_for_user / get_root_folder_by_space / "
             + "get_documents_by_folder_id to obtain a folder id.");
       }
@@ -284,7 +286,7 @@ public class OnlyofficeMcpTool implements McpToolPlugin {
           appendSpreadsheetOps(ops, script);
           break;
         case "pptx":
-          appendPresentationOps(ops, script, assets, userSession.session());
+          appendPresentationOps(ops, script, assets, userSession.session(), !modify);
           break;
         default:
           appendDocumentOps(ops, script, assets, userSession.session());
@@ -312,7 +314,7 @@ public class OnlyofficeMcpTool implements McpToolPlugin {
         }
         return toModelFromNode(target, documentId);
       }
-      return importContent(folderId, appendExtension(name, format), out);
+      return importContent(parentFolderId, appendExtension(name, format), out);
     } finally {
       userSession.close();
     }
@@ -508,6 +510,7 @@ public class OnlyofficeMcpTool implements McpToolPlugin {
 
   private void appendSpreadsheetOps(JSONArray ops, StringBuilder s) {
     s.append("var oWorksheet = Api.GetActiveSheet();\n");
+    boolean sheetAdded = false;
     for (int i = 0; i < ops.length(); i++) {
       JSONObject op = ops.getJSONObject(i);
       String type = opType(op);
@@ -565,20 +568,41 @@ public class OnlyofficeMcpTool implements McpToolPlugin {
           String sheetName = requireString(op, "name", "add_sheet");
           s.append("Api.AddSheet(").append(jsString(sheetName)).append(");\n");
           s.append("oWorksheet = Api.GetActiveSheet();\n");
+          sheetAdded = true;
           break;
         }
         default:
           throw unsupportedOp(type, "edit_spreadsheet");
       }
     }
+    // ONLYOFFICE xlsx->PDF conversion (convert_document / export_document_as_pdf via the
+    // Document Server /converter) exports ONLY the ACTIVE sheet. Api.AddSheet leaves the
+    // newly-added (usually empty) sheet active, so exporting such a spreadsheet produced a
+    // blank ~2KB PDF. Re-activating the first (data) sheet before SaveFile makes the primary
+    // sheet the one exported. Verified against the live Document Server: with the empty added
+    // sheet left active the PDF was 1936 bytes (blank); re-activating Sheet1 yielded a 26KB PDF
+    // with the full table + chart. (SetPrintArea is NOT available on the builder Api here — it
+    // fails with docbuilder error -3 — so activating the data sheet is the working fix.)
+    if (sheetAdded) {
+      s.append("Api.GetSheets()[0].SetActive();\n");
+      s.append("oWorksheet = Api.GetActiveSheet();\n");
+    }
   }
 
-  private void appendPresentationOps(JSONArray ops, StringBuilder s, Map<String, byte[]> assets, Session session)
+  private void appendPresentationOps(JSONArray ops, StringBuilder s, Map<String, byte[]> assets, Session session, boolean create)
                                                                                                                   throws IllegalAccessException,
                                                                                                                   ObjectNotFoundException {
     s.append("var oPresentation = Api.GetPresentation();\n");
     s.append("var __fill = Api.CreateSolidFill(Api.CreateRGBColor(255, 255, 255));\n");
     s.append("var __stroke = Api.CreateStroke(0, Api.CreateNoFill());\n");
+    // Explicit BLACK text fill. Api.CreateShape gives the shape a default style whose
+    // fontRef is the "lt1" (light-1 = white) theme colour, meant for a colour-filled
+    // shape. Because we override the shape fill to white, a run WITHOUT an explicit
+    // colour renders as white-on-white and is invisible (the slides looked empty even
+    // though the text was present in the XML). Every run below sets this fill so the
+    // title + bullets are actually visible. Verified against the live Document Server:
+    // without SetFill the pptx->PDF page was blank; with it the text renders in black.
+    s.append("var __textFill = Api.CreateSolidFill(Api.CreateRGBColor(0, 0, 0));\n");
     // Helper: (re)build a slide's text with a title + bullet lines.
     s.append("function __setSlideText(oSlide, title, bullets) {\n")
      .append("  oSlide.RemoveAllObjects();\n")
@@ -586,7 +610,7 @@ public class OnlyofficeMcpTool implements McpToolPlugin {
      .append("    var t = Api.CreateShape(\"rect\", 300*").append(EMU).append(", 50*").append(EMU).append(", __fill, __stroke);\n")
      .append("    t.SetPosition(20*").append(EMU).append(", 20*").append(EMU).append(");\n")
      .append("    var tp = t.GetContent().GetElement(0);\n")
-     .append("    var tr = Api.CreateRun(); tr.AddText(title); tr.SetBold(true); tr.SetFontSize(32); tp.AddElement(tr);\n")
+     .append("    var tr = Api.CreateRun(); tr.AddText(title); tr.SetBold(true); tr.SetFontSize(32); tr.SetFill(__textFill); tp.AddElement(tr);\n")
      .append("    oSlide.AddObject(t);\n")
      .append("  }\n")
      .append("  if (bullets && bullets.length) {\n")
@@ -596,19 +620,30 @@ public class OnlyofficeMcpTool implements McpToolPlugin {
      .append("    for (var i = 0; i < bullets.length; i++) {\n")
      .append("      var p = (i === 0) ? doc.GetElement(0) : Api.CreateParagraph();\n")
      .append("      if (i !== 0) doc.Push(p);\n")
-     .append("      var r = Api.CreateRun(); r.AddText(\"\\u2022 \" + bullets[i]); r.SetFontSize(18); p.AddElement(r);\n")
+     .append("      var r = Api.CreateRun(); r.AddText(\"\\u2022 \" + bullets[i]); r.SetFontSize(18); r.SetFill(__textFill); p.AddElement(r);\n")
      .append("    }\n")
      .append("    oSlide.AddObject(b);\n")
      .append("  }\n")
      .append("}\n");
 
     int imageIndex = 0;
+    // On CREATE, builder.CreateFile("pptx") starts the presentation with one blank
+    // default slide (index 0). The first add_slide must POPULATE that default slide
+    // instead of appending a new one, otherwise every created presentation opens on a
+    // leading blank slide. Consumed by the first add_slide (or cancelled by a set_slide,
+    // which already targets an existing slide, so a later add_slide appends normally).
+    boolean reuseDefaultSlide = create;
     for (int i = 0; i < ops.length(); i++) {
       JSONObject op = ops.getJSONObject(i);
       String type = opType(op);
       switch (type) {
         case "add_slide": {
-          s.append("var oSlide = Api.CreateSlide(); oPresentation.AddSlide(oSlide);\n");
+          if (reuseDefaultSlide) {
+            s.append("var oSlide = oPresentation.GetSlideByIndex(0);\n");
+            reuseDefaultSlide = false;
+          } else {
+            s.append("var oSlide = Api.CreateSlide(); oPresentation.AddSlide(oSlide);\n");
+          }
           s.append("__setSlideText(oSlide, ")
            .append(jsString(op.optString("title", "")))
            .append(", ")
@@ -617,6 +652,7 @@ public class OnlyofficeMcpTool implements McpToolPlugin {
           break;
         }
         case "set_slide": {
+          reuseDefaultSlide = false;
           int index = op.optInt("index", 0);
           s.append("var oSlide = oPresentation.GetSlideByIndex(").append(index).append(");\n");
           s.append("if (oSlide) __setSlideText(oSlide, ")
@@ -742,7 +778,7 @@ public class OnlyofficeMcpTool implements McpToolPlugin {
   // ---------------------------------------------------------------------------
 
   private OfficeDocumentModel createDocumentFromHtml(String documentId,
-                                                     String folderId,
+                                                     String parentFolderId,
                                                      String name,
                                                      JSONArray ops) throws IllegalAccessException, ObjectNotFoundException {
     if (StringUtils.isNotBlank(documentId)) {
@@ -753,8 +789,8 @@ public class OnlyofficeMcpTool implements McpToolPlugin {
       throw new IllegalArgumentException("The 'set_html' operation cannot be combined with other operations in one call. "
           + "Send it alone to author a document from HTML, or use only structured operations.");
     }
-    if (StringUtils.isBlank(folderId)) {
-      throw new IllegalArgumentException("The 'folder_id' parameter is mandatory to create a document from HTML.");
+    if (StringUtils.isBlank(parentFolderId)) {
+      throw new IllegalArgumentException("The 'parent_folder_id' parameter is mandatory to create a document from HTML.");
     }
     if (StringUtils.isBlank(name)) {
       throw new IllegalArgumentException("The 'name' parameter is mandatory to create a document from HTML.");
@@ -766,7 +802,7 @@ public class OnlyofficeMcpTool implements McpToolPlugin {
     UserSession userSession = openUserSession();
     Node tmpNode = null;
     try {
-      Node parent = resolveNode(userSession.session(), folderId);
+      Node parent = resolveNode(userSession.session(), parentFolderId);
       byte[] converted;
       try {
         tmpNode = createTempHtmlNode(parent, html, userSession.session());
@@ -777,7 +813,7 @@ public class OnlyofficeMcpTool implements McpToolPlugin {
       if (converted == null || converted.length == 0) {
         throw new IllegalStateException(CONVERT_FAILED_MSG);
       }
-      return importContent(folderId, appendExtension(name, "docx"), converted);
+      return importContent(parentFolderId, appendExtension(name, "docx"), converted);
     } finally {
       deleteQuietly(tmpNode);
       userSession.close();
