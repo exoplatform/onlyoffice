@@ -2540,6 +2540,12 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
    */
   protected Node node(String workspace, String path) throws BadParameterException, RepositoryException {
     SessionProvider sp = sessionProviders.getSessionProvider(null);
+    if (sp == null) {
+      LOG.debug("Document '{}:{}' retrieval canceled since no User Session Provider is present",
+                workspace,
+                path);
+      return null;
+    }
     Session userSession = sp.getSession(workspace, jcrService.getCurrentRepository());
 
     Item item = finder.findItem(userSession, path);
