@@ -1057,27 +1057,44 @@ public class OnlyofficeMcpTool implements McpToolPlugin {
                                    String attachmentObjectId) throws IllegalAccessException, ObjectNotFoundException {
     String url = op.optString("url", "");
     String imageDocumentId = op.optString("document_id", op.optString("image_document_id", ""));
-    if (StringUtils.isNotBlank(url)) {
-      UploadToolUtils.FetchedContent fetched = UploadToolUtils.fetchUrl(url, MAX_IMAGE_BYTES, "image.png");
-      return fetched.bytes();
-    }
-    if (StringUtils.isNotBlank(imageDocumentId)) {
-      Node imageNode = resolveNode(session, imageDocumentId);
-      return readNodeBytes(imageNode, imageDocumentId);
-    }
-    // A per-op attachment reference overrides the tool-level one; otherwise fall
-    // back to the chat attachment EVA injected at the top level of the call.
+    // A per-op attachment reference overrides the tool-level one; either is the chat
+    // attachment EVA injected. Resolve it up-front as a FALLBACK: EVA sometimes emits a
+    // placeholder/invented url (e.g. https://example.com/...) alongside the real attached
+    // image, and a bare url/document_id would otherwise shadow it and fail the whole edit.
     String objectType = StringUtils.defaultIfBlank(op.optString("attachment_object_type", ""), attachmentObjectType);
     String objectId = StringUtils.defaultIfBlank(op.optString("attachment_object_id", ""), attachmentObjectId);
-    if (StringUtils.isNotBlank(objectId)) {
+    boolean hasAttachment = StringUtils.isNotBlank(objectId);
+    if (StringUtils.isNotBlank(url)) {
+      try {
+        return UploadToolUtils.fetchUrl(url, MAX_IMAGE_BYTES, "image.png").bytes();
+      } catch (RuntimeException e) {
+        if (!hasAttachment) {
+          throw e;
+        }
+        LOG.info("add_image url '{}' did not resolve ({}); using the attached image instead", url, e.getMessage());
+      }
+    } else if (StringUtils.isNotBlank(imageDocumentId)) {
+      try {
+        Node imageNode = resolveNode(session, imageDocumentId);
+        return readNodeBytes(imageNode, imageDocumentId);
+      } catch (IllegalAccessException | ObjectNotFoundException | RuntimeException e) {
+        if (!hasAttachment) {
+          throw e;
+        }
+        LOG.info("add_image document_id '{}' did not resolve ({}); using the attached image instead",
+                 imageDocumentId,
+                 e.getMessage());
+      }
+    }
+    if (hasAttachment) {
       Identity aclIdentity = userAcl.getUserIdentity(getCurrentUserName());
       UploadToolUtils.FetchedContent fetched = UploadToolUtils.resolveImage(attachmentService,
                                                                             fileService,
                                                                             aclIdentity,
-                                                                            null,
-                                                                            null,
-                                                                            objectType,
-                                                                            objectId,
+                                                                            new UploadToolUtils.ImageSource(null,
+                                                                                                            null,
+                                                                                                            objectType,
+                                                                                                            objectId),
                                                                             MAX_IMAGE_BYTES);
       return fetched.bytes();
     }

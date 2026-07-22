@@ -239,7 +239,9 @@ public class OnlyofficeMcpToolTest {
     assertEquals("new-pptx-id", result.getId());
     String script = captureScript("pptx", "result.pptx");
     assertTrue(script.contains("builder.CreateFile(\"pptx\")"));
-    assertTrue(script.contains("Api.CreateSlide()"));
+    // On CREATE the first add_slide populates the blank default slide that
+    // builder.CreateFile("pptx") already produced, instead of appending a new one.
+    assertTrue(script.contains("oPresentation.GetSlideByIndex(0)"));
     assertTrue(script.contains("__setSlideText(oSlide, \"Review\", [\"One\", \"Two\"])"));
   }
 
@@ -523,7 +525,8 @@ public class OnlyofficeMcpToolTest {
     tool.editPresentation(null, "folder-1", "deck", ops, null, null);
 
     String script = captureScript("pptx", "result.pptx");
-    assertTrue(script.contains("var oSlide = Api.CreateSlide(); oPresentation.AddSlide(oSlide);"));
+    // CREATE reuses the default slide, so no Api.CreateSlide()/AddSlide() pair here.
+    assertTrue(script.contains("var oSlide = oPresentation.GetSlideByIndex(0);"));
     assertTrue(script.contains("__setSlideText(oSlide, \"Review\", [\"One\", \"Two\"]);"));
   }
 
