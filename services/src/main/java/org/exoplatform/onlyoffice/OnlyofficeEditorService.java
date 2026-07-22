@@ -19,6 +19,7 @@
 package org.exoplatform.onlyoffice;
 
 import java.util.List;
+import java.util.Map;
 
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
@@ -408,4 +409,60 @@ public interface OnlyofficeEditorService {
    */
 
   byte[] convertNodeContent(Node node, String format, String originalFileType, String userId);
+
+  /**
+   * Runs an ONLYOFFICE Document Server <b>Document Builder</b> script and returns
+   * the produced native office file (docx / xlsx / pptx / pdf) bytes. This is the
+   * single, shared, security-critical primitive used by the office MCP tools to
+   * both CREATE ({@code builder.CreateFile}) and MODIFY ({@code builder.OpenFile})
+   * documents.
+   * <p>
+   * <b>Trust model.</b> The script and every referenced asset (the existing file
+   * being modified, images) are staged in an in-memory, single-use registry and
+   * served to the (remote) Document Server through the SAME host-restricted
+   * ({@code canDownloadBy}) and JWT-guarded ({@code validateToken})
+   * {@code /onlyoffice/editor/content/{userId}/{key}} endpoint used for
+   * editing/conversion, at URLs built from {@code exo.base.url} (never a request
+   * host). Keys are unguessable, entries are removed on first fetch and expire
+   * after {@value OnlyofficeEditorServiceImpl#DOCBUILDER_ASSET_TTL_MS} ms; there
+   * is no path traversal (keys are opaque) and no new / unauthenticated file
+   * endpoint. The Document Server signs its own {@code Authorization} header when
+   * it fetches the script URL; in-script asset URLs (which the server fetches
+   * without a header) carry a signed {@code token} query parameter that
+   * {@code validateToken} accepts.
+   * <p>
+   * The script must reference each asset by an {@code @@ASSET:<name>@@}
+   * placeholder (matching a key of {@code assets}); every placeholder is replaced
+   * with the asset's short-lived, token-guarded URL before the script is run.
+   *
+   * @param scriptBody the Document Builder script, referencing assets by
+   *          {@code @@ASSET:<name>@@} placeholders
+   * @param assets the assets referenced by the script (name to bytes); may be
+   *          {@code null} or empty for a pure CREATE script
+   * @param outputFormat the produced format, e.g. {@code docx}, {@code xlsx},
+   *          {@code pptx}, {@code pdf} (used for error messages)
+   * @param outputName the {@code builder.SaveFile} output name to download from
+   *          the response; the first produced file is used when {@code null}
+   * @param userId the acting user name (used only to shape the content URL)
+   * @return the produced document bytes (never {@code null})
+   * @throws IllegalStateException on any Document Server failure, with an
+   *           LLM-directed message
+   */
+  byte[] runDocBuilderScript(String scriptBody,
+                             Map<String, byte[]> assets,
+                             String outputFormat,
+                             String outputName,
+                             String userId);
+
+  /**
+   * Writes new content onto an existing document node (as the current user) and
+   * creates a new version, so a Document Builder MODIFY result is saved as a new
+   * version of the source file.
+   *
+   * @param node the existing document node (resolved in the user's session)
+   * @param content the new file bytes
+   * @param userId the acting user name, stored as last modifier
+   * @throws RepositoryException on a storage error
+   */
+  void saveNewVersion(Node node, byte[] content, String userId) throws RepositoryException;
 }
