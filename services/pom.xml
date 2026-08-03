@@ -109,14 +109,12 @@
     <dependency>
       <groupId>org.exoplatform.documents</groupId>
       <artifactId>documents-api</artifactId>
-      <version>7.3.x-SNAPSHOT</version>
       <scope>provided</scope>
     </dependency>
     <!-- MCP Server API, used by the ONLYOFFICE MCP tools exposed to the AI agent. -->
     <dependency>
       <groupId>io.meeds.mcp-server</groupId>
       <artifactId>mcp-server-tools</artifactId>
-      <version>7.3.x-SNAPSHOT</version>
       <scope>provided</scope>
     </dependency>
 
