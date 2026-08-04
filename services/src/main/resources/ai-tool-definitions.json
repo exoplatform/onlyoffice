@@ -1,0 +1,249 @@
+{
+  "tools": [
+    {
+      "name": "edit_spreadsheet",
+      "title": "Create or modify a spreadsheet (xlsx)",
+      "description": "Creates a new Excel spreadsheet (xlsx) or modifies an existing one via the ONLYOFFICE Document Builder. Pass 'document_id' to MODIFY an existing spreadsheet (the change is saved back as a new version); or pass 'parent_folder_id' and 'name' to CREATE a new spreadsheet in the user's drive. Get parent_folder_id from get_root_folder_for_user, get_root_folder_by_space or get_documents_by_folder_id, and document_id from get_document_by_id / get_documents_by_folder_id. The 'operations' argument is a JSON ARRAY STRING (parsed server-side) of these operation objects: {\"type\":\"set_cells\",\"start\":\"A1\",\"values\":[[\"Region\",\"Sales\"],[\"North\",120]]} writes a 2D block anchored at a cell; {\"type\":\"set_formula\",\"cell\":\"B4\",\"formula\":\"=SUM(B2:B3)\"}; {\"type\":\"add_chart\",\"chart\":\"bar|line|pie\",\"range\":\"Sheet1!$A$1:$B$3\",\"title\":\"Sales\"}; {\"type\":\"add_sheet\",\"name\":\"Q3\"} (subsequent operations target the new sheet). Requires the ONLYOFFICE Document Server to be installed and running.",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "document_id": {
+            "type": "string",
+            "description": "The JCR uuid of an existing spreadsheet to modify. Omit to create a new spreadsheet."
+          },
+          "parent_folder_id": {
+            "type": "string",
+            "description": "The folder where a new spreadsheet is created (create mode). Required when document_id is not given."
+          },
+          "name": {
+            "type": "string",
+            "description": "The new spreadsheet name WITHOUT extension (create mode); '.xlsx' is appended automatically."
+          },
+          "operations": {
+            "type": "string",
+            "description": "A JSON array string of spreadsheet operations (set_cells, set_formula, add_chart, add_sheet)."
+          }
+        },
+        "required": [
+          "operations"
+        ]
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": false
+      },
+      "require_approval": true
+    },
+    {
+      "name": "edit_presentation",
+      "title": "Create or modify a presentation (pptx)",
+      "description": "Creates a new PowerPoint presentation (pptx) or modifies an existing one via the ONLYOFFICE Document Builder. Pass 'document_id' to MODIFY (saved back as a new version), or 'parent_folder_id' and 'name' to CREATE a new presentation. The 'operations' argument is a JSON ARRAY STRING (parsed server-side) of these operation objects: {\"type\":\"add_slide\",\"layout\":\"title|content|closing\",\"title\":\"Quarterly Review\",\"bullets\":[\"Revenue up 20%\",\"Two new markets\"]} appends a slide with a title and bullet lines; {\"type\":\"set_slide\",\"index\":0,\"title\":\"...\",\"bullets\":[...]} replaces the content of the slide at that 0-based index; {\"type\":\"add_image\",\"slide\":1,\"url\":\"https://.../pic.png\"} or {\"type\":\"add_image\",\"slide\":1,\"document_id\":\"<uuid>\"} adds an image (from an http(s) URL or a DMS image file) onto a slide. To embed an image the user attached in this chat (or refers to as 'this image'/'the image'), emit an add_image op WITHOUT url and WITHOUT document_id (e.g. {\"type\":\"add_image\",\"slide\":1}) and leave the top-level attachment_object_type/attachment_object_id parameters to be filled from the attachment. NEVER invent, guess, or use a placeholder url (e.g. https://example.com/...) for an attached image — omit url/document_id entirely. Requires the ONLYOFFICE Document Server to be installed and running.",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "document_id": {
+            "type": "string",
+            "description": "The JCR uuid of an existing presentation to modify. Omit to create a new presentation."
+          },
+          "parent_folder_id": {
+            "type": "string",
+            "description": "The folder where a new presentation is created (create mode). Required when document_id is not given."
+          },
+          "name": {
+            "type": "string",
+            "description": "The new presentation name WITHOUT extension (create mode); '.pptx' is appended automatically."
+          },
+          "operations": {
+            "type": "string",
+            "description": "A JSON array string of presentation operations (add_slide, set_slide, add_image)."
+          },
+          "attachment_object_type": {
+            "type": "string",
+            "description": "Object type of an image the user attached in the chat; auto-filled by the assistant. Used as the image source for any add_image op that has no url/document_id."
+          },
+          "attachment_object_id": {
+            "type": "string",
+            "description": "Object id of an image the user attached in the chat; auto-filled by the assistant. Paired with attachment_object_type."
+          }
+        },
+        "required": [
+          "operations"
+        ]
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": false
+      },
+      "require_approval": true
+    },
+    {
+      "name": "edit_document",
+      "title": "Create or modify a text document (docx)",
+      "description": "Creates a new Word document (docx) or modifies an existing one via the ONLYOFFICE Document Builder. Pass 'document_id' to MODIFY (saved back as a new version), or 'parent_folder_id' and 'name' to CREATE a new document. The 'operations' argument is a JSON ARRAY STRING (parsed server-side) of these operation objects: {\"type\":\"add_heading\",\"level\":1,\"text\":\"...\"}; {\"type\":\"add_paragraph\",\"text\":\"...\",\"bold\":false,\"italic\":false}; {\"type\":\"add_table\",\"rows\":[[\"Item\",\"Value\"],[\"Total\",\"42000\"]]}; {\"type\":\"add_image\",\"url\":\"https://.../pic.png\"} or {\"type\":\"add_image\",\"document_id\":\"<uuid>\"}; {\"type\":\"replace_text\",\"search\":\"{{name}}\",\"replace\":\"ACME\"}. To embed an image the user attached in this chat (or refers to as 'this image'/'the image'), emit an add_image op WITHOUT url and WITHOUT document_id (e.g. {\"type\":\"add_image\"}) and leave the top-level attachment_object_type/attachment_object_id parameters to be filled from the attachment. NEVER invent, guess, or use a placeholder url (e.g. https://example.com/...) for an attached image — omit url/document_id entirely. To author a whole document from rich HTML instead, send a single {\"type\":\"set_html\",\"html\":\"<h1>..</h1>\"} operation (CREATE only; it uses the HTML->docx conversion API and cannot be combined with other operations). Requires the ONLYOFFICE Document Server to be installed and running.",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "document_id": {
+            "type": "string",
+            "description": "The JCR uuid of an existing document to modify. Omit to create a new document."
+          },
+          "parent_folder_id": {
+            "type": "string",
+            "description": "The folder where a new document is created (create mode). Required when document_id is not given."
+          },
+          "name": {
+            "type": "string",
+            "description": "The new document name WITHOUT extension (create mode); '.docx' is appended automatically."
+          },
+          "operations": {
+            "type": "string",
+            "description": "A JSON array string of document operations (add_heading, add_paragraph, add_table, add_image, replace_text, or a single set_html)."
+          },
+          "attachment_object_type": {
+            "type": "string",
+            "description": "Object type of an image the user attached in the chat; auto-filled by the assistant. Used as the image source for any add_image op that has no url/document_id."
+          },
+          "attachment_object_id": {
+            "type": "string",
+            "description": "Object id of an image the user attached in the chat; auto-filled by the assistant. Paired with attachment_object_type."
+          }
+        },
+        "required": [
+          "operations"
+        ]
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": false
+      },
+      "require_approval": true
+    },
+    {
+      "name": "generate_document",
+      "title": "Generate a document from a template",
+      "description": "Generates a new document from a template document by replacing every placeholder with its value (a template-fill / mail-merge run through the ONLYOFFICE Document Builder). Use this when you have a reusable template (e.g. a contract or proposal docx containing {{client}}, {{amount}} placeholders) and a set of values to fill in. The 'data' argument is a JSON OBJECT STRING mapping each placeholder to its replacement, e.g. {\"{{client}}\":\"ACME Corp\",\"{{amount}}\":\"42,000 EUR\"}. The produced file is stored as a new document (it does not overwrite the template). Requires the ONLYOFFICE Document Server to be installed and running.",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "template_document_id": {
+            "type": "string",
+            "description": "The JCR uuid of the template document (e.g. a docx with {{placeholder}} markers)."
+          },
+          "folder_id": {
+            "type": "string",
+            "description": "Optional destination folder for the generated document. Defaults to the template's own folder."
+          },
+          "name": {
+            "type": "string",
+            "description": "Optional produced document name WITHOUT extension. Defaults to the template name."
+          },
+          "data": {
+            "type": "string",
+            "description": "A JSON object string mapping each placeholder to its replacement value."
+          }
+        },
+        "required": [
+          "template_document_id",
+          "data"
+        ]
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": false
+      },
+      "require_approval": true
+    },
+    {
+      "name": "convert_document",
+      "title": "Convert a document to another format",
+      "description": "Converts an existing office document to another format using the ONLYOFFICE Document Server, storing the result as '<originalName>.<target_format>'. Use this to turn a docx into odt, an xlsx into csv, a pptx into pdf, etc. By default the result is stored in the same folder as the source; pass folder_id to store it elsewhere. Call get_document_by_id or get_documents_by_folder_id first to get the document_id. Requires the ONLYOFFICE Document Server to be installed and running.",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "document_id": {
+            "type": "string",
+            "description": "The JCR uuid of the source document to convert."
+          },
+          "target_format": {
+            "type": "string",
+            "description": "The produced format, e.g. docx, xlsx, pptx, odt, ods, odp, csv, txt, pdf."
+          },
+          "folder_id": {
+            "type": "string",
+            "description": "Optional destination folder for the converted file. Defaults to the source document's own folder."
+          }
+        },
+        "required": [
+          "document_id",
+          "target_format"
+        ]
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": false
+      },
+      "require_approval": true
+    },
+    {
+      "name": "export_document_as_pdf",
+      "title": "Export a document as PDF",
+      "description": "Exports an existing office document as a PDF using the ONLYOFFICE Document Server, storing the result as '<originalName>.pdf'. By default the PDF is stored in the same folder as the source document; pass parent_folder_id to store it elsewhere. Call get_document_by_id or get_documents_by_folder_id first to get the document_id. Requires the ONLYOFFICE Document Server to be installed and running.",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "document_id": {
+            "type": "string",
+            "description": "The JCR uuid of the source document to export as PDF."
+          },
+          "parent_folder_id": {
+            "type": "string",
+            "description": "Optional destination folder id for the produced PDF. Defaults to the source document's own folder."
+          }
+        },
+        "required": [
+          "document_id"
+        ]
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": false
+      },
+      "require_approval": true
+    },
+    {
+      "name": "get_document_editor_link",
+      "title": "Get the online editor link of a document",
+      "description": "Returns the ONLYOFFICE online editor URL of a document so it can be opened for editing. The user must have edit permission on the document and it must be an editable office document. Call get_document_by_id or get_documents_by_folder_id first to get the document_id.",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "document_id": {
+            "type": "string",
+            "description": "The JCR uuid of the document to open in the online editor."
+          }
+        },
+        "required": [
+          "document_id"
+        ]
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    }
+  ]
+}

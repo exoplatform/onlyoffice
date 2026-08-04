@@ -104,6 +104,20 @@
       <scope>provided</scope>
     </dependency>
 
+    <!-- Documents add-on API: DocumentFileService is reused to store the
+         converted office / PDF bytes in the user's drive (import path). -->
+    <dependency>
+      <groupId>org.exoplatform.documents</groupId>
+      <artifactId>documents-api</artifactId>
+      <scope>provided</scope>
+    </dependency>
+    <!-- MCP Server API, used by the ONLYOFFICE MCP tools exposed to the AI agent. -->
+    <dependency>
+      <groupId>io.meeds.mcp-server</groupId>
+      <artifactId>mcp-server-tools</artifactId>
+      <scope>provided</scope>
+    </dependency>
+
     <!-- For tests -->
     <dependency>
       <groupId>io.meeds.social</groupId>
@@ -129,6 +143,7 @@
         <includes>
           <include>**/*.properties</include>
           <include>**/*.xml</include>
+          <include>**/*.json</include>
           <include>**/*.drl</include>
           <include>**/*.doc</include>
           <include>**/*.xls</include>
@@ -152,6 +167,16 @@
     </resources>
 
     <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <configuration>
+          <compilerArgs>
+            <!-- Required so MCP tool method parameter names are retained and bound by name -->
+            <arg>-parameters</arg>
+          </compilerArgs>
+        </configuration>
+      </plugin>
       <plugin>
         <groupId>io.openapitools.swagger</groupId>
         <artifactId>swagger-maven-plugin</artifactId>
@@ -180,6 +205,7 @@
           <includes>
             <include>**/**/EditorServiceTest.java</include>
             <include>**/**/OnlyofficeEditorServiceTest.java</include>
+            <include>**/**/OnlyofficeMcpToolTest.java</include>
           </includes>
         </configuration>
       </plugin>

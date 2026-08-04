@@ -45,7 +45,8 @@
   <properties>
     <!-- eXo Modules -->
     <addon.exo.ecms.version>7.3.x-SNAPSHOT</addon.exo.ecms.version>
-  
+    <addon.exo.documents.version>7.3.x-SNAPSHOT</addon.exo.documents.version>
+
     <!-- Sonar properties -->
     <sonar.organization>exoplatform</sonar.organization>
   </properties>
@@ -56,6 +57,16 @@
         <groupId>org.exoplatform.ecms</groupId>
         <artifactId>ecms</artifactId>
         <version>${addon.exo.ecms.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+
+      <!-- Documents add-on: DocumentFileService is reused to store the
+           converted office / PDF bytes in the user's drive (import path). -->
+      <dependency>
+        <groupId>org.exoplatform.documents</groupId>
+        <artifactId>documents-parent</artifactId>
+        <version>${addon.exo.documents.version}</version>
         <type>pom</type>
         <scope>import</scope>
       </dependency>
