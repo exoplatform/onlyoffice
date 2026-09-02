@@ -44,8 +44,8 @@
 
   <properties>
     <!-- eXo Modules -->
-    <addon.exo.ecms.version>7.3.x-SNAPSHOT</addon.exo.ecms.version>
-    <addon.exo.documents.version>7.3.x-SNAPSHOT</addon.exo.documents.version>
+    <addon.exo.ecms.version>7.3.0-20260902</addon.exo.ecms.version>
+    <addon.exo.documents.version>7.3.0-20260902</addon.exo.documents.version>
 
     <!-- Sonar properties -->
     <sonar.organization>exoplatform</sonar.organization>
