@@ -158,7 +158,7 @@ public class OnlyofficeDocumentEditorPlugin extends BaseComponentPlugin implemen
       LOG.debug("Opening editor page for document {}", document);
     }
     String link = "'" + contextEditorLink(document, DRIVES, null) + "'";
-    callModule("initEditorPage(" + link + ");");
+    callModule("onlyoffice.initEditorPage(" + link + ");");
   }
 
   /**
@@ -171,7 +171,7 @@ public class OnlyofficeDocumentEditorPlugin extends BaseComponentPlugin implemen
    */
   @Override
   public void beforeDocumentCreate(NewDocumentTemplate template, String parentPath, String title) throws Exception {
-    callModule("initNewDocument();");
+    callModule("onlyoffice.initNewDocument();");
   }
 
   /**
@@ -199,7 +199,7 @@ public class OnlyofficeDocumentEditorPlugin extends BaseComponentPlugin implemen
       } catch (OnlyofficeEditorException e) {
         LOG.warn("Cannot get editor link for activity: ", e);
       }
-      callModule("initActivity('" + fileId + "', " + link + ", '" + activityId + "');");
+      callModule("onlyoffice.initActivity('" + fileId + "', " + link + ", '" + activityId + "');");
     }
   }
 

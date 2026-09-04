@@ -1,30 +1,23 @@
 package org.exoplatform.onlyoffice.jpa.entities;
 
+import io.meeds.common.persistence.PortableSequence;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
-import jakarta.persistence.NamedQueries;
 import jakarta.persistence.NamedQuery;
-import jakarta.persistence.SequenceGenerator;
 import jakarta.persistence.Table;
 
-import org.exoplatform.commons.api.persistence.ExoEntity;
-
 @Entity(name = "EditorConfigEntity")
-@ExoEntity
 @Table(name = "OO_EDITOR_CONFIG")
-@NamedQueries({
-    @NamedQuery(name = "EditorConfigEntity.getConfigByKey", query = "SELECT e FROM EditorConfigEntity e WHERE e.documentKey = :key ORDER BY e.id DESC"),
-    @NamedQuery(name = "EditorConfigEntity.getConfigByDocId", query = "SELECT e FROM EditorConfigEntity e WHERE e.documentId = :docId ORDER BY e.id DESC"),
-    @NamedQuery(name = "EditorConfigEntity.getActiveConfigByDocId", query = "SELECT e FROM EditorConfigEntity e WHERE e.documentId = :docId AND (e.closedTime IS NULL OR e.open = true OR e.closing = true) ORDER BY e.id DESC"),
-    @NamedQuery(name = "EditorConfigEntity.getClosedConfigBefore", query = "SELECT e FROM EditorConfigEntity e WHERE e.open = false AND e.closing = false AND e.closedTime IS NOT NULL AND e.closedTime < :expirationTime ORDER BY e.id ASC")
-})
+@NamedQuery(name = "EditorConfigEntity.getConfigByKey", query = "SELECT e FROM EditorConfigEntity e WHERE e.documentKey = :key ORDER BY e.id DESC")
+@NamedQuery(name = "EditorConfigEntity.getConfigByDocId", query = "SELECT e FROM EditorConfigEntity e WHERE e.documentId = :docId ORDER BY e.id DESC")
+@NamedQuery(name = "EditorConfigEntity.getActiveConfigByDocId", query = "SELECT e FROM EditorConfigEntity e WHERE e.documentId = :docId AND (e.closedTime IS NULL OR e.open = true OR e.closing = true) ORDER BY e.id DESC")
+@NamedQuery(name = "EditorConfigEntity.getClosedConfigBefore", query = "SELECT e FROM EditorConfigEntity e WHERE e.open = false AND e.closing = false AND e.closedTime IS NOT NULL AND e.closedTime < :expirationTime ORDER BY e.id ASC")
 public class EditorConfigEntity {
+
   @Id
-  @SequenceGenerator(name = "SEQ_OO_EDITOR_CONFIG_ID", sequenceName = "SEQ_OO_EDITOR_CONFIG_ID", allocationSize = 1)
-  @GeneratedValue(strategy = GenerationType.AUTO, generator = "SEQ_OO_EDITOR_CONFIG_ID")
+  @PortableSequence(name = "SEQ_OO_EDITOR_CONFIG_ID")
   @Column(name = "ID")
   private Long id;
 

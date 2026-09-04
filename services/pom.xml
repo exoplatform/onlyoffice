@@ -162,6 +162,7 @@
           <include>**/*.xlsx</include>
           <include>**/*.docxf</include>
           <include>**/*.pdf</include>
+          <include>**/*.idx</include>
         </includes>
       </resource>
     </resources>

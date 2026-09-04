@@ -19,11 +19,10 @@
 package org.exoplatform.onlyoffice;
 
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.boot.autoconfigure.data.jpa.JpaRepositoriesAutoConfiguration;
-import org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration;
-import org.springframework.boot.autoconfigure.jdbc.DataSourceTransactionManagerAutoConfiguration;
-import org.springframework.boot.autoconfigure.liquibase.LiquibaseAutoConfiguration;
-import org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration;
+import org.springframework.boot.hibernate.autoconfigure.HibernateJpaAutoConfiguration;
+import org.springframework.boot.jdbc.autoconfigure.DataSourceAutoConfiguration;
+import org.springframework.boot.jdbc.autoconfigure.DataSourceTransactionManagerAutoConfiguration;
+import org.springframework.boot.liquibase.autoconfigure.LiquibaseAutoConfiguration;
 import org.springframework.context.annotation.PropertySource;
 
 import io.meeds.spring.AvailableIntegration;
@@ -58,8 +57,7 @@ import io.meeds.spring.kernel.PortalApplicationContextInitializer;
   LiquibaseAutoConfiguration.class,
   DataSourceAutoConfiguration.class,
   DataSourceTransactionManagerAutoConfiguration.class,
-  HibernateJpaAutoConfiguration.class,
-  JpaRepositoriesAutoConfiguration.class,
+  HibernateJpaAutoConfiguration.class
 })
 @PropertySource("classpath:application.properties")
 @PropertySource("classpath:application-common.properties")

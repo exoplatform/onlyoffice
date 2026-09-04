@@ -1682,7 +1682,7 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
     }
     if (token != null && key != null) {
       try {
-        Jws<Claims> jws = Jwts.parser().setSigningKey(Keys.hmacShaKeyFor(documentserverSecret.getBytes())).parseClaimsJws(token);
+        Jws<Claims> jws = Jwts.parser().setSigningKey(Keys.hmacShaKeyFor(documentserverSecret.getBytes())).build().parseClaimsJws(token);
         @SuppressWarnings("unchecked")
         Map<String, Object> claims = (Map<String, Object>) jws.getBody().get("payload");
         if (claims != null) {

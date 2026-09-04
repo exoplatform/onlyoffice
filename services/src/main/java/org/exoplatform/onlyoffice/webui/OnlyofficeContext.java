@@ -117,7 +117,7 @@ public class OnlyofficeContext {
                                                  cometdService.getUserToken(userId),
                                                  PortalContainer.getCurrentPortalContainerName());
 
-      callOnModule("init('" + userId + "', " + cometdConf.toJSON() + ", " + messagesJson + ");");
+      callOnModule("eXo.env.portal.addOnLoadCallback(() => onlyoffice.init('" + userId + "', " + cometdConf.toJSON() + ", " + messagesJson + "));");
     } else {
       throw new OnlyofficeEditorException("Authenticated user required");
     }
@@ -138,7 +138,7 @@ public class OnlyofficeContext {
    * @param code the code
    */
   private void callOnModule(String code) {
-    require.addScripts(new StringBuilder("onlyoffice.").append(code).append("\n").toString());
+    require.addScripts(new StringBuilder(code).append("\n").toString());
   }
 
   /**
@@ -148,7 +148,7 @@ public class OnlyofficeContext {
    * @param message the message
    */
   private void showClientError(String title, String message) {
-    callOnModule(new StringBuilder("showError('").append(title).append("', '" + message + "');").toString());
+    callOnModule(new StringBuilder("onlyoffice.showError('").append(title).append("', '" + message + "');").toString());
   }
 
   /**
