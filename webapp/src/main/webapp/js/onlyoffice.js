@@ -210,9 +210,6 @@
     // is open
     var autosaveTimer;
 
-    // The editor window is used while creating a new document.
-    var editorWindow;
-
     // The page index to load in the first iteration
     var pageToLoad = 1;
 
@@ -684,6 +681,7 @@
                 var url = config.explorerUrl.split(documentOldTitle)[0];
                 var documentNewPath = url + "/" + state.title;
                 config.explorerUrl = documentNewPath;
+                $("#see-more-btn").attr("href", config.explorerUrl);
                 $("#see-more-btn").prop("disabled", true);
                 setTimeout(function() {
                   $("#see-more-btn").prop("disabled", false);
@@ -739,10 +737,6 @@
 
         $("#editor-drawer .header .closebtn").on('click', function() {
           return UI.closeDrawer();
-        });
-
-        $("#see-more-btn").on('click', function() {
-          window.open(config.explorerUrl);
         });
 
         $("#load-more-btn").on('click', function() {
@@ -893,27 +887,28 @@
     };
 
     /**
-     * Opens a new window for the editor. We open the empty tab and then init
-     * editor there. It's used to provide better UX (no delay between click on
-     * the button and openning window with the editor)
+     * Kept for backward compatibility with callers that still invoke it
+     * before initEditorPage(). The editor tab is now only opened once its
+     * link is known, in initEditorPage().
      */
     this.initNewDocument = function() {
-      editorWindow = window.open();
+      // No-op: the tab is opened later, in initEditorPage(), once the link is known.
     };
 
     /**
-     * Initializes the editor in the editorWindow. (used in creating a new
-     * document)
+     * Opens the editor for the newly created document once its link is known.
      */
     this.initEditorPage = function(link) {
-      if (editorWindow != null) {
-        if (link != null) {
-          editorWindow.location = link;
-        } else {
-          editorWindow.close();
-          editorWindow = null;
-          UI.showError(message("ErrorTitle"), message("ErrorLinkNotFound"));
-        }
+      if (link != null) {
+        var editorLink = document.createElement("a");
+        editorLink.href = link;
+        editorLink.target = "_blank";
+        editorLink.style.display = "none";
+        document.body.appendChild(editorLink);
+        editorLink.click();
+        editorLink.remove();
+      } else {
+        UI.showError(message("ErrorTitle"), message("ErrorLinkNotFound"));
       }
     };
 
@@ -1172,7 +1167,9 @@
       $("#alert-saved").append(message('AlertSave'));
       $("#alert-error").append(message('ErrorSave'));
       $("#save-btn").append(message('SaveButton'));
-      $("#see-more-btn").attr("data-original-title", message('SeeMoreButton'));
+      $("#see-more-btn").attr("data-original-title", message('SeeMoreButton'))
+        .attr("href", config.explorerUrl)
+        .attr("target", "_blank");
       $("#load-more-btn").append(message('LoadMoreButton'));
       $("#open-drawer-btn").attr("data-original-title", message('OpenDrawerBtn'));
       $(".closebtn").attr("data-original-title", message('CloseButton'));
