@@ -162,13 +162,13 @@ a.icon-place {
 }
 
 .onlyofficeEditorBody #editor-drawer i.uiIconArrowRight {
-  color: #999;
+  color: var(--appIconColor, var(--allPagesBaseIconColor, #707070));
 }
 
 .onlyofficeEditorBody #editor-drawer .uiIconPencilEdit:before {
   content: "\e9e4";
   margin-left: 5px;
-  color: black;
+  color: var(--appIconColor, var(--allPagesBaseIconColor, #707070));
   font-size: 13px;
 }
 
