@@ -56,17 +56,11 @@ public class RDBMSEditorConfigStorageImpl implements EditorConfigStorage {
 
   @Override
   @ExoTransactional
-  public List<Config> getClosedConfigsBefore(long expirationTime) {
-    List<EditorConfigEntity> entities = editorConfigDAO.getClosedConfigBefore(expirationTime);
-    return entities.stream().map(this::buildFromEntity).collect(Collectors.toList());
-  }
-
-  @Override
-  @ExoTransactional
-  public int deleteClosedConfigsBefore(long expirationTime) {
-    List<EditorConfigEntity> entities = editorConfigDAO.getClosedConfigBefore(expirationTime);
+  public List<Config> deleteClosedConfigsBefore(long expirationTime, int limit) {
+    List<EditorConfigEntity> entities = editorConfigDAO.getClosedConfigBefore(expirationTime, limit);
+    List<Config> deletedConfigs = entities.stream().map(this::buildFromEntity).collect(Collectors.toList());
     entities.forEach(editorConfigDAO::delete);
-    return entities.size();
+    return deletedConfigs;
   }
 
 

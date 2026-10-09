@@ -2,6 +2,7 @@ package org.exoplatform.onlyoffice;
 
 import static org.mockito.ArgumentMatchers.any;
 
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -1926,6 +1927,42 @@ public class OnlyofficeEditorServiceTest extends BaseCommonsTestCase {
     assertNull(openedConversionConfig.getClosedTime());
     node.remove();
     openedNode.remove();
+  }
+
+  /**
+   * An editor opening purges at most one batch of expired closed configs,
+   * oldest first, evicts from the cache the configs it deleted, and the next
+   * opening purges what is left.
+   */
+  @Test
+  public void testExpiredClosedConfigsArePurgedOneBatchPerEditorOpening() throws Exception {
+    startSessionAs(USER_USERNAME);
+    Node node = createDocument("Purge Batch Test.docx", "nt:file", "testContent", true);
+    long expiredTime = System.currentTimeMillis() - onlyofficeEditorService.closedConfigRetentionMs() - 60000;
+    List<String> keys = new ArrayList<>();
+    for (int i = 0; i <= OnlyofficeEditorServiceImpl.CLOSED_CONFIGS_PURGE_BATCH; i++) {
+      String key = createConversionConfig(node, USER_USERNAME);
+      Config config = rdbmsStorage().getConfigsByKey(key).get(USER_USERNAME);
+      config.setClosedTime(expiredTime);
+      onlyofficeEditorService.cachedEditorConfigStorage.saveConfig(List.of(key, node.getUUID()), config, false);
+      keys.add(key);
+    }
+    String newestKey = keys.get(OnlyofficeEditorServiceImpl.CLOSED_CONFIGS_PURGE_BATCH);
+    String oldestKey = keys.get(0);
+    assertFalse(onlyofficeEditorService.cachedEditorConfigStorage.getConfigsByKey(oldestKey).isEmpty());
+
+    onlyofficeEditorService.cleanupExpiredClosedConfigs();
+
+    for (String key : keys.subList(0, OnlyofficeEditorServiceImpl.CLOSED_CONFIGS_PURGE_BATCH)) {
+      assertTrue(rdbmsStorage().getConfigsByKey(key).isEmpty());
+    }
+    assertTrue(onlyofficeEditorService.cachedEditorConfigStorage.getConfigsByKey(oldestKey).isEmpty());
+    assertFalse(rdbmsStorage().getConfigsByKey(newestKey).isEmpty());
+
+    onlyofficeEditorService.cleanupExpiredClosedConfigs();
+
+    assertTrue(rdbmsStorage().getConfigsByKey(newestKey).isEmpty());
+    node.remove();
   }
 
   private Config openEditor(Node node, String userId) throws Exception {

@@ -192,6 +192,13 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
   protected static final long    DEFAULT_CLOSED_CONFIG_RETENTION_MS = 2 * 60 * 60 * 1000L;
 
   /**
+   * Maximum number of expired closed configs one editor opening purges, oldest
+   * first, so that a large set of configs expiring together is purged over
+   * several openings rather than in one user request.
+   */
+  protected static final int     CLOSED_CONFIGS_PURGE_BATCH = 100;
+
+  /**
    * Configuration key for Document Server's allowed hosts in requests from a DS
    * to eXo side.
    */
@@ -1019,7 +1026,7 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
   protected void cleanupExpiredClosedConfigs() {
     try {
       long expirationTime = System.currentTimeMillis() - closedConfigRetentionMs();
-      int deleted = cachedEditorConfigStorage.deleteClosedConfigsBefore(expirationTime);
+      int deleted = cachedEditorConfigStorage.deleteClosedConfigsBefore(expirationTime, CLOSED_CONFIGS_PURGE_BATCH).size();
       if (deleted > 0 && LOG.isDebugEnabled()) {
         LOG.debug("Deleted {} expired OnlyOffice editor configs", deleted);
       }

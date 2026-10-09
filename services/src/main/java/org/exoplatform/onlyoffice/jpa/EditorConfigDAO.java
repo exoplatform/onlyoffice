@@ -10,7 +10,7 @@ public interface EditorConfigDAO extends GenericDAO<EditorConfigEntity,Long> {
   List<EditorConfigEntity> getConfigByKey(String key);
   List<EditorConfigEntity> getConfigByDocId(String docId);
   List<EditorConfigEntity> getActiveConfigByDocId(String docId);
-  List<EditorConfigEntity> getClosedConfigBefore(long expirationTime);
+  List<EditorConfigEntity> getClosedConfigBefore(long expirationTime, int limit);
 
   /**
    * Closes, at the given time, the active configs built for a conversion that

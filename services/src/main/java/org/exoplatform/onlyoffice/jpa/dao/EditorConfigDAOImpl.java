@@ -34,10 +34,11 @@ public class EditorConfigDAOImpl extends GenericDAOJPAImpl<EditorConfigEntity, L
   }
 
   @Override
-  public List<EditorConfigEntity> getClosedConfigBefore(long expirationTime) {
+  public List<EditorConfigEntity> getClosedConfigBefore(long expirationTime, int limit) {
     TypedQuery<EditorConfigEntity> query = getEntityManager()
         .createNamedQuery("EditorConfigEntity.getClosedConfigBefore",EditorConfigEntity.class);
     query.setParameter("expirationTime", expirationTime);
+    query.setMaxResults(limit);
     return query.getResultList();
   }
 
