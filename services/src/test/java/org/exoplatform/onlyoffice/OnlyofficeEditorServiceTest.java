@@ -2,11 +2,13 @@ package org.exoplatform.onlyoffice;
 
 import static org.mockito.ArgumentMatchers.any;
 
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import javax.jcr.Node;
@@ -22,6 +24,7 @@ import org.exoplatform.component.test.ConfigurationUnit;
 import org.exoplatform.component.test.ConfiguredBy;
 import org.exoplatform.component.test.ContainerScope;
 import org.exoplatform.container.ExoContainerContext;
+import org.exoplatform.onlyoffice.jpa.storage.impl.RDBMSEditorConfigStorageImpl;
 import org.exoplatform.services.cms.documents.DocumentService;
 import org.exoplatform.services.cms.drives.DriveData;
 import org.exoplatform.services.cms.drives.ManageDriveService;
@@ -1821,6 +1824,193 @@ public class OnlyofficeEditorServiceTest extends BaseCommonsTestCase {
                  reloaded.getNode("jcr:content").getProperty("jcr:data").getString());
 
     node.remove();
+  }
+
+  /**
+   * A thumbnail conversion run as a user who is editing the document does not
+   * change the key a joining co-editor gets: the conversion config is not an
+   * active config, so it does not hide the editing user's own config.
+   */
+  @Test
+  public void testConversionByEditingUserKeepsJoinerInEditingSession() throws Exception {
+    startSessionAs(USER_USERNAME);
+    Node node = createDocument("Conversion Join Test.docx", "nt:file", "testContent", true);
+    String editingKey = openEditor(node, USER_USERNAME).getDocument().getKey();
+    openInDocumentServer(USER_USERNAME, editingKey);
+
+    createConversionConfig(node, USER_USERNAME);
+    Config joinerConfig = openEditor(node, "root");
+
+    assertEquals(editingKey, joinerConfig.getDocument().getKey());
+    node.remove();
+  }
+
+  /**
+   * A conversion config is closed and is not an active config of the document,
+   * and the Document Server still fetches the document content by its key.
+   */
+  @Test
+  public void testConversionConfigIsClosedAndServesContentByKey() throws Exception {
+    startSessionAs(USER_USERNAME);
+    Node node = createDocument("Conversion Content Test.docx", "nt:file", "testContent", true);
+
+    String conversionKey = createConversionConfig(node, USER_USERNAME);
+
+    assertTrue(rdbmsStorage().getConfigsByKey(conversionKey).get(USER_USERNAME).isClosed());
+    assertFalse(onlyofficeEditorService.cachedEditorConfigStorage.getActiveConfigsByDocId(node.getUUID())
+                                                                   .containsKey(USER_USERNAME));
+    DocumentContent documentContent = editorService.getContent(USER_USERNAME, conversionKey);
+    assertEquals("testContent", IOUtils.toString(documentContent.getData(), "UTF-8"));
+    node.remove();
+  }
+
+  /**
+   * A joining co-editor copies the config of a user who is in the Document
+   * Server session, not an active config nobody opened. The configs map
+   * iterates "mary" before "john", so copying its first config would join the
+   * unopened key.
+   */
+  @Test
+  public void testJoinerCopiesOpenConfigRatherThanUnopenedOne() throws Exception {
+    startSessionAs(USER_USERNAME);
+    Node node = createDocument("Open Config Join Test.docx", "nt:file", "testContent", true);
+    String editingKey = openEditor(node, USER_USERNAME).getDocument().getKey();
+    openInDocumentServer(USER_USERNAME, editingKey);
+    String unopenedKey = storeUnopenedConversionConfig(node, "mary");
+
+    Map<String, Config> activeConfigs = onlyofficeEditorService.cachedEditorConfigStorage.getActiveConfigsByDocId(node.getUUID());
+    assertEquals(Set.of(USER_USERNAME, "mary"), activeConfigs.keySet());
+    assertEquals("mary", activeConfigs.keySet().iterator().next());
+    Config joinerConfig = openEditor(node, "root");
+
+    org.junit.Assert.assertNotEquals(editingKey, unopenedKey);
+    assertEquals(editingKey, joinerConfig.getDocument().getKey());
+    node.remove();
+  }
+
+  /**
+   * The one-time cleanup closes the active conversion configs no editor opened,
+   * leaves every other config as it was, and clears the cached configs.
+   */
+  @Test
+  public void testCloseUnopenedConversionConfigs() throws Exception {
+    startSessionAs(USER_USERNAME);
+    Node node = createDocument("Cleanup Test.docx", "nt:file", "testContent", true);
+    String docId = node.getUUID();
+    String editingKey = openEditor(node, USER_USERNAME).getDocument().getKey();
+    openInDocumentServer(USER_USERNAME, editingKey);
+    openEditor(node, "root");
+    String unopenedKey = storeUnopenedConversionConfig(node, "mary");
+    String closedConversionKey = createConversionConfig(node, USER_USERNAME);
+    Config closedConversionConfig = rdbmsStorage().getConfigsByKey(closedConversionKey).get(USER_USERNAME);
+    long closedConversionTime = System.currentTimeMillis() - 60000;
+    closedConversionConfig.setClosedTime(closedConversionTime);
+    onlyofficeEditorService.cachedEditorConfigStorage.saveConfig(List.of(closedConversionKey, docId), closedConversionConfig, false);
+
+    Node openedNode = createDocument("Cleanup Opened Test.docx", "nt:file", "testContent", true);
+    String openedConversionKey = storeUnopenedConversionConfig(openedNode, "mary");
+    openInDocumentServer("mary", openedConversionKey);
+
+    assertTrue(onlyofficeEditorService.cachedEditorConfigStorage.getActiveConfigsByDocId(docId).containsKey("mary"));
+
+    editorService.closeUnopenedConversionConfigs();
+
+    assertEquals(Set.of(USER_USERNAME, "root"),
+                 onlyofficeEditorService.cachedEditorConfigStorage.getActiveConfigsByDocId(docId).keySet());
+    assertTrue(rdbmsStorage().getConfigsByKey(unopenedKey).get("mary").isClosed());
+    assertTrue(rdbmsStorage().getConfigsByKey(editingKey).get(USER_USERNAME).isOpen());
+    assertTrue(rdbmsStorage().getConfigsByKey(editingKey).get("root").isCreated());
+    assertEquals(Long.valueOf(closedConversionTime),
+                 rdbmsStorage().getConfigsByKey(closedConversionKey).get(USER_USERNAME).getClosedTime());
+    Config openedConversionConfig = rdbmsStorage().getConfigsByKey(openedConversionKey).get("mary");
+    assertTrue(openedConversionConfig.isOpen());
+    assertNull(openedConversionConfig.getClosedTime());
+    node.remove();
+    openedNode.remove();
+  }
+
+  /**
+   * An editor opening purges at most one batch of expired closed configs,
+   * oldest first, evicts from the cache the configs it deleted, and the next
+   * opening purges what is left.
+   */
+  @Test
+  public void testExpiredClosedConfigsArePurgedOneBatchPerEditorOpening() throws Exception {
+    startSessionAs(USER_USERNAME);
+    Node node = createDocument("Purge Batch Test.docx", "nt:file", "testContent", true);
+    long expiredTime = System.currentTimeMillis() - onlyofficeEditorService.closedConfigRetentionMs() - 60000;
+    List<String> keys = new ArrayList<>();
+    for (int i = 0; i <= OnlyofficeEditorServiceImpl.CLOSED_CONFIGS_PURGE_BATCH; i++) {
+      String key = createConversionConfig(node, USER_USERNAME);
+      Config config = rdbmsStorage().getConfigsByKey(key).get(USER_USERNAME);
+      config.setClosedTime(expiredTime);
+      onlyofficeEditorService.cachedEditorConfigStorage.saveConfig(List.of(key, node.getUUID()), config, false);
+      keys.add(key);
+    }
+    String newestKey = keys.get(OnlyofficeEditorServiceImpl.CLOSED_CONFIGS_PURGE_BATCH);
+    String oldestKey = keys.get(0);
+    assertFalse(onlyofficeEditorService.cachedEditorConfigStorage.getConfigsByKey(oldestKey).isEmpty());
+
+    onlyofficeEditorService.cleanupExpiredClosedConfigs();
+
+    for (String key : keys.subList(0, OnlyofficeEditorServiceImpl.CLOSED_CONFIGS_PURGE_BATCH)) {
+      assertTrue(rdbmsStorage().getConfigsByKey(key).isEmpty());
+    }
+    assertTrue(onlyofficeEditorService.cachedEditorConfigStorage.getConfigsByKey(oldestKey).isEmpty());
+    assertFalse(rdbmsStorage().getConfigsByKey(newestKey).isEmpty());
+
+    onlyofficeEditorService.cleanupExpiredClosedConfigs();
+
+    assertTrue(rdbmsStorage().getConfigsByKey(newestKey).isEmpty());
+    node.remove();
+  }
+
+  private Config openEditor(Node node, String userId) throws Exception {
+    return editorService.createEditor("http", "127.0.0.1", 8080, userId, null, node.getUUID(), OnlyofficeEditorService.EDIT_MODE);
+  }
+
+  private void openInDocumentServer(String userId, String key) throws Exception {
+    editorService.updateDocument(new DocumentStatus.Builder().status(1L)
+                                                             .users(new String[] { userId })
+                                                             .userId(userId)
+                                                             .key(key)
+                                                             .build());
+  }
+
+  /**
+   * Creates, as the given user, the config a document conversion (a thumbnail)
+   * creates before requesting the Document Server, and returns its key.
+   */
+  private String createConversionConfig(Node node, String userId) throws Exception {
+    String baseUrl = System.getProperty("exo.base.url");
+    System.setProperty("exo.base.url", "http://127.0.0.1:8080");
+    try {
+      Config config = onlyofficeEditorService.createConfigForConversion(userId, node);
+      assertEquals("", config.getExplorerUrl());
+      return config.getDocument().getKey();
+    } finally {
+      if (baseUrl == null) {
+        System.clearProperty("exo.base.url");
+      } else {
+        System.setProperty("exo.base.url", baseUrl);
+      }
+    }
+  }
+
+  /**
+   * Stores, as the given user, a conversion config that is still active and
+   * was never opened by an editor, and returns its key.
+   */
+  private String storeUnopenedConversionConfig(Node node, String userId) throws Exception {
+    String key = createConversionConfig(node, userId);
+    Config config = rdbmsStorage().getConfigsByKey(key).get(userId);
+    config.setClosedTime(null);
+    onlyofficeEditorService.cachedEditorConfigStorage.saveConfig(List.of(key, node.getUUID()), config, false);
+    return key;
+  }
+
+  private RDBMSEditorConfigStorageImpl rdbmsStorage() {
+    return getContainer().getComponentInstanceOfType(RDBMSEditorConfigStorageImpl.class);
   }
 
 }

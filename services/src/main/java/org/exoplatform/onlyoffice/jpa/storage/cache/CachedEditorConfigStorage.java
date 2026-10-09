@@ -62,23 +62,13 @@ public class CachedEditorConfigStorage implements EditorConfigStorage {
   }
 
   @Override
-  public List<Config> getClosedConfigsBefore(long expirationTime) {
-    return storage.getClosedConfigsBefore(expirationTime);
-  }
-
-  @Override
-  public int deleteClosedConfigsBefore(long expirationTime) {
-    List<Config> expiredConfigs = storage.getClosedConfigsBefore(expirationTime);
-    int deleted = storage.deleteClosedConfigsBefore(expirationTime);
-    if (CollectionUtils.isNotEmpty(expiredConfigs)) {
-      expiredConfigs.forEach(config -> {
-        if (config != null) {
-          futureCache.remove(config.getDocument().getKey());
-          futureCache.remove(config.getDocId());
-        }
-      });
-    }
-    return deleted;
+  public List<Config> deleteClosedConfigsBefore(long expirationTime, int limit) {
+    List<Config> deletedConfigs = storage.deleteClosedConfigsBefore(expirationTime, limit);
+    deletedConfigs.forEach(config -> {
+      futureCache.remove(config.getDocument().getKey());
+      futureCache.remove(config.getDocId());
+    });
+    return deletedConfigs;
   }
 
   @Override
@@ -122,6 +112,16 @@ public class CachedEditorConfigStorage implements EditorConfigStorage {
             .filter(StringUtils::isNotBlank)
             .forEach(futureCache::remove);
       }
+    }
+  }
+
+  @Override
+  public int closeUnopenedConversionConfigs() {
+    try {
+      return storage.closeUnopenedConversionConfigs();
+    } finally {
+      // the bulk update names no document: every cached map may hold a closed row
+      futureCache.clear();
     }
   }
 }

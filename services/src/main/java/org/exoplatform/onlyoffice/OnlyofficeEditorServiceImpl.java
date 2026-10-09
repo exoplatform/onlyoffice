@@ -192,6 +192,13 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
   protected static final long    DEFAULT_CLOSED_CONFIG_RETENTION_MS = 2 * 60 * 60 * 1000L;
 
   /**
+   * Maximum number of expired closed configs one editor opening purges, oldest
+   * first, so that a large set of configs expiring together is purged over
+   * several openings rather than in one user request.
+   */
+  protected static final int     CLOSED_CONFIGS_PURGE_BATCH = 100;
+
+  /**
    * Configuration key for Document Server's allowed hosts in requests from a DS
    * to eXo side.
    */
@@ -604,9 +611,16 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
       DocumentStatus.Builder statusBuilder = new DocumentStatus.Builder();
       statusBuilder.users(new String[] { userId });
       if (config == null && createCoEditing) {
-        // copy editor for this user from another entry in the configs map
+        // copy editor for this user from another entry in the configs map,
+        // preferring a config whose user is in the Document Server session,
+        // so that an active config nobody opened never decides the key the
+        // co-editors join
         try {
-          Config another = configs.values().iterator().next();
+          Config another = configs.values()
+                                  .stream()
+                                  .filter(Config::isOpen)
+                                  .findFirst()
+                                  .orElseGet(() -> configs.values().iterator().next());
           User user = getUser(userId); // and use this user language
           if (user != null) {
             config = another.forUser(user.getUserName(), user.getDisplayName(), getUserLanguage(userId), documentserverSecret);
@@ -1012,13 +1026,21 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
   protected void cleanupExpiredClosedConfigs() {
     try {
       long expirationTime = System.currentTimeMillis() - closedConfigRetentionMs();
-      int deleted = cachedEditorConfigStorage.deleteClosedConfigsBefore(expirationTime);
+      int deleted = cachedEditorConfigStorage.deleteClosedConfigsBefore(expirationTime, CLOSED_CONFIGS_PURGE_BATCH).size();
       if (deleted > 0 && LOG.isDebugEnabled()) {
         LOG.debug("Deleted {} expired OnlyOffice editor configs", deleted);
       }
     } catch (Exception e) {
       LOG.warn("Cannot cleanup expired OnlyOffice editor configs", e);
     }
+  }
+
+  /**
+   * {@inheritDoc}
+   */
+  @Override
+  public int closeUnopenedConversionConfigs() {
+    return cachedEditorConfigStorage.closeUnopenedConversionConfigs();
   }
 
   /**
@@ -3917,7 +3939,7 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
     }
   }
 
-  private Config createConfigForConversion(String userId, Node node) throws OnlyofficeEditorException, RepositoryException {
+  protected Config createConfigForConversion(String userId, Node node) throws OnlyofficeEditorException, RepositoryException {
     User user = getUser(userId);
 
     String fileType = fileType(node);
@@ -3977,6 +3999,11 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
     builder.secret(documentserverSecret);
 
     Config config = builder.build();
+    // A conversion is not an editing session: saved closed, the config stays
+    // resolvable by its key for the Document Server's content fetch, is never
+    // an active config of the document that an editor joins, and is purged
+    // after the closed configs retention.
+    config.closed();
 
     // mapping by unique file key for updateDocument()
     cachedEditorConfigStorage.saveConfig(List.of(key,node.getUUID()),config,true);

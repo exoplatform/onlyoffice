@@ -32,4 +32,31 @@
         </component-plugin>
     </external-component-plugins>
 
+    <external-component-plugins>
+        <target-component>org.exoplatform.commons.upgrade.UpgradeProductService</target-component>
+        <component-plugin>
+            <name>OnlyofficeConversionConfigsUpgradePlugin</name>
+            <set-method>addUpgradePlugin</set-method>
+            <type>org.exoplatform.onlyoffice.upgrade.ConversionConfigsUpgradePlugin</type>
+            <description>Close the editor configs that document conversions left active and no editor opened</description>
+            <init-params>
+                <value-param>
+                    <name>product.group.id</name>
+                    <description>The groupId of the product</description>
+                    <value>org.exoplatform.platform</value>
+                </value-param>
+                <value-param>
+                    <name>plugin.upgrade.execute.once</name>
+                    <description>The plugin must be executed only once</description>
+                    <value>true</value>
+                </value-param>
+                <value-param>
+                    <name>plugin.upgrade.async.execution</name>
+                    <description>The plugin runs once the portal container is started</description>
+                    <value>true</value>
+                </value-param>
+            </init-params>
+        </component-plugin>
+    </external-component-plugins>
+
 </configuration>
