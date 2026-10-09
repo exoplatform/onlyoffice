@@ -106,6 +106,12 @@ public class RDBMSEditorConfigStorageImpl implements EditorConfigStorage {
     this.deleteConfig("",config);
   }
 
+  @Override
+  @ExoTransactional
+  public int closeUnopenedConversionConfigs() {
+    return editorConfigDAO.closeUnopenedConversionConfigs(System.currentTimeMillis());
+  }
+
 
   private EditorConfigEntity buildFromDTO(Config config) {
     EditorConfigEntity result = new EditorConfigEntity();

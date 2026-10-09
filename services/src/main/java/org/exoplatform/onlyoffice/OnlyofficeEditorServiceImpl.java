@@ -604,9 +604,16 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
       DocumentStatus.Builder statusBuilder = new DocumentStatus.Builder();
       statusBuilder.users(new String[] { userId });
       if (config == null && createCoEditing) {
-        // copy editor for this user from another entry in the configs map
+        // copy editor for this user from another entry in the configs map,
+        // preferring a config whose user is in the Document Server session,
+        // so that an active config nobody opened never decides the key the
+        // co-editors join
         try {
-          Config another = configs.values().iterator().next();
+          Config another = configs.values()
+                                  .stream()
+                                  .filter(Config::isOpen)
+                                  .findFirst()
+                                  .orElseGet(() -> configs.values().iterator().next());
           User user = getUser(userId); // and use this user language
           if (user != null) {
             config = another.forUser(user.getUserName(), user.getDisplayName(), getUserLanguage(userId), documentserverSecret);
@@ -1019,6 +1026,14 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
     } catch (Exception e) {
       LOG.warn("Cannot cleanup expired OnlyOffice editor configs", e);
     }
+  }
+
+  /**
+   * {@inheritDoc}
+   */
+  @Override
+  public int closeUnopenedConversionConfigs() {
+    return cachedEditorConfigStorage.closeUnopenedConversionConfigs();
   }
 
   /**
@@ -3917,7 +3932,7 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
     }
   }
 
-  private Config createConfigForConversion(String userId, Node node) throws OnlyofficeEditorException, RepositoryException {
+  protected Config createConfigForConversion(String userId, Node node) throws OnlyofficeEditorException, RepositoryException {
     User user = getUser(userId);
 
     String fileType = fileType(node);
@@ -3977,6 +3992,11 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
     builder.secret(documentserverSecret);
 
     Config config = builder.build();
+    // A conversion is not an editing session: saved closed, the config stays
+    // resolvable by its key for the Document Server's content fetch, is never
+    // an active config of the document that an editor joins, and is purged
+    // after the closed configs retention.
+    config.closed();
 
     // mapping by unique file key for updateDocument()
     cachedEditorConfigStorage.saveConfig(List.of(key,node.getUUID()),config,true);

@@ -465,4 +465,14 @@ public interface OnlyofficeEditorService {
    * @throws RepositoryException on a storage error
    */
   void saveNewVersion(Node node, byte[] content, String userId) throws RepositoryException;
+
+  /**
+   * Closes the editor configs a document conversion (a thumbnail, an export)
+   * left active and that no editor ever opened, so that no co-editor joins
+   * their keys. They stay resolvable by key until the closed configs retention
+   * purges them.
+   *
+   * @return the number of closed configs
+   */
+  int closeUnopenedConversionConfigs();
 }

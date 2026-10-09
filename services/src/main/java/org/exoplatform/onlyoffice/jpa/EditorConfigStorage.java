@@ -16,5 +16,6 @@ public interface EditorConfigStorage {
   void saveConfig(List<String> keys, Config config, boolean isNew);
   void deleteConfig(String key, Config config);
   void deleteConfig(List<String> keys, Config config);
+  int closeUnopenedConversionConfigs();
 
 }

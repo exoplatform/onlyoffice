@@ -124,4 +124,14 @@ public class CachedEditorConfigStorage implements EditorConfigStorage {
       }
     }
   }
+
+  @Override
+  public int closeUnopenedConversionConfigs() {
+    try {
+      return storage.closeUnopenedConversionConfigs();
+    } finally {
+      // the bulk update names no document: every cached map may hold a closed row
+      futureCache.clear();
+    }
+  }
 }

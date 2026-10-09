@@ -4,6 +4,7 @@ import org.exoplatform.commons.persistence.impl.GenericDAOJPAImpl;
 import org.exoplatform.onlyoffice.jpa.EditorConfigDAO;
 import org.exoplatform.onlyoffice.jpa.entities.EditorConfigEntity;
 
+import jakarta.persistence.Query;
 import jakarta.persistence.TypedQuery;
 import java.util.List;
 
@@ -38,6 +39,17 @@ public class EditorConfigDAOImpl extends GenericDAOJPAImpl<EditorConfigEntity, L
         .createNamedQuery("EditorConfigEntity.getClosedConfigBefore",EditorConfigEntity.class);
     query.setParameter("expirationTime", expirationTime);
     return query.getResultList();
+  }
+
+  @Override
+  public int closeUnopenedConversionConfigs(long closedTime) {
+    Query query = getEntityManager().createNamedQuery("EditorConfigEntity.closeUnopenedConversionConfigs");
+    query.setParameter("closedTime", closedTime);
+    int closed = query.executeUpdate();
+    // the bulk update bypasses the persistence context: entities it already
+    // holds would keep the closed time they were loaded with
+    getEntityManager().clear();
+    return closed;
   }
 
 }
