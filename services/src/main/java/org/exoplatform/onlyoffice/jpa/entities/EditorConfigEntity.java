@@ -19,7 +19,8 @@ import org.exoplatform.commons.api.persistence.ExoEntity;
     @NamedQuery(name = "EditorConfigEntity.getConfigByKey", query = "SELECT e FROM EditorConfigEntity e WHERE e.documentKey = :key ORDER BY e.id DESC"),
     @NamedQuery(name = "EditorConfigEntity.getConfigByDocId", query = "SELECT e FROM EditorConfigEntity e WHERE e.documentId = :docId ORDER BY e.id DESC"),
     @NamedQuery(name = "EditorConfigEntity.getActiveConfigByDocId", query = "SELECT e FROM EditorConfigEntity e WHERE e.documentId = :docId AND (e.closedTime IS NULL OR e.open = true OR e.closing = true) ORDER BY e.id DESC"),
-    @NamedQuery(name = "EditorConfigEntity.getClosedConfigBefore", query = "SELECT e FROM EditorConfigEntity e WHERE e.open = false AND e.closing = false AND e.closedTime IS NOT NULL AND e.closedTime < :expirationTime ORDER BY e.id ASC")
+    @NamedQuery(name = "EditorConfigEntity.getClosedConfigBefore", query = "SELECT e FROM EditorConfigEntity e WHERE e.open = false AND e.closing = false AND e.closedTime IS NOT NULL AND e.closedTime < :expirationTime ORDER BY e.id ASC"),
+    @NamedQuery(name = "EditorConfigEntity.closeUnopenedConversionConfigs", query = "UPDATE EditorConfigEntity e SET e.closedTime = :closedTime WHERE e.closedTime IS NULL AND e.open = false AND e.explorerUrl = ''")
 })
 public class EditorConfigEntity {
   @Id
