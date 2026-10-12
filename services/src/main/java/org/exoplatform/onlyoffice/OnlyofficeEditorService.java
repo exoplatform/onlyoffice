@@ -408,4 +408,15 @@ public interface OnlyofficeEditorService {
    */
 
   byte[] convertNodeContent(Node node, String format, String originalFileType, String userId);
+
+  /**
+   * Closes the editor configs a document conversion (a thumbnail, an export)
+   * left active and that no editor ever opened, so that no co-editor joins
+   * their keys. They stay resolvable by key until the closed configs retention
+   * purges them. It clears the calling thread's JPA persistence context: call it
+   * outside any scope that holds managed entities.
+   *
+   * @return the number of closed configs
+   */
+  int closeUnopenedConversionConfigs();
 }
