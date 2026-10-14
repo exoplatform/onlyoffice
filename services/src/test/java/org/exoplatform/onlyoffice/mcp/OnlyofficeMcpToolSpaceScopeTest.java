@@ -241,13 +241,17 @@ public class OnlyofficeMcpToolSpaceScopeTest {
 
   /**
    * An image is refused when the resolver is missing, ambiguous, fails, or
-   * isn't named {@code document}.
+   * isn't named {@code document}; a missing one is refused as such, not
+   * through a failed lookup. Mutant: the resolver count check loosened to
+   * {@code size() > 1}.
    */
   @Test
   public void scoped_missingOrAmbiguousResolverRefuses() {
     String op = imageOp("document_id", IMAGE_IN);
     when(resolvers.orderedStream()).thenAnswer(invocation -> Stream.empty());
-    assertRefused(() -> editDocument(op, null, null));
+    IllegalArgumentException noResolver = assertThrows(IllegalArgumentException.class,
+                                                       () -> editDocument(op, null, null));
+    assertTrue(noResolver.getMessage(), noResolver.getMessage().contains("can't be told"));
 
     SpaceScopeResolver other = mock(SpaceScopeResolver.class);
     when(other.getName()).thenReturn("activity");
