@@ -31,6 +31,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
@@ -45,6 +46,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
 
@@ -70,8 +72,11 @@ import org.exoplatform.social.attachment.AttachmentService;
 import org.exoplatform.social.core.manager.IdentityManager;
 import org.exoplatform.upload.UploadService;
 
+import io.meeds.mcp.server.model.ActingIdentity;
 import io.meeds.mcp.server.plugin.McpToolPlugin;
+import io.meeds.mcp.server.plugin.SpaceScopeResolver;
 import io.meeds.mcp.server.tool.util.UploadToolUtils;
+import io.meeds.mcp.server.util.McpToolUtils;
 
 /**
  * MCP tools exposing the ONLYOFFICE editor add-on to the AI agent (EVA). The
@@ -113,6 +118,12 @@ public class OnlyofficeMcpTool implements McpToolPlugin {
   /** EMU (English Metric Units) per point, used by the Document Builder shape/chart geometry. */
   private static final int         EMU                = 36000;
 
+  /** Name of the {@link SpaceScopeResolver} that tells the space of a document node. */
+  public static final String       DOCUMENT_RESOLVER  = "document";
+
+  /** A node id as the space scope hands it over: 32 lowercase hexadecimal digits, exactly. */
+  private static final Pattern     NODE_ID            = Pattern.compile("[0-9a-f]{32}");
+
   /** Max bytes fetched for an image referenced by a URL. */
   private static final long        MAX_IMAGE_BYTES    = 15L * 1024 * 1024;
 
@@ -143,6 +154,21 @@ public class OnlyofficeMcpTool implements McpToolPlugin {
 
   private final FileService             fileService;
 
+  /** The contributed resolvers that tell the space of an object, looked up at call time. */
+  private final ObjectProvider<SpaceScopeResolver> spaceScopeResolvers;
+
+  /**
+   * @param onlyofficeEditorService the ONLYOFFICE editor service
+   * @param documentFileService reads the documents
+   * @param identityManager the social identity manager
+   * @param userAcl the user ACL, to build the user's JCR session
+   * @param repositoryService the JCR repository service
+   * @param uploadService the upload service
+   * @param attachmentService the attachment service
+   * @param fileService the file service
+   * @param spaceScopeResolvers the resolvers contributed to the MCP server, among which the
+   *          {@value #DOCUMENT_RESOLVER} one tells the space of an image node
+   */
   public OnlyofficeMcpTool(OnlyofficeEditorService onlyofficeEditorService,
                            DocumentFileService documentFileService,
                            IdentityManager identityManager,
@@ -150,7 +176,8 @@ public class OnlyofficeMcpTool implements McpToolPlugin {
                            RepositoryService repositoryService,
                            UploadService uploadService,
                            AttachmentService attachmentService,
-                           FileService fileService) {
+                           FileService fileService,
+                           ObjectProvider<SpaceScopeResolver> spaceScopeResolvers) {
     this.onlyofficeEditorService = onlyofficeEditorService;
     this.documentFileService = documentFileService;
     this.identityManager = identityManager;
@@ -159,6 +186,7 @@ public class OnlyofficeMcpTool implements McpToolPlugin {
     this.uploadService = uploadService;
     this.attachmentService = attachmentService;
     this.fileService = fileService;
+    this.spaceScopeResolvers = spaceScopeResolvers;
   }
 
   // ---------------------------------------------------------------------------
@@ -301,6 +329,7 @@ public class OnlyofficeMcpTool implements McpToolPlugin {
       }
     }
     JSONArray ops = parseOperations(operations);
+    checkScopedImages(ops, attachmentObjectType, attachmentObjectId);
 
     UserSession userSession = openUserSession();
     try {
@@ -352,6 +381,137 @@ public class OnlyofficeMcpTool implements McpToolPlugin {
     } finally {
       userSession.close();
     }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Space scope: the images an edit may add while the run is limited to a space
+  // ---------------------------------------------------------------------------
+
+  /**
+   * @return true when the current call is limited to a space; also true when
+   *         its identity can't be read, which a limited call must never be
+   *         taken for the opposite of
+   */
+  protected boolean isSpaceScoped() {
+    try {
+      ActingIdentity identity = McpToolUtils.getCurrentActingIdentity();
+      return identity != null && identity.spaceScope() != null;
+    } catch (IllegalStateException e) {
+      return true;
+    }
+  }
+
+  /**
+   * @return the id of the space the current call is limited to, or null when
+   *         it isn't limited or its identity can't be read
+   */
+  protected Long getSpaceScope() {
+    try {
+      ActingIdentity identity = McpToolUtils.getCurrentActingIdentity();
+      return identity == null ? null : identity.spaceScope();
+    } catch (IllegalStateException e) {
+      return null;
+    }
+  }
+
+  /**
+   * While the call is limited to a space, accepts an {@code add_image}
+   * operation only when it names an image node already in that space: an image
+   * by {@code url}, by an {@code attachment_object_*} (on the operation or on
+   * the tool) or by a node of another space is refused, and so is an operation
+   * that names no node. Without a space scope, nothing is checked.
+   *
+   * @param ops the operations of the call
+   * @param attachmentObjectType the tool-level attachment object type, if any
+   * @param attachmentObjectId the tool-level attachment object id, if any
+   */
+  private void checkScopedImages(JSONArray ops, String attachmentObjectType, String attachmentObjectId) {
+    if (!isSpaceScoped()) {
+      return;
+    }
+    Long spaceScope = getSpaceScope();
+    for (int i = 0; i < ops.length(); i++) {
+      JSONObject op = ops.getJSONObject(i);
+      if (!"add_image".equals(op.optString("type", ""))) {
+        continue;
+      }
+      if (spaceScope == null) {
+        throw scopedImageRefused(null, "its space can't be read, so no image can be added");
+      }
+      if (StringUtils.isNotBlank(op.optString("url", ""))) {
+        throw scopedImageRefused(spaceScope, "an image can't be added from a url");
+      }
+      if (StringUtils.isNotBlank(op.optString("attachment_object_type", ""))
+          || StringUtils.isNotBlank(op.optString("attachment_object_id", ""))
+          || StringUtils.isNotBlank(attachmentObjectType)
+          || StringUtils.isNotBlank(attachmentObjectId)) {
+        throw scopedImageRefused(spaceScope, "an attached image can't be added");
+      }
+      String documentId = op.optString("document_id", "");
+      String imageDocumentId = op.optString("image_document_id", "");
+      if (StringUtils.isBlank(documentId) && StringUtils.isBlank(imageDocumentId)) {
+        throw scopedImageRefused(spaceScope, "an image can only be added by the 'document_id' of an image file of that space");
+      }
+      checkImageNodeInSpace(documentId, spaceScope);
+      checkImageNodeInSpace(imageDocumentId, spaceScope);
+    }
+  }
+
+  /**
+   * Refuses an image node that is not exactly a lowercase 32 hexadecimal
+   * digits id, or that the {@value #DOCUMENT_RESOLVER} resolver does not place
+   * in the space; a blank id is skipped.
+   *
+   * @param nodeId the image node id, may be blank
+   * @param spaceScope the space the call is limited to
+   */
+  private void checkImageNodeInSpace(String nodeId, Long spaceScope) {
+    if (StringUtils.isBlank(nodeId)) {
+      return;
+    }
+    if (!NODE_ID.matcher(nodeId).matches()) {
+      throw scopedImageRefused(spaceScope, "image %s isn't a file id".formatted(nodeId));
+    }
+    List<SpaceScopeResolver> resolvers = spaceScopeResolvers == null ?
+                                                                     List.of() :
+                                                                     spaceScopeResolvers.orderedStream()
+                                                                                        .filter(r -> DOCUMENT_RESOLVER.equals(nameOf(r)))
+                                                                                        .toList();
+    if (resolvers.size() != 1) {
+      throw scopedImageRefused(spaceScope, "the space of an image can't be told");
+    }
+    Long imageSpace;
+    try {
+      imageSpace = resolvers.get(0).spaceOf(nodeId);
+    } catch (RuntimeException e) {
+      LOG.warn("The space of image {} couldn't be read: the image is refused", nodeId, e);
+      imageSpace = null;
+    }
+    if (!spaceScope.equals(imageSpace)) {
+      throw scopedImageRefused(spaceScope, "image %s isn't a file of that space".formatted(nodeId));
+    }
+  }
+
+  /**
+   * @param resolver a contributed resolver
+   * @return its name, null when it fails to give one
+   */
+  private static String nameOf(SpaceScopeResolver resolver) {
+    try {
+      return resolver.getName();
+    } catch (RuntimeException e) {
+      return null;
+    }
+  }
+
+  /**
+   * @param spaceScope the space the call is limited to, null when unknown
+   * @param reason why the image is refused
+   * @return the refusal, worded for the model
+   */
+  private static IllegalArgumentException scopedImageRefused(Long spaceScope, String reason) {
+    return new IllegalArgumentException("Not executed: while this run is limited to the space with id %s, %s. Add only an image file already stored in that space, by its 'document_id', or leave the image out."
+        .formatted(spaceScope == null ? "(unknown)" : spaceScope, reason));
   }
 
   // ---------------------------------------------------------------------------
