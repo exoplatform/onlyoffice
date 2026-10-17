@@ -50,6 +50,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
+import org.springframework.beans.factory.ObjectProvider;
 
 import org.exoplatform.commons.file.services.FileService;
 import org.exoplatform.documents.model.AbstractNode;
@@ -128,7 +129,8 @@ public class OnlyofficeMcpToolTest {
                                      repositoryService,
                                      uploadService,
                                      attachmentService,
-                                     fileService));
+                                     fileService,
+                                     mock(ObjectProvider.class)));
 
     ConversationState.setCurrent(new ConversationState(new Identity(USER)));
 

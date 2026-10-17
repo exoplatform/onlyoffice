@@ -34,6 +34,7 @@
         "idempotentHint": false,
         "openWorldHint": false
       },
+      "space_scope": { "object_arg": "document_id", "resolver": "document", "id_format": "hex32", "allowed_args": ["operations"] },
       "require_approval": true
     },
     {
@@ -78,6 +79,7 @@
         "idempotentHint": false,
         "openWorldHint": false
       },
+      "space_scope": { "object_arg": "document_id", "resolver": "document", "id_format": "hex32", "allowed_args": ["operations"] },
       "require_approval": true
     },
     {
@@ -122,6 +124,7 @@
         "idempotentHint": false,
         "openWorldHint": false
       },
+      "space_scope": { "object_arg": "document_id", "resolver": "document", "id_format": "hex32", "allowed_args": ["operations"] },
       "require_approval": true
     },
     {
@@ -159,6 +162,7 @@
         "idempotentHint": false,
         "openWorldHint": false
       },
+      "space_scope": { "object_arg": "template_document_id", "resolver": "document", "id_format": "hex32", "allowed_args": ["name", "data"] },
       "require_approval": true
     },
     {
@@ -192,6 +196,7 @@
         "idempotentHint": false,
         "openWorldHint": false
       },
+      "space_scope": { "object_arg": "document_id", "resolver": "document", "id_format": "hex32", "allowed_args": ["target_format"] },
       "require_approval": true
     },
     {
@@ -220,6 +225,7 @@
         "idempotentHint": false,
         "openWorldHint": false
       },
+      "space_scope": { "object_arg": "document_id", "resolver": "document", "id_format": "hex32" },
       "require_approval": true
     },
     {
@@ -243,7 +249,8 @@
         "destructiveHint": false,
         "idempotentHint": true,
         "openWorldHint": false
-      }
+      },
+      "space_scope": { "object_arg": "document_id", "resolver": "document", "id_format": "hex32" }
     }
   ]
 }
