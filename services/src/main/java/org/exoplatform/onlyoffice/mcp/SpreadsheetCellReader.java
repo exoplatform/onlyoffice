@@ -20,11 +20,13 @@ package org.exoplatform.onlyoffice.mcp;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.poi.openxml4j.opc.OPCPackage;
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.CellType;
 import org.apache.poi.ss.usermodel.DataFormatter;
@@ -36,10 +38,13 @@ import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.ss.usermodel.WorkbookFactory;
 import org.apache.poi.ss.util.CellRangeAddress;
 import org.apache.poi.ss.util.CellReference;
+import org.apache.poi.xssf.eventusermodel.XSSFReader;
 
 import org.exoplatform.onlyoffice.mcp.model.SpreadsheetCellsModel;
 import org.exoplatform.onlyoffice.mcp.model.SpreadsheetCellsModel.CellModel;
 import org.exoplatform.onlyoffice.mcp.model.SpreadsheetCellsModel.SheetModel;
+import org.exoplatform.services.log.ExoLogger;
+import org.exoplatform.services.log.Log;
 
 /**
  * Reads the cells of an Excel workbook (xlsx or xls) with their A1 positions,
@@ -48,6 +53,8 @@ import org.exoplatform.onlyoffice.mcp.model.SpreadsheetCellsModel.SheetModel;
  */
 final class SpreadsheetCellReader {
 
+  private static final Log LOG = ExoLogger.getLogger(SpreadsheetCellReader.class);
+
   /** The most non-empty cells one call returns. */
   static final int MAX_CELLS = 2000;
 
@@ -55,13 +62,26 @@ final class SpreadsheetCellReader {
   }
 
   /**
-   * Lists the sheet names of a workbook, in order.
+   * Lists the sheet names of a workbook, in order: an xlsx's from its
+   * workbook part alone, its sheets never parsed, an xls's by opening it.
    *
    * @param bytes the workbook file
    * @return the sheet names
    * @throws IllegalArgumentException when the file isn't an Excel workbook
    */
   static List<String> sheetNames(byte[] bytes) {
+    try (OPCPackage pkg = OPCPackage.open(new ByteArrayInputStream(bytes))) {
+      XSSFReader.SheetIterator sheets = (XSSFReader.SheetIterator) new XSSFReader(pkg).getSheetsData();
+      List<String> names = new ArrayList<>();
+      while (sheets.hasNext()) {
+        try (InputStream sheet = sheets.next()) {
+          names.add(sheets.getSheetName());
+        }
+      }
+      return names;
+    } catch (Exception e) { // NOSONAR not an xlsx: read as any workbook below
+      LOG.debug("Not an xlsx, its sheet names are read by opening it", e);
+    }
     try (Workbook workbook = open(bytes)) {
       List<String> names = new ArrayList<>();
       for (int i = 0; i < workbook.getNumberOfSheets(); i++) {
@@ -100,7 +120,9 @@ final class SpreadsheetCellReader {
    * @param bytes the workbook file
    * @param sheetName the sheet to read, blank for the active one; a range
    *          prefixed with a sheet ({@code Grille!B2:F40}) names it too
-   * @param range the range in A1 notation, blank for the sheet's used range
+   * @param range the range in A1 notation, blank for the sheet's used range;
+   *          either way only the part of it the sheet holds cells in is read,
+   *          and named in the answer
    * @return the cells read
    * @throws IllegalArgumentException when the file isn't an Excel workbook, or
    *           the sheet or the range can't be found or read
@@ -135,7 +157,9 @@ final class SpreadsheetCellReader {
         }
         sheet = workbook.getSheet(actualName);
       }
-      CellRangeAddress area = rangeRef == null ? usedRange(sheet) : parseRange(rangeRef);
+      CellRangeAddress used = usedRange(sheet);
+      // only the cells the sheet holds are visited, whatever the range asked: a whole sheet is a million rows
+      CellRangeAddress area = rangeRef == null ? used : intersect(parseRange(rangeRef), used);
       if (area == null) {
         return new SpreadsheetCellsModel(id, title, sheet.getSheetName(), null, sheets, List.of(), List.of(), false, null);
       }
@@ -219,6 +243,23 @@ final class SpreadsheetCellReader {
       }
     }
     return lastColumn < 0 ? null : new CellRangeAddress(firstRow, lastRow, firstColumn, lastColumn);
+  }
+
+  /**
+   * Computes the cells two ranges share.
+   *
+   * @param range a range
+   * @param used the range a sheet holds cells in, null for none
+   * @return the shared range, null when they share none
+   */
+  private static CellRangeAddress intersect(CellRangeAddress range, CellRangeAddress used) {
+    if (used == null || !range.intersects(used)) {
+      return null;
+    }
+    return new CellRangeAddress(Math.max(range.getFirstRow(), used.getFirstRow()),
+                                Math.min(range.getLastRow(), used.getLastRow()),
+                                Math.max(range.getFirstColumn(), used.getFirstColumn()),
+                                Math.min(range.getLastColumn(), used.getLastColumn()));
   }
 
   /**

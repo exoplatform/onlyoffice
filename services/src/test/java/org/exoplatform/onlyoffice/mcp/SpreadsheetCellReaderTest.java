@@ -246,4 +246,44 @@ public class SpreadsheetCellReaderTest {
     assertNull(SpreadsheetCellReader.findSheetName(List.of("Grille"), "Prix"));
   }
 
+  /**
+   * A range larger than what the sheet holds, a whole sheet included, is
+   * read over the cells the sheet holds only, and named so; a range holding
+   * none of them gives no cell.
+   * Mutants: the range not clamped, the clamp losing a cell, a range outside
+   * the cells read as the used range.
+   *
+   * @throws IOException never
+   */
+  @Test
+  public void aRangeIsReadOverTheCellsTheSheetHoldsOnly() throws IOException {
+    byte[] grid = buyerGrid();
+
+    SpreadsheetCellsModel whole = SpreadsheetCellReader.read("id", "grid.xlsx", grid, "Grille", "A1:XFD1048576");
+    SpreadsheetCellsModel outside = SpreadsheetCellReader.read("id", "grid.xlsx", grid, "Grille", "Z100:Z200");
+
+    assertEquals("B2:D6", whole.range());
+    assertEquals(List.of("B2", "B3", "C3", "C4", "C5", "C6"), whole.cells().stream().map(CellModel::ref).toList());
+    assertNull(outside.range());
+    assertTrue(outside.cells().isEmpty());
+  }
+
+  /**
+   * The sheet names of a legacy xls are read too, by opening it.
+   * Mutants: the fallback dropped.
+   *
+   * @throws IOException never
+   */
+  @Test
+  public void theSheetNamesOfAnXlsAreReadToo() throws IOException {
+    byte[] file;
+    try (Workbook workbook = new HSSFWorkbook()) {
+      workbook.createSheet("One");
+      workbook.createSheet("Two");
+      file = toBytes(workbook);
+    }
+
+    assertEquals(List.of("One", "Two"), SpreadsheetCellReader.sheetNames(file));
+  }
+
 }
