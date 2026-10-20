@@ -24,6 +24,7 @@ import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Set;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.poi.openxml4j.opc.OPCPackage;
@@ -38,7 +39,13 @@ import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.ss.usermodel.WorkbookFactory;
 import org.apache.poi.ss.util.CellRangeAddress;
 import org.apache.poi.ss.util.CellReference;
-import org.apache.poi.xssf.eventusermodel.XSSFReader;
+import org.apache.poi.openxml4j.opc.PackagePart;
+import org.apache.poi.openxml4j.opc.PackageRelationship;
+import org.apache.poi.openxml4j.opc.PackageRelationshipTypes;
+import org.apache.poi.xssf.usermodel.XSSFRelation;
+import org.openxmlformats.schemas.spreadsheetml.x2006.main.CTSheet;
+import org.openxmlformats.schemas.spreadsheetml.x2006.main.CTWorkbook;
+import org.openxmlformats.schemas.spreadsheetml.x2006.main.WorkbookDocument;
 
 import org.exoplatform.onlyoffice.mcp.model.SpreadsheetCellsModel;
 import org.exoplatform.onlyoffice.mcp.model.SpreadsheetCellsModel.CellModel;
@@ -58,8 +65,9 @@ final class SpreadsheetCellReader {
   /** The largest workbook loaded whole, its cells read or, for an xls, its sheet names. */
   static final long        MAX_WORKBOOK_BYTES = 20L * 1024 * 1024;
 
-  /** The content type of an Excel 4 macro sheet, which a workbook loaded whole leaves out. */
-  private static final String MACRO_SHEET_CONTENT_TYPE = "application/vnd.ms-excel.macrosheet+xml";
+  /** The sheets a workbook loaded whole keeps, by relationship: worksheets and chart sheets. */
+  private static final Set<String> KEPT_SHEET_RELATIONS = Set.of(XSSFRelation.WORKSHEET.getRelation(),
+                                                                 XSSFRelation.CHARTSHEET.getRelation());
 
   /** The most non-empty cells one call returns. */
   static final int MAX_CELLS = 2000;
@@ -69,7 +77,7 @@ final class SpreadsheetCellReader {
 
   /**
    * Lists the sheet names of a workbook, in order: an xlsx's from its
-   * workbook part alone, its sheets never parsed, an Excel 4 macro sheet left
+   * workbook part alone, its sheets never parsed, a macro or dialog sheet left
    * out as a workbook loaded whole leaves it out; an xls's by opening it, up
    * to {@link #MAX_WORKBOOK_BYTES}.
    *
@@ -79,19 +87,9 @@ final class SpreadsheetCellReader {
    *           is an xls too large to open
    */
   static List<String> sheetNames(byte[] bytes) {
-    try (OPCPackage pkg = OPCPackage.open(new ByteArrayInputStream(bytes))) {
-      XSSFReader.SheetIterator sheets = (XSSFReader.SheetIterator) new XSSFReader(pkg).getSheetsData();
-      List<String> names = new ArrayList<>();
-      while (sheets.hasNext()) {
-        try (InputStream sheet = sheets.next()) {
-          if (!MACRO_SHEET_CONTENT_TYPE.equals(sheets.getSheetPart().getContentType())) {
-            names.add(sheets.getSheetName());
-          }
-        }
-      }
-      return names;
-    } catch (Exception e) { // NOSONAR not an xlsx: read as any workbook below
-      LOG.debug("Not an xlsx, its sheet names are read by opening it", e);
+    List<String> xlsxNames = xlsxSheetNames(bytes);
+    if (xlsxNames != null) {
+      return xlsxNames;
     }
     if (bytes.length > MAX_WORKBOOK_BYTES) {
       throw new IllegalArgumentException("The spreadsheet is not an xlsx and is over %d MB, too large to find its sheets in. Leave out 'sheet' to write in its active sheet."
@@ -106,6 +104,35 @@ final class SpreadsheetCellReader {
       return names;
     } catch (IOException e) {
       throw new IllegalStateException("The spreadsheet could not be read: " + e.getMessage());
+    }
+  }
+
+  /**
+   * Lists the sheet names of an xlsx from its workbook part and that part's
+   * relationships, no sheet parsed: the sheets a workbook loaded whole keeps,
+   * worksheets and chart sheets, a macro or dialog sheet left out.
+   *
+   * @param bytes the file
+   * @return the names, null when the file isn't an xlsx
+   */
+  private static List<String> xlsxSheetNames(byte[] bytes) {
+    try (OPCPackage pkg = OPCPackage.open(new ByteArrayInputStream(bytes))) {
+      PackagePart workbookPart = pkg.getPart(pkg.getRelationshipsByType(PackageRelationshipTypes.CORE_DOCUMENT).getRelationship(0));
+      CTWorkbook workbook;
+      try (InputStream in = workbookPart.getInputStream()) {
+        workbook = WorkbookDocument.Factory.parse(in).getWorkbook();
+      }
+      List<String> names = new ArrayList<>();
+      for (CTSheet sheet : workbook.getSheets().getSheetArray()) {
+        PackageRelationship relationship = sheet.getId() == null ? null : workbookPart.getRelationship(sheet.getId());
+        if (relationship != null && KEPT_SHEET_RELATIONS.contains(relationship.getRelationshipType())) {
+          names.add(sheet.getName());
+        }
+      }
+      return names;
+    } catch (Exception e) { // NOSONAR not an xlsx: read as any workbook
+      LOG.debug("Not an xlsx, its sheet names are read by opening it", e);
+      return null;
     }
   }
 

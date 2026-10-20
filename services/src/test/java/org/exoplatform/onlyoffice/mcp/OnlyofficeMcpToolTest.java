@@ -776,4 +776,24 @@ public class OnlyofficeMcpToolTest {
     verify(editorService, org.mockito.Mockito.never()).runDocBuilderScript(anyString(), any(), anyString(), anyString(), anyString());
   }
 
+  /**
+   * An xlsx over the size a workbook is loaded at still has its sheet found
+   * when an operation names one: its sheet names are read without its sheets.
+   * Mutants: the size refused for an xlsx too.
+   *
+   * @throws Exception never
+   */
+  @Test
+  public void editSpreadsheet_findsASheetInALargeXlsx() throws Exception {
+    stubSpreadsheet("xlsx-1",
+                    SpreadsheetCellReaderTest.xlsxWithSecondSheetAs("application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml",
+                                                                    "http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet",
+                                                                    (int) OnlyofficeMcpTool.MAX_SPREADSHEET_BYTES + 1));
+    when(editorService.runDocBuilderScript(anyString(), any(), eq("xlsx"), eq("result.xlsx"), eq(USER))).thenReturn(new byte[] { 9 });
+
+    tool.editSpreadsheet("xlsx-1", null, null, "[{\"type\":\"set_cells\",\"sheet\":\"Macro1\",\"start\":\"A1\",\"values\":[[1]]}]");
+
+    assertTrue(captureScript("xlsx", "result.xlsx").contains("var __sheet0 = Api.GetSheet(\"Macro1\");"));
+  }
+
 }

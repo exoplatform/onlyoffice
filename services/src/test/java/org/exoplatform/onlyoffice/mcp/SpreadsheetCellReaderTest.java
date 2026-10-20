@@ -287,21 +287,23 @@ public class SpreadsheetCellReaderTest {
   }
 
   /**
-   * An xlsx's Excel 4 macro sheet is not among its sheet names, as a workbook
-   * loaded whole, the one get_spreadsheet_cells reads, leaves it out.
-   * Mutants: the macro sheet kept.
+   * Builds an xlsx holding a "Data" sheet and a "Macro1" sheet whose part is
+   * turned into another kind of sheet, as Excel stores one, optionally padded
+   * with a stored entry of the given size.
    *
+   * @param contentType the second sheet's content type
+   * @param relationType the second sheet's relationship type
+   * @param padding the size of the padding entry, 0 for none
+   * @return the file
    * @throws IOException never
    */
-  @Test
-  public void anExcel4MacroSheetIsNotASheetName() throws IOException {
+  static byte[] xlsxWithSecondSheetAs(String contentType, String relationType, int padding) throws IOException {
     byte[] plain;
     try (Workbook workbook = new XSSFWorkbook()) {
       workbook.createSheet("Data");
       workbook.createSheet("Macro1");
       plain = toBytes(workbook);
     }
-    // the second sheet's part turned into a macro sheet, as Excel stores one
     ByteArrayOutputStream rewritten = new ByteArrayOutputStream();
     try (java.util.zip.ZipInputStream in = new java.util.zip.ZipInputStream(new java.io.ByteArrayInputStream(plain));
          java.util.zip.ZipOutputStream out = new java.util.zip.ZipOutputStream(rewritten)) {
@@ -310,18 +312,59 @@ public class SpreadsheetCellReaderTest {
         String content = new String(in.readAllBytes(), java.nio.charset.StandardCharsets.UTF_8);
         if (entry.getName().equals("[Content_Types].xml")) {
           content = content.replace("<Override ContentType=\"application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml\" PartName=\"/xl/worksheets/sheet2.xml\"/>",
-                                    "<Override ContentType=\"application/vnd.ms-excel.macrosheet+xml\" PartName=\"/xl/worksheets/sheet2.xml\"/>");
+                                    "<Override ContentType=\"" + contentType + "\" PartName=\"/xl/worksheets/sheet2.xml\"/>");
+          // a package part needs a content type, the padding's included
+          content = content.replaceFirst("<Default ", "<Default ContentType=\"application/octet-stream\" Extension=\"bin\"/><Default ");
         } else if (entry.getName().equals("xl/_rels/workbook.xml.rels")) {
           content = content.replaceAll("Target=\"worksheets/sheet2.xml\" Type=\"[^\"]+\"",
-                                       "Target=\"worksheets/sheet2.xml\" Type=\"http://schemas.microsoft.com/office/2006/relationships/xlMacrosheet\"");
+                                       "Target=\"worksheets/sheet2.xml\" Type=\"" + relationType + "\"");
         }
         out.putNextEntry(new java.util.zip.ZipEntry(entry.getName()));
         out.write(content.getBytes(java.nio.charset.StandardCharsets.UTF_8));
         out.closeEntry();
       }
+      if (padding > 0) {
+        byte[] noise = new byte[padding];
+        new java.util.Random(1).nextBytes(noise);
+        java.util.zip.ZipEntry pad = new java.util.zip.ZipEntry("docProps/padding.bin");
+        pad.setMethod(java.util.zip.ZipEntry.STORED);
+        pad.setSize(noise.length);
+        java.util.zip.CRC32 crc = new java.util.zip.CRC32();
+        crc.update(noise);
+        pad.setCrc(crc.getValue());
+        out.putNextEntry(pad);
+        out.write(noise);
+        out.closeEntry();
+      }
     }
+    return rewritten.toByteArray();
+  }
 
-    assertEquals(List.of("Data"), SpreadsheetCellReader.sheetNames(rewritten.toByteArray()));
+  /**
+   * An xlsx's Excel 4 macro sheet and dialog sheet are not among its sheet
+   * names, as a workbook loaded whole, the one get_spreadsheet_cells reads,
+   * leaves them out; and an xlsx over the size a workbook is loaded at still
+   * gives its names, its sheets never parsed.
+   * Mutants: a macro or dialog sheet kept, an xlsx over the size refused.
+   *
+   * @throws IOException never
+   */
+  @Test
+  public void aMacroOrDialogSheetIsNotASheetNameAndALargeXlsxStillGivesItsNames() throws IOException {
+    byte[] macro = xlsxWithSecondSheetAs("application/vnd.ms-excel.macrosheet+xml",
+                                         "http://schemas.microsoft.com/office/2006/relationships/xlMacrosheet",
+                                         0);
+    byte[] dialog = xlsxWithSecondSheetAs("application/vnd.openxmlformats-officedocument.spreadsheetml.dialogsheet+xml",
+                                          "http://schemas.openxmlformats.org/officeDocument/2006/relationships/dialogsheet",
+                                          0);
+    byte[] large = xlsxWithSecondSheetAs("application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml",
+                                         "http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet",
+                                         (int) SpreadsheetCellReader.MAX_WORKBOOK_BYTES + 1);
+
+    assertEquals(List.of("Data"), SpreadsheetCellReader.sheetNames(macro));
+    assertEquals(List.of("Data"), SpreadsheetCellReader.sheetNames(dialog));
+    assertTrue(large.length > SpreadsheetCellReader.MAX_WORKBOOK_BYTES);
+    assertEquals(List.of("Data", "Macro1"), SpreadsheetCellReader.sheetNames(large));
   }
 
 }
