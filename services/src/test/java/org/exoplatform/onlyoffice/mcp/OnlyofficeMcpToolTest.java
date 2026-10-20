@@ -19,6 +19,7 @@
 package org.exoplatform.onlyoffice.mcp;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
@@ -58,6 +59,7 @@ import org.exoplatform.documents.service.DocumentFileService;
 import org.exoplatform.onlyoffice.OnlyofficeEditorService;
 import org.exoplatform.onlyoffice.mcp.OnlyofficeMcpTool.UserSession;
 import org.exoplatform.onlyoffice.mcp.model.OfficeDocumentModel;
+import org.exoplatform.onlyoffice.mcp.model.SpreadsheetCellsModel;
 import org.exoplatform.portal.config.UserACL;
 import org.exoplatform.services.jcr.RepositoryService;
 import org.exoplatform.services.jcr.ext.common.SessionProvider;
@@ -619,6 +621,159 @@ public class OnlyofficeMcpToolTest {
 
     when(documentFileService.getFolderChildNodes(any(), anyInt(), anyInt(), anyLong())).thenReturn(Collections.emptyList())
                                                                                        .thenReturn(afterImport);
+  }
+
+  // ---------------------------------------------------------------------------
+  // get_spreadsheet_cells, and edit_spreadsheet writing in a named sheet
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Stubs an existing spreadsheet whose content is the given file.
+   *
+   * @param id the spreadsheet id
+   * @param bytes its file
+   * @return its node
+   * @throws Exception never
+   */
+  private Node stubSpreadsheet(String id, byte[] bytes) throws Exception {
+    Node node = stubExistingDocument(id, "grid.xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+    Property dataProp = node.getNode("jcr:content").getProperty("jcr:data");
+    when(dataProp.getStream()).thenAnswer(invocation -> new ByteArrayInputStream(bytes));
+    when(dataProp.getLength()).thenReturn((long) bytes.length);
+    return node;
+  }
+
+  /**
+   * get_spreadsheet_cells reads the stored file of a spreadsheet the user's
+   * session resolves, and names it by its title.
+   * Mutants: the file not read through the user's node, the sheet or the
+   * range not passed on.
+   *
+   * @throws Exception never
+   */
+  @Test
+  public void getSpreadsheetCells_readsTheStoredFileThroughTheUsersSession() throws Exception {
+    stubSpreadsheet("xlsx-1", SpreadsheetCellReaderTest.buyerGrid());
+
+    SpreadsheetCellsModel model = tool.getSpreadsheetCells("xlsx-1", "Grille", "C3");
+
+    assertEquals("xlsx-1", model.id());
+    assertEquals("grid.xlsx", model.name());
+    assertEquals("Grille", model.sheet());
+    assertEquals(List.of("C3"), model.cells().stream().map(org.exoplatform.onlyoffice.mcp.model.SpreadsheetCellModel::ref).toList());
+    assertEquals(30L, model.cells().get(0).value());
+  }
+
+  /**
+   * A spreadsheet over the size its cells are read from is refused before
+   * its content is read, pointing to the text reading instead.
+   * Mutants: the size check dropped, or run after the read.
+   *
+   * @throws Exception never
+   */
+  @Test
+  public void getSpreadsheetCells_refusesASpreadsheetTooLargeBeforeReadingIt() throws Exception {
+    Node node = stubSpreadsheet("xlsx-1", SpreadsheetCellReaderTest.buyerGrid());
+    Property dataProp = node.getNode("jcr:content").getProperty("jcr:data");
+    when(dataProp.getLength()).thenReturn(OnlyofficeMcpTool.MAX_SPREADSHEET_BYTES + 1);
+
+    IllegalArgumentException error = assertThrows(IllegalArgumentException.class,
+                                                  () -> tool.getSpreadsheetCells("xlsx-1", null, null));
+
+    assertTrue(error.getMessage().contains("get_document_content_by_id"));
+    verify(dataProp, org.mockito.Mockito.never()).getStream();
+  }
+
+  /**
+   * An operation naming a sheet writes in that sheet, found whatever its
+   * case, through its own variable; it never activates it, and the
+   * operations without a sheet still write in the active one.
+   * Mutants: the sheet ignored, activated, looked up with the asked case, or
+   * the other operations moved to it.
+   *
+   * @throws Exception never
+   */
+  @Test
+  public void editSpreadsheet_writesInTheNamedSheetWithoutActivatingIt() throws Exception {
+    stubSpreadsheet("xlsx-1", SpreadsheetCellReaderTest.buyerGrid());
+    when(editorService.runDocBuilderScript(anyString(), any(), eq("xlsx"), eq("result.xlsx"), eq(USER))).thenReturn(new byte[] { 9 });
+
+    String ops = "[{\"type\":\"set_cells\",\"sheet\":\"grille\",\"start\":\"C5\",\"values\":[[\"Oui\"]]},"
+        + "{\"type\":\"set_formula\",\"sheet\":\"Grille\",\"cell\":\"C7\",\"formula\":\"=C3+1\"},"
+        + "{\"type\":\"set_cells\",\"start\":\"A2\",\"values\":[[\"Intro text\"]]}]";
+    tool.editSpreadsheet("xlsx-1", null, null, ops);
+
+    String script = captureScript("xlsx", "result.xlsx");
+    assertTrue(script.contains("var __sheet0 = Api.GetSheet(\"Grille\");"));
+    assertTrue(script.contains("__sheet0.GetRangeByNumber(4, 2).SetValue(\"Oui\")"));
+    assertTrue(script.contains("var __sheet1 = Api.GetSheet(\"Grille\");"));
+    assertTrue(script.contains("__sheet1.GetRange(\"C7\").SetValue(\"=C3+1\")"));
+    assertTrue(script.contains("oWorksheet.GetRangeByNumber(1, 0).SetValue(\"Intro text\")"));
+    assertFalse(script.contains("SetActive"));
+  }
+
+  /**
+   * A sheet the spreadsheet lacks is refused before the Document Builder
+   * runs, with the sheets it has; a sheet added earlier in the same call is
+   * known, when modifying as when creating, where the first sheet is Sheet1.
+   * Mutants: a missing sheet sent to the Document Builder, a sheet added in
+   * the call unknown, the created spreadsheet's first sheet unknown.
+   *
+   * @throws Exception never
+   */
+  @Test
+  public void editSpreadsheet_knowsTheSheetsOfTheFileAndThoseAddedInTheCall() throws Exception {
+    stubSpreadsheet("xlsx-1", SpreadsheetCellReaderTest.buyerGrid());
+    when(editorService.runDocBuilderScript(anyString(), any(), eq("xlsx"), eq("result.xlsx"), eq(USER))).thenReturn(new byte[] { 9 });
+
+    IllegalArgumentException missing =
+                                     assertThrows(IllegalArgumentException.class,
+                                                  () -> tool.editSpreadsheet("xlsx-1",
+                                                                             null,
+                                                                             null,
+                                                                             "[{\"type\":\"set_cells\",\"sheet\":\"Prix\",\"start\":\"A1\",\"values\":[[1]]}]"));
+    assertTrue(missing.getMessage().contains("Grille, Intro"));
+    verify(editorService, org.mockito.Mockito.never()).runDocBuilderScript(anyString(), any(), anyString(), anyString(), anyString());
+
+    tool.editSpreadsheet("xlsx-1",
+                         null,
+                         null,
+                         "[{\"type\":\"add_sheet\",\"name\":\"Prix\"},{\"type\":\"set_cells\",\"sheet\":\"Prix\",\"start\":\"A1\",\"values\":[[1]]}]");
+    assertTrue(captureScript("xlsx", "result.xlsx").contains("var __sheet1 = Api.GetSheet(\"Prix\");"));
+
+    Node parent = mock(Node.class);
+    when(session.getNodeByUUID("folder-1")).thenReturn(parent);
+    stubStorage("folder-1", "new.xlsx", "new-id");
+    org.mockito.Mockito.clearInvocations(editorService);
+    tool.editSpreadsheet(null,
+                         "folder-1",
+                         "new",
+                         "[{\"type\":\"set_cells\",\"sheet\":\"Sheet1\",\"start\":\"A1\",\"values\":[[1]]}]");
+    assertTrue(captureScript("xlsx", "result.xlsx").contains("var __sheet0 = Api.GetSheet(\"Sheet1\");"));
+  }
+
+  /**
+   * Naming a sheet of a spreadsheet too large to find its sheets in is
+   * refused before the Document Builder runs,
+   * and the refusal says how to write without naming one.
+   * Mutants: the size check dropped.
+   *
+   * @throws Exception never
+   */
+  @Test
+  public void editSpreadsheet_refusesToFindASheetInASpreadsheetTooLarge() throws Exception {
+    byte[] large = new byte[(int) OnlyofficeMcpTool.MAX_SPREADSHEET_BYTES + 1];
+    stubSpreadsheet("xlsx-1", large);
+
+    IllegalArgumentException error =
+                                   assertThrows(IllegalArgumentException.class,
+                                                () -> tool.editSpreadsheet("xlsx-1",
+                                                                           null,
+                                                                           null,
+                                                                           "[{\"type\":\"set_cells\",\"sheet\":\"Grille\",\"start\":\"A1\",\"values\":[[1]]}]"));
+
+    assertTrue(error.getMessage().contains("Leave out 'sheet'"));
+    verify(editorService, org.mockito.Mockito.never()).runDocBuilderScript(anyString(), any(), anyString(), anyString(), anyString());
   }
 
 }
