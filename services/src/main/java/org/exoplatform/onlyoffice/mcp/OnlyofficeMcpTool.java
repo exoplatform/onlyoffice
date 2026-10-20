@@ -123,14 +123,14 @@ public class OnlyofficeMcpTool implements McpToolPlugin {
   /** Name of the {@link SpaceScopeResolver} that tells the space of a document node. */
   public static final String       DOCUMENT_RESOLVER  = "document";
 
+  /** The largest spreadsheet whose cells are read, the workbook being loaded whole. */
+  static final long                MAX_SPREADSHEET_BYTES = SpreadsheetCellReader.MAX_WORKBOOK_BYTES;
+
   /** A node id as the space scope hands it over: 32 lowercase hexadecimal digits, exactly. */
   private static final Pattern     NODE_ID            = Pattern.compile("[0-9a-f]{32}");
 
   /** Max bytes fetched for an image referenced by a URL. */
   private static final long        MAX_IMAGE_BYTES    = 15L * 1024 * 1024;
-
-  /** The largest spreadsheet whose cells are read, the workbook being loaded whole. */
-  static final long                MAX_SPREADSHEET_BYTES = SpreadsheetCellReader.MAX_WORKBOOK_BYTES;
 
   /** The first sheet of a spreadsheet the Document Builder creates. */
   private static final String      DEFAULT_SHEET_NAME = "Sheet1";

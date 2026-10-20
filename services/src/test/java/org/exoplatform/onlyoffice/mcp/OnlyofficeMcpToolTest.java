@@ -660,7 +660,7 @@ public class OnlyofficeMcpToolTest {
     assertEquals("xlsx-1", model.id());
     assertEquals("grid.xlsx", model.name());
     assertEquals("Grille", model.sheet());
-    assertEquals(List.of("C3"), model.cells().stream().map(SpreadsheetCellsModel.CellModel::ref).toList());
+    assertEquals(List.of("C3"), model.cells().stream().map(org.exoplatform.onlyoffice.mcp.model.SpreadsheetCellModel::ref).toList());
     assertEquals(30L, model.cells().get(0).value());
   }
 

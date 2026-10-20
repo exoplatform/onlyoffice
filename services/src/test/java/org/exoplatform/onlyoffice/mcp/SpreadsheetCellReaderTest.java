@@ -42,7 +42,7 @@ import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.junit.Test;
 
 import org.exoplatform.onlyoffice.mcp.model.SpreadsheetCellsModel;
-import org.exoplatform.onlyoffice.mcp.model.SpreadsheetCellsModel.CellModel;
+import org.exoplatform.onlyoffice.mcp.model.SpreadsheetCellModel;
 
 /**
  * Reads workbooks built with POI, as Excel stores them: the cells with their
@@ -107,8 +107,8 @@ public class SpreadsheetCellReaderTest {
    * @param model the cells read
    * @return the cells by position
    */
-  private static Map<String, CellModel> byRef(SpreadsheetCellsModel model) {
-    return model.cells().stream().collect(Collectors.toMap(CellModel::ref, Function.identity()));
+  private static Map<String, SpreadsheetCellModel> byRef(SpreadsheetCellsModel model) {
+    return model.cells().stream().collect(Collectors.toMap(SpreadsheetCellModel::ref, Function.identity()));
   }
 
   /**
@@ -129,8 +129,8 @@ public class SpreadsheetCellReaderTest {
 
     assertEquals("Grille", model.sheet());
     assertEquals("B2:D6", model.range());
-    Map<String, CellModel> cells = byRef(model);
-    assertEquals(List.of("B2", "B3", "C3", "C4", "C5", "C6"), model.cells().stream().map(CellModel::ref).toList());
+    Map<String, SpreadsheetCellModel> cells = byRef(model);
+    assertEquals(List.of("B2", "B3", "C3", "C4", "C5", "C6"), model.cells().stream().map(SpreadsheetCellModel::ref).toList());
     assertEquals("Exigences", cells.get("B2").value());
     assertNull(cells.get("B2").text());
     assertEquals(30L, cells.get("C3").value());
@@ -263,7 +263,7 @@ public class SpreadsheetCellReaderTest {
     SpreadsheetCellsModel outside = SpreadsheetCellReader.read("id", "grid.xlsx", grid, "Grille", "Z100:Z200");
 
     assertEquals("B2:D6", whole.range());
-    assertEquals(List.of("B2", "B3", "C3", "C4", "C5", "C6"), whole.cells().stream().map(CellModel::ref).toList());
+    assertEquals(List.of("B2", "B3", "C3", "C4", "C5", "C6"), whole.cells().stream().map(SpreadsheetCellModel::ref).toList());
     assertNull(outside.range());
     assertTrue(outside.cells().isEmpty());
   }

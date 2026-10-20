@@ -48,8 +48,8 @@ import org.openxmlformats.schemas.spreadsheetml.x2006.main.CTWorkbook;
 import org.openxmlformats.schemas.spreadsheetml.x2006.main.WorkbookDocument;
 
 import org.exoplatform.onlyoffice.mcp.model.SpreadsheetCellsModel;
-import org.exoplatform.onlyoffice.mcp.model.SpreadsheetCellsModel.CellModel;
-import org.exoplatform.onlyoffice.mcp.model.SpreadsheetCellsModel.SheetModel;
+import org.exoplatform.onlyoffice.mcp.model.SpreadsheetCellModel;
+import org.exoplatform.onlyoffice.mcp.model.SpreadsheetSheetModel;
 import org.exoplatform.services.log.ExoLogger;
 import org.exoplatform.services.log.Log;
 
@@ -60,17 +60,17 @@ import org.exoplatform.services.log.Log;
  */
 final class SpreadsheetCellReader {
 
-  private static final Log LOG = ExoLogger.getLogger(SpreadsheetCellReader.class);
-
   /** The largest workbook loaded whole, its cells read or, for an xls, its sheet names. */
   static final long        MAX_WORKBOOK_BYTES = 20L * 1024 * 1024;
+
+  /** The most non-empty cells one call returns. */
+  static final int         MAX_CELLS          = 2000;
+
+  private static final Log LOG                = ExoLogger.getLogger(SpreadsheetCellReader.class);
 
   /** The sheets a workbook loaded whole keeps, by relationship: worksheets and chart sheets. */
   private static final Set<String> KEPT_SHEET_RELATIONS = Set.of(XSSFRelation.WORKSHEET.getRelation(),
                                                                  XSSFRelation.CHARTSHEET.getRelation());
-
-  /** The most non-empty cells one call returns. */
-  static final int MAX_CELLS = 2000;
 
   private SpreadsheetCellReader() {
   }
@@ -179,14 +179,14 @@ final class SpreadsheetCellReader {
       rangeRef = StringUtils.substringAfterLast(rangeRef, "!");
     }
     try (Workbook workbook = open(bytes)) {
-      List<SheetModel> sheets = new ArrayList<>();
+      List<SpreadsheetSheetModel> sheets = new ArrayList<>();
       List<String> names = new ArrayList<>();
       int activeIndex = workbook.getActiveSheetIndex();
       for (int i = 0; i < workbook.getNumberOfSheets(); i++) {
         Sheet sheet = workbook.getSheetAt(i);
         CellRangeAddress used = usedRange(sheet);
         names.add(sheet.getSheetName());
-        sheets.add(new SheetModel(sheet.getSheetName(), used == null ? null : used.formatAsString(), i == activeIndex));
+        sheets.add(new SpreadsheetSheetModel(sheet.getSheetName(), used == null ? null : used.formatAsString(), i == activeIndex));
       }
       Sheet sheet;
       if (requestedSheet == null) {
@@ -209,16 +209,16 @@ final class SpreadsheetCellReader {
       }
       DataFormatter formatter = new DataFormatter(Locale.ENGLISH);
       formatter.setUseCachedValuesForFormulaCells(true);
-      List<CellModel> cells = new ArrayList<>();
+      List<SpreadsheetCellModel> cells = new ArrayList<>();
       String nextRange = null;
       for (int r = area.getFirstRow(); r <= area.getLastRow() && nextRange == null; r++) {
         Row row = sheet.getRow(r);
         if (row == null) {
           continue;
         }
-        List<CellModel> rowCells = new ArrayList<>();
+        List<SpreadsheetCellModel> rowCells = new ArrayList<>();
         for (int c = area.getFirstColumn(); c <= area.getLastColumn(); c++) {
-          CellModel cell = toCellModel(row.getCell(c), formatter);
+          SpreadsheetCellModel cell = toCellModel(row.getCell(c), formatter);
           if (cell != null) {
             rowCells.add(cell);
           }
@@ -332,7 +332,7 @@ final class SpreadsheetCellReader {
    * @param formatter the formatter giving the displayed text
    * @return the model, null for a missing or empty cell
    */
-  private static CellModel toCellModel(Cell cell, DataFormatter formatter) {
+  private static SpreadsheetCellModel toCellModel(Cell cell, DataFormatter formatter) {
     if (cell == null) {
       return null;
     }
@@ -354,7 +354,7 @@ final class SpreadsheetCellReader {
     }
     String text = formatter.formatCellValue(cell);
     String ref = new CellReference(cell.getRowIndex(), cell.getColumnIndex()).formatAsString(false);
-    return new CellModel(ref, value, StringUtils.equals(text, String.valueOf(value)) ? null : text, formula);
+    return new SpreadsheetCellModel(ref, value, StringUtils.equals(text, String.valueOf(value)) ? null : text, formula);
   }
 
   /**
