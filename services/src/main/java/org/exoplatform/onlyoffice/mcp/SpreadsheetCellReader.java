@@ -55,6 +55,12 @@ final class SpreadsheetCellReader {
 
   private static final Log LOG = ExoLogger.getLogger(SpreadsheetCellReader.class);
 
+  /** The largest workbook loaded whole, its cells read or, for an xls, its sheet names. */
+  static final long        MAX_WORKBOOK_BYTES = 20L * 1024 * 1024;
+
+  /** The content type of an Excel 4 macro sheet, which a workbook loaded whole leaves out. */
+  private static final String MACRO_SHEET_CONTENT_TYPE = "application/vnd.ms-excel.macrosheet+xml";
+
   /** The most non-empty cells one call returns. */
   static final int MAX_CELLS = 2000;
 
@@ -63,11 +69,14 @@ final class SpreadsheetCellReader {
 
   /**
    * Lists the sheet names of a workbook, in order: an xlsx's from its
-   * workbook part alone, its sheets never parsed, an xls's by opening it.
+   * workbook part alone, its sheets never parsed, an Excel 4 macro sheet left
+   * out as a workbook loaded whole leaves it out; an xls's by opening it, up
+   * to {@link #MAX_WORKBOOK_BYTES}.
    *
    * @param bytes the workbook file
    * @return the sheet names
-   * @throws IllegalArgumentException when the file isn't an Excel workbook
+   * @throws IllegalArgumentException when the file isn't an Excel workbook, or
+   *           is an xls too large to open
    */
   static List<String> sheetNames(byte[] bytes) {
     try (OPCPackage pkg = OPCPackage.open(new ByteArrayInputStream(bytes))) {
@@ -75,12 +84,19 @@ final class SpreadsheetCellReader {
       List<String> names = new ArrayList<>();
       while (sheets.hasNext()) {
         try (InputStream sheet = sheets.next()) {
-          names.add(sheets.getSheetName());
+          if (!MACRO_SHEET_CONTENT_TYPE.equals(sheets.getSheetPart().getContentType())) {
+            names.add(sheets.getSheetName());
+          }
         }
       }
       return names;
     } catch (Exception e) { // NOSONAR not an xlsx: read as any workbook below
       LOG.debug("Not an xlsx, its sheet names are read by opening it", e);
+    }
+    if (bytes.length > MAX_WORKBOOK_BYTES) {
+      throw new IllegalArgumentException("The spreadsheet is not an xlsx and is over %d MB, too large to find its sheets in. Leave out 'sheet' to write in its active sheet."
+                                                                                                                                  .formatted(MAX_WORKBOOK_BYTES
+                                                                                                                                      / (1024 * 1024)));
     }
     try (Workbook workbook = open(bytes)) {
       List<String> names = new ArrayList<>();

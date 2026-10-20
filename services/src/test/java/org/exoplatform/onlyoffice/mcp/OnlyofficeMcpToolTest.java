@@ -753,10 +753,10 @@ public class OnlyofficeMcpToolTest {
   }
 
   /**
-   * Naming a sheet of a spreadsheet too large to load whole is refused before
-   * the workbook is opened, as get_spreadsheet_cells refuses to read it, and
-   * the refusal says how to write without naming one.
-   * Mutants: the size check dropped, the workbook opened first.
+   * Naming a sheet of a spreadsheet that isn't an xlsx, and too large to be
+   * opened to find its sheets, is refused before the Document Builder runs,
+   * and the refusal says how to write without naming one.
+   * Mutants: the size check dropped.
    *
    * @throws Exception never
    */

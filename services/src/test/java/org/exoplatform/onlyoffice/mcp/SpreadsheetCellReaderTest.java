@@ -286,4 +286,42 @@ public class SpreadsheetCellReaderTest {
     assertEquals(List.of("One", "Two"), SpreadsheetCellReader.sheetNames(file));
   }
 
+  /**
+   * An xlsx's Excel 4 macro sheet is not among its sheet names, as a workbook
+   * loaded whole, the one get_spreadsheet_cells reads, leaves it out.
+   * Mutants: the macro sheet kept.
+   *
+   * @throws IOException never
+   */
+  @Test
+  public void anExcel4MacroSheetIsNotASheetName() throws IOException {
+    byte[] plain;
+    try (Workbook workbook = new XSSFWorkbook()) {
+      workbook.createSheet("Data");
+      workbook.createSheet("Macro1");
+      plain = toBytes(workbook);
+    }
+    // the second sheet's part turned into a macro sheet, as Excel stores one
+    ByteArrayOutputStream rewritten = new ByteArrayOutputStream();
+    try (java.util.zip.ZipInputStream in = new java.util.zip.ZipInputStream(new java.io.ByteArrayInputStream(plain));
+         java.util.zip.ZipOutputStream out = new java.util.zip.ZipOutputStream(rewritten)) {
+      java.util.zip.ZipEntry entry;
+      while ((entry = in.getNextEntry()) != null) {
+        String content = new String(in.readAllBytes(), java.nio.charset.StandardCharsets.UTF_8);
+        if (entry.getName().equals("[Content_Types].xml")) {
+          content = content.replace("<Override ContentType=\"application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml\" PartName=\"/xl/worksheets/sheet2.xml\"/>",
+                                    "<Override ContentType=\"application/vnd.ms-excel.macrosheet+xml\" PartName=\"/xl/worksheets/sheet2.xml\"/>");
+        } else if (entry.getName().equals("xl/_rels/workbook.xml.rels")) {
+          content = content.replaceAll("Target=\"worksheets/sheet2.xml\" Type=\"[^\"]+\"",
+                                       "Target=\"worksheets/sheet2.xml\" Type=\"http://schemas.microsoft.com/office/2006/relationships/xlMacrosheet\"");
+        }
+        out.putNextEntry(new java.util.zip.ZipEntry(entry.getName()));
+        out.write(content.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+        out.closeEntry();
+      }
+    }
+
+    assertEquals(List.of("Data"), SpreadsheetCellReader.sheetNames(rewritten.toByteArray()));
+  }
+
 }

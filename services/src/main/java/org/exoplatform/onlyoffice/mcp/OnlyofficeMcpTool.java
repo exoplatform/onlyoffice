@@ -130,7 +130,7 @@ public class OnlyofficeMcpTool implements McpToolPlugin {
   private static final long        MAX_IMAGE_BYTES    = 15L * 1024 * 1024;
 
   /** The largest spreadsheet whose cells are read, the workbook being loaded whole. */
-  static final long                MAX_SPREADSHEET_BYTES = 20L * 1024 * 1024;
+  static final long                MAX_SPREADSHEET_BYTES = SpreadsheetCellReader.MAX_WORKBOOK_BYTES;
 
   /** The first sheet of a spreadsheet the Document Builder creates. */
   private static final String      DEFAULT_SHEET_NAME = "Sheet1";
@@ -786,11 +786,6 @@ public class OnlyofficeMcpTool implements McpToolPlugin {
       String ws = "oWorksheet";
       if (StringUtils.isNotBlank(op.optString("sheet", null)) && !"add_sheet".equals(type)) {
         if (sheetNames == null) {
-          if (input != null && input.length > MAX_SPREADSHEET_BYTES) {
-            // its sheets are read by loading the workbook whole, as get_spreadsheet_cells refuses to
-            throw new IllegalArgumentException(("The spreadsheet is over %d MB, too large to find its sheet '%s'. Leave out "
-                + "'sheet' to write in its active sheet.").formatted(MAX_SPREADSHEET_BYTES / (1024 * 1024), op.getString("sheet")));
-          }
           sheetNames = input == null ? List.of(DEFAULT_SHEET_NAME) : SpreadsheetCellReader.sheetNames(input);
         }
         List<String> knownSheets = new ArrayList<>(sheetNames);
