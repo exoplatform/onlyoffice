@@ -732,7 +732,7 @@ public class OnlyofficeMcpToolTest {
                                                                              null,
                                                                              null,
                                                                              "[{\"type\":\"set_cells\",\"sheet\":\"Prix\",\"start\":\"A1\",\"values\":[[1]]}]"));
-    assertTrue(missing.getMessage().contains("Intro, Grille"));
+    assertTrue(missing.getMessage().contains("Grille, Intro"));
     verify(editorService, org.mockito.Mockito.never()).runDocBuilderScript(anyString(), any(), anyString(), anyString(), anyString());
 
     tool.editSpreadsheet("xlsx-1",

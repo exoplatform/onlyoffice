@@ -52,16 +52,15 @@ import org.exoplatform.onlyoffice.mcp.model.SpreadsheetCellsModel.CellModel;
 public class SpreadsheetCellReaderTest {
 
   /**
-   * Builds a buyer's grid: an "Intro" sheet, active, and a "Grille" sheet
-   * holding a text, a number, a formula with its cached value, a date, a
-   * percentage and a merged title.
+   * Builds a buyer's grid: a "Grille" sheet holding a text, a number, a formula with its cached value, a date, a
+   * percentage and a merged title, then an "Intro" sheet, the active one, so
+   * the active sheet is not the first.
    *
    * @return the xlsx file
    * @throws IOException never
    */
   static byte[] buyerGrid() throws IOException {
     try (Workbook workbook = new XSSFWorkbook()) {
-      workbook.createSheet("Intro").createRow(0).createCell(0).setCellValue("Read me");
       Sheet grid = workbook.createSheet("Grille");
       Row title = grid.createRow(1);
       title.createCell(1).setCellValue("Exigences");
@@ -82,8 +81,9 @@ public class SpreadsheetCellReaderTest {
       rate.createCell(2).setCellValue(0.5);
       rate.getCell(2).setCellStyle(percent);
       rate.createCell(3).setCellValue("");
+      workbook.createSheet("Intro").createRow(0).createCell(0).setCellValue("Read me");
       workbook.getCreationHelper().createFormulaEvaluator().evaluateAll();
-      workbook.setActiveSheet(0);
+      workbook.setActiveSheet(1);
       return toBytes(workbook);
     }
   }
@@ -143,9 +143,9 @@ public class SpreadsheetCellReaderTest {
     assertEquals(List.of("B2:D2"), model.mergedRanges());
     assertFalse(model.truncated());
     assertEquals(2, model.sheets().size());
-    assertTrue(model.sheets().get(0).active());
-    assertFalse(model.sheets().get(1).active());
-    assertEquals("B2:D6", model.sheets().get(1).usedRange());
+    assertFalse(model.sheets().get(0).active());
+    assertTrue(model.sheets().get(1).active());
+    assertEquals("B2:D6", model.sheets().get(0).usedRange());
   }
 
   /**
@@ -187,7 +187,7 @@ public class SpreadsheetCellReaderTest {
 
     IllegalArgumentException missing = assertThrows(IllegalArgumentException.class,
                                                     () -> SpreadsheetCellReader.read("id", "grid.xlsx", grid, "Prix", null));
-    assertTrue(missing.getMessage().contains("Intro, Grille"));
+    assertTrue(missing.getMessage().contains("Grille, Intro"));
     IllegalArgumentException range = assertThrows(IllegalArgumentException.class,
                                                   () -> SpreadsheetCellReader.read("id", "grid.xlsx", grid, "Grille", "row 3"));
     assertTrue(range.getMessage().contains("A1 notation"));
@@ -240,7 +240,7 @@ public class SpreadsheetCellReaderTest {
    */
   @Test
   public void sheetNamesAreListedInOrderAndFoundExactlyFirst() throws IOException {
-    assertEquals(List.of("Intro", "Grille"), SpreadsheetCellReader.sheetNames(buyerGrid()));
+    assertEquals(List.of("Grille", "Intro"), SpreadsheetCellReader.sheetNames(buyerGrid()));
     assertEquals("grille", SpreadsheetCellReader.findSheetName(List.of("Grille", "grille"), "grille"));
     assertEquals("Grille", SpreadsheetCellReader.findSheetName(List.of("Grille"), " GRILLE "));
     assertNull(SpreadsheetCellReader.findSheetName(List.of("Grille"), "Prix"));
