@@ -25,6 +25,7 @@ import java.io.InputStream;
 import java.net.URI;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -61,6 +62,7 @@ import org.exoplatform.onlyoffice.OfficeDocumentsThumbnailPlugin;
 import org.exoplatform.onlyoffice.OnlyofficeEditorService;
 import org.exoplatform.onlyoffice.mcp.model.OfficeDocumentModel;
 import org.exoplatform.onlyoffice.mcp.model.OfficeEditorLinkModel;
+import org.exoplatform.onlyoffice.mcp.model.SpreadsheetCellsModel;
 import org.exoplatform.portal.config.UserACL;
 import org.exoplatform.services.jcr.RepositoryService;
 import org.exoplatform.services.jcr.core.ManageableRepository;
@@ -126,6 +128,12 @@ public class OnlyofficeMcpTool implements McpToolPlugin {
 
   /** Max bytes fetched for an image referenced by a URL. */
   private static final long        MAX_IMAGE_BYTES    = 15L * 1024 * 1024;
+
+  /** The largest spreadsheet whose cells are read, the workbook being loaded whole. */
+  static final long                MAX_SPREADSHEET_BYTES = 20L * 1024 * 1024;
+
+  /** The first sheet of a spreadsheet the Document Builder creates. */
+  private static final String      DEFAULT_SHEET_NAME = "Sheet1";
 
   private static final String      CONVERT_FAILED_MSG =
                                                       "The Document Server could not convert this file. "
@@ -346,7 +354,7 @@ public class OnlyofficeMcpTool implements McpToolPlugin {
 
       switch (format) {
         case "xlsx":
-          appendSpreadsheetOps(ops, script);
+          appendSpreadsheetOps(ops, script, modify ? assets.get("input") : null);
           break;
         case "pptx":
           appendPresentationOps(ops, script, assets, userSession.session(), !modify, attachmentObjectType, attachmentObjectId);
@@ -699,15 +707,97 @@ public class OnlyofficeMcpTool implements McpToolPlugin {
   }
 
   // ---------------------------------------------------------------------------
+  // get_spreadsheet_cells
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Reads the cells of a range of one sheet of a spreadsheet the user can
+   * read, each with its A1 position, its value and its formula, plus the list
+   * of the workbook's sheets, so a grid can be filled back in its own format
+   * with {@code edit_spreadsheet}. Read from the file as stored: a formula's
+   * value is the one computed when the file was last saved.
+   *
+   * @param documentId the JCR uuid of the spreadsheet
+   * @param sheet the sheet to read, blank for the active one
+   * @param range the range in A1 notation, blank for the sheet's used range
+   * @return the sheets and the non-empty cells of the range
+   * @throws IllegalAccessException when the user can't read the document
+   * @throws ObjectNotFoundException when the document doesn't exist
+   */
+  public SpreadsheetCellsModel getSpreadsheetCells(String documentId,
+                                                   String sheet,
+                                                   String range) throws IllegalAccessException, ObjectNotFoundException {
+    if (StringUtils.isBlank(documentId)) {
+      throw new IllegalArgumentException("The 'document_id' parameter is mandatory (the JCR uuid of the spreadsheet).");
+    }
+    UserSession userSession = openUserSession();
+    try {
+      Node node = resolveNode(userSession.session(), documentId);
+      checkSpreadsheetSize(node, documentId);
+      return SpreadsheetCellReader.read(documentId, nodeTitleOrName(node), readNodeBytes(node, documentId), sheet, range);
+    } finally {
+      userSession.close();
+    }
+  }
+
+  /**
+   * Refuses a spreadsheet too large to be read in memory, before reading it.
+   *
+   * @param node the spreadsheet node
+   * @param documentId its id
+   */
+  private void checkSpreadsheetSize(Node node, String documentId) {
+    long size;
+    try {
+      size = node.getNode("jcr:content").getProperty("jcr:data").getLength();
+    } catch (RepositoryException e) {
+      size = -1;
+    }
+    if (size > MAX_SPREADSHEET_BYTES) {
+      throw new IllegalArgumentException(("The spreadsheet %s is %d MB, over the %d MB its cells can be read from. "
+          + "Read its text with get_document_content_by_id instead.").formatted(documentId,
+                                                                            size / (1024 * 1024),
+                                                                            MAX_SPREADSHEET_BYTES / (1024 * 1024)));
+    }
+  }
+
+  // ---------------------------------------------------------------------------
   // Document Builder script generators (lean, per format)
   // ---------------------------------------------------------------------------
 
-  private void appendSpreadsheetOps(JSONArray ops, StringBuilder s) {
+  /**
+   * Appends the spreadsheet operations to the script. An operation names the
+   * sheet it writes in with {@code sheet}; without it, it writes in the active
+   * sheet, or the last one added. Naming a sheet never activates it, so the
+   * sheet the workbook opens on, and a PDF export shows, stays the same.
+   *
+   * @param ops the operations
+   * @param s the script
+   * @param input the spreadsheet modified, null when one is created
+   */
+  private void appendSpreadsheetOps(JSONArray ops, StringBuilder s, byte[] input) {
     s.append("var oWorksheet = Api.GetActiveSheet();\n");
     boolean sheetAdded = false;
+    List<String> sheetNames = null;
+    List<String> addedSheets = new ArrayList<>();
     for (int i = 0; i < ops.length(); i++) {
       JSONObject op = ops.getJSONObject(i);
       String type = opType(op);
+      String ws = "oWorksheet";
+      if (StringUtils.isNotBlank(op.optString("sheet", null)) && !"add_sheet".equals(type)) {
+        if (sheetNames == null) {
+          sheetNames = input == null ? List.of(DEFAULT_SHEET_NAME) : SpreadsheetCellReader.sheetNames(input);
+        }
+        List<String> knownSheets = new ArrayList<>(sheetNames);
+        knownSheets.addAll(addedSheets);
+        String sheetName = SpreadsheetCellReader.findSheetName(knownSheets, op.getString("sheet"));
+        if (sheetName == null) {
+          throw new IllegalArgumentException(("The spreadsheet has no sheet named '%s'. Its sheets are: %s. Add it first with "
+              + "an add_sheet operation, or name one of them.").formatted(op.getString("sheet"), String.join(", ", knownSheets)));
+        }
+        ws = "__sheet" + i;
+        s.append("var ").append(ws).append(" = Api.GetSheet(").append(jsString(sheetName)).append(");\n");
+      }
       switch (type) {
         case "set_cells": {
           String start = op.optString("start", "A1");
@@ -723,7 +813,7 @@ public class OnlyofficeMcpTool implements McpToolPlugin {
             }
             for (int c = 0; c < cols.length(); c++) {
               Object value = cols.get(c);
-              s.append("oWorksheet.GetRangeByNumber(")
+              s.append(ws).append(".GetRangeByNumber(")
                .append(rc[0] + r)
                .append(", ")
                .append(rc[1] + c)
@@ -737,14 +827,14 @@ public class OnlyofficeMcpTool implements McpToolPlugin {
         case "set_formula": {
           String cell = requireString(op, "cell", "set_formula");
           String formula = requireString(op, "formula", "set_formula");
-          s.append("oWorksheet.GetRange(").append(jsString(cell)).append(").SetValue(").append(jsString(formula)).append(");\n");
+          s.append(ws).append(".GetRange(").append(jsString(cell)).append(").SetValue(").append(jsString(formula)).append(");\n");
           break;
         }
         case "add_chart": {
           String chartType = normalizeChartType(op.optString("chart", op.optString("type_chart", "bar")));
           String range = requireString(op, "range", "add_chart");
           String title = op.optString("title", "");
-          s.append("var oChart = oWorksheet.AddChart(")
+          s.append("var oChart = ").append(ws).append(".AddChart(")
            .append(jsString(range))
            .append(", true, ")
            .append(jsString(chartType))
@@ -763,6 +853,7 @@ public class OnlyofficeMcpTool implements McpToolPlugin {
           s.append("Api.AddSheet(").append(jsString(sheetName)).append(");\n");
           s.append("oWorksheet = Api.GetActiveSheet();\n");
           sheetAdded = true;
+          addedSheets.add(sheetName);
           break;
         }
         default:

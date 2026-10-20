@@ -3,7 +3,7 @@
     {
       "name": "edit_spreadsheet",
       "title": "Create or modify a spreadsheet (xlsx)",
-      "description": "Creates a new Excel spreadsheet (xlsx) or modifies an existing one via the ONLYOFFICE Document Builder. Pass 'document_id' to MODIFY an existing spreadsheet (the change is saved back as a new version); or pass 'parent_folder_id' and 'name' to CREATE a new spreadsheet in the user's drive. Get parent_folder_id from get_root_folder_for_user, get_root_folder_by_space or get_documents_by_folder_id, and document_id from get_document_by_id / get_documents_by_folder_id. The 'operations' argument is a JSON ARRAY STRING (parsed server-side) of these operation objects: {\"type\":\"set_cells\",\"start\":\"A1\",\"values\":[[\"Region\",\"Sales\"],[\"North\",120]]} writes a 2D block anchored at a cell; {\"type\":\"set_formula\",\"cell\":\"B4\",\"formula\":\"=SUM(B2:B3)\"}; {\"type\":\"add_chart\",\"chart\":\"bar|line|pie\",\"range\":\"Sheet1!$A$1:$B$3\",\"title\":\"Sales\"}; {\"type\":\"add_sheet\",\"name\":\"Q3\"} (subsequent operations target the new sheet). Requires the ONLYOFFICE Document Server to be installed and running.",
+      "description": "Creates a new Excel spreadsheet (xlsx) or modifies an existing one via the ONLYOFFICE Document Builder. Pass 'document_id' to MODIFY an existing spreadsheet (the change is saved back as a new version); or pass 'parent_folder_id' and 'name' to CREATE a new spreadsheet in the user's drive. Get parent_folder_id from get_root_folder_for_user, get_root_folder_by_space or get_documents_by_folder_id, and document_id from get_document_by_id / get_documents_by_folder_id. The 'operations' argument is a JSON ARRAY STRING (parsed server-side) of these operation objects: {\"type\":\"set_cells\",\"start\":\"A1\",\"values\":[[\"Region\",\"Sales\"],[\"North\",120]]} writes a 2D block anchored at a cell; {\"type\":\"set_formula\",\"cell\":\"B4\",\"formula\":\"=SUM(B2:B3)\"}; {\"type\":\"add_chart\",\"chart\":\"bar|line|pie\",\"range\":\"Sheet1!$A$1:$B$3\",\"title\":\"Sales\"}; {\"type\":\"add_sheet\",\"name\":\"Q3\"} (subsequent operations target the new sheet). set_cells, set_formula and add_chart take an optional \"sheet\":\"<sheet name>\" to write in that sheet, e.g. {\"type\":\"set_cells\",\"sheet\":\"Grille\",\"start\":\"C5\",\"values\":[[\"Oui\"]]}; the other sheets stay untouched and the sheet the workbook opens on does not change (a PDF export still shows that one). Without it, an operation writes in the active sheet, or the last one added. Read the cells and the sheet names first with get_spreadsheet_cells. Requires the ONLYOFFICE Document Server to be installed and running.",
       "input_schema": {
         "type": "object",
         "properties": {
@@ -251,6 +251,38 @@
         "openWorldHint": false
       },
       "space_scope": { "object_arg": "document_id", "resolver": "document", "id_format": "hex32" }
+    },
+    {
+      "name": "get_spreadsheet_cells",
+      "title": "Read the cells of a spreadsheet",
+      "description": "Reads a range of one sheet of an Excel spreadsheet (xlsx or xls) cell by cell: each non-empty cell with its A1 position (ref), its value (number, boolean, text, a date as ISO-8601, or an error code), its displayed text when it differs, and its formula. The answer also lists every sheet of the workbook with its used range and which one is active, and the merged ranges touching the range read. Use it to find which cell matches which requirement of a grid before filling it with edit_spreadsheet (pass the same sheet name in its operations). Values are the ones stored in the file: a formula's value is the one computed when the file was last saved, nothing is recalculated. At most 2000 cells per call: when truncated is true, call it again with next_range. Call get_document_by_id or get_documents_by_folder_id first to get the document_id.",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "document_id": {
+            "type": "string",
+            "description": "The JCR uuid of the spreadsheet."
+          },
+          "sheet": {
+            "type": "string",
+            "description": "Optional name of the sheet to read; the active sheet when left out."
+          },
+          "range": {
+            "type": "string",
+            "description": "Optional range in A1 notation, such as B2:F40 or B2 (a 'Sheet!B2:F40' prefix names the sheet too); the sheet's used range when left out."
+          }
+        },
+        "required": [
+          "document_id"
+        ]
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "space_scope": { "object_arg": "document_id", "resolver": "document", "id_format": "hex32", "allowed_args": ["sheet", "range"] }
     }
   ]
 }
