@@ -92,7 +92,8 @@ final class SpreadsheetCellReader {
   /**
    * Reads the non-empty cells of a range of one sheet, row by row, at most
    * {@link #MAX_CELLS}; past that, the answer is truncated at a row boundary
-   * and names the range to read next.
+   * and names the range to read next. A row is never split: a first row
+   * holding more cells than that comes back whole.
    *
    * @param id the spreadsheet id
    * @param title the spreadsheet title

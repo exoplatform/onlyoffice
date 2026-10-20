@@ -752,4 +752,28 @@ public class OnlyofficeMcpToolTest {
     assertTrue(captureScript("xlsx", "result.xlsx").contains("var __sheet0 = Api.GetSheet(\"Sheet1\");"));
   }
 
+  /**
+   * Naming a sheet of a spreadsheet too large to load whole is refused before
+   * the workbook is opened, as get_spreadsheet_cells refuses to read it, and
+   * the refusal says how to write without naming one.
+   * Mutants: the size check dropped, the workbook opened first.
+   *
+   * @throws Exception never
+   */
+  @Test
+  public void editSpreadsheet_refusesToFindASheetInASpreadsheetTooLarge() throws Exception {
+    byte[] large = new byte[(int) OnlyofficeMcpTool.MAX_SPREADSHEET_BYTES + 1];
+    stubSpreadsheet("xlsx-1", large);
+
+    IllegalArgumentException error =
+                                   assertThrows(IllegalArgumentException.class,
+                                                () -> tool.editSpreadsheet("xlsx-1",
+                                                                           null,
+                                                                           null,
+                                                                           "[{\"type\":\"set_cells\",\"sheet\":\"Grille\",\"start\":\"A1\",\"values\":[[1]]}]"));
+
+    assertTrue(error.getMessage().contains("Leave out 'sheet'"));
+    verify(editorService, org.mockito.Mockito.never()).runDocBuilderScript(anyString(), any(), anyString(), anyString(), anyString());
+  }
+
 }

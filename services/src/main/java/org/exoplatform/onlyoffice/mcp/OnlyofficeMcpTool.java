@@ -786,6 +786,11 @@ public class OnlyofficeMcpTool implements McpToolPlugin {
       String ws = "oWorksheet";
       if (StringUtils.isNotBlank(op.optString("sheet", null)) && !"add_sheet".equals(type)) {
         if (sheetNames == null) {
+          if (input != null && input.length > MAX_SPREADSHEET_BYTES) {
+            // its sheets are read by loading the workbook whole, as get_spreadsheet_cells refuses to
+            throw new IllegalArgumentException(("The spreadsheet is over %d MB, too large to find its sheet '%s'. Leave out "
+                + "'sheet' to write in its active sheet.").formatted(MAX_SPREADSHEET_BYTES / (1024 * 1024), op.getString("sheet")));
+          }
           sheetNames = input == null ? List.of(DEFAULT_SHEET_NAME) : SpreadsheetCellReader.sheetNames(input);
         }
         List<String> knownSheets = new ArrayList<>(sheetNames);
