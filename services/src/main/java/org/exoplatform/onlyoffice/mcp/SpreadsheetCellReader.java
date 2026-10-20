@@ -76,25 +76,26 @@ final class SpreadsheetCellReader {
   }
 
   /**
-   * Lists the sheet names of a workbook, in order: an xlsx's from its
-   * workbook part alone, its sheets never parsed, a macro or dialog sheet left
-   * out as a workbook loaded whole leaves it out; an xls's by opening it, up
-   * to {@link #MAX_WORKBOOK_BYTES}.
+   * Lists the sheet names of a workbook, in order, up to
+   * {@link #MAX_WORKBOOK_BYTES}: an xlsx's from its workbook part, its sheets
+   * inflated in memory but never parsed, a macro or dialog sheet left out as
+   * a workbook loaded whole leaves it out; an xls's by opening it.
    *
    * @param bytes the workbook file
    * @return the sheet names
    * @throws IllegalArgumentException when the file isn't an Excel workbook, or
-   *           is an xls too large to open
+   *           is too large
    */
   static List<String> sheetNames(byte[] bytes) {
+    if (bytes.length > MAX_WORKBOOK_BYTES) {
+      // an xlsx read from memory is inflated whole by POI, its sheets with it
+      throw new IllegalArgumentException("The spreadsheet is over %d MB, too large to find its sheets in. Leave out 'sheet' to write in its active sheet."
+                                                                                                                                  .formatted(MAX_WORKBOOK_BYTES
+                                                                                                                                      / (1024 * 1024)));
+    }
     List<String> xlsxNames = xlsxSheetNames(bytes);
     if (xlsxNames != null) {
       return xlsxNames;
-    }
-    if (bytes.length > MAX_WORKBOOK_BYTES) {
-      throw new IllegalArgumentException("The spreadsheet is not an xlsx and is over %d MB, too large to find its sheets in. Leave out 'sheet' to write in its active sheet."
-                                                                                                                                  .formatted(MAX_WORKBOOK_BYTES
-                                                                                                                                      / (1024 * 1024)));
     }
     try (Workbook workbook = open(bytes)) {
       List<String> names = new ArrayList<>();

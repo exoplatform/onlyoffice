@@ -343,15 +343,15 @@ public class SpreadsheetCellReaderTest {
   /**
    * An xlsx's Excel 4 macro sheet and dialog sheet are not among its sheet
    * names, as a workbook loaded whole, the one get_spreadsheet_cells reads,
-   * leaves them out, while a chart sheet is; and an xlsx over the size a workbook is loaded at still
-   * gives its names, its sheets never parsed.
+   * leaves them out, while a chart sheet is; and an xlsx over the size a
+   * workbook is loaded at is refused, POI inflating it whole in memory.
    * Mutants: a macro or dialog sheet kept, a chart sheet dropped, an xlsx
-   * over the size refused.
+   * over the size accepted.
    *
    * @throws IOException never
    */
   @Test
-  public void aMacroOrDialogSheetIsNotASheetNameAndALargeXlsxStillGivesItsNames() throws IOException {
+  public void aMacroOrDialogSheetIsNotASheetNameAndALargeXlsxIsRefused() throws IOException {
     byte[] macro = xlsxWithSecondSheetAs("application/vnd.ms-excel.macrosheet+xml",
                                          "http://schemas.microsoft.com/office/2006/relationships/xlMacrosheet",
                                          0);
@@ -370,7 +370,8 @@ public class SpreadsheetCellReaderTest {
                                                                         "http://schemas.openxmlformats.org/officeDocument/2006/relationships/chartsheet",
                                                                         0)));
     assertTrue(large.length > SpreadsheetCellReader.MAX_WORKBOOK_BYTES);
-    assertEquals(List.of("Data", "Macro1"), SpreadsheetCellReader.sheetNames(large));
+    assertTrue(assertThrows(IllegalArgumentException.class, () -> SpreadsheetCellReader.sheetNames(large)).getMessage()
+                                                                                                     .contains("Leave out 'sheet'"));
   }
 
 }
