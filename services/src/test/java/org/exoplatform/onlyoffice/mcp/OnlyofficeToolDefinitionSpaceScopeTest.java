@@ -78,7 +78,8 @@ public class OnlyofficeToolDefinitionSpaceScopeTest {
   private static final long                      SPACE_ID         = 12L;
 
   /** Reads by node id: the id's argument. */
-  private static final Map<String, List<String>> READS            = Map.of("get_document_editor_link", List.of("document_id"));
+  private static final Map<String, List<String>> READS            = Map.of("get_document_editor_link", List.of("document_id"),
+                                                                           "get_spreadsheet_cells", List.of("document_id", "sheet", "range"));
 
   /** Writes by node id: the id's argument first, then the other arguments a call may carry. */
   private static final Map<String, List<String>> WRITES           = Map.of("edit_document",
