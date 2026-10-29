@@ -184,6 +184,8 @@
             <include>**/**/OnlyofficeMcpToolTest.java</include>
             <include>**/**/CometdOnlyofficeServiceTest.java</include>
             <include>**/**/CometdUpdatedOutsideEventTest.java</include>
+            <include>**/**/OnlyofficeMcpToolSpaceScopeTest.java</include>
+            <include>**/**/OnlyofficeToolDefinitionSpaceScopeTest.java</include>
           </includes>
         </configuration>
       </plugin>
