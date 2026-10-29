@@ -207,6 +207,8 @@
             <include>**/**/EditorServiceTest.java</include>
             <include>**/**/OnlyofficeEditorServiceTest.java</include>
             <include>**/**/OnlyofficeMcpToolTest.java</include>
+            <include>**/**/OnlyofficeMcpToolSpaceScopeTest.java</include>
+            <include>**/**/OnlyofficeToolDefinitionSpaceScopeTest.java</include>
           </includes>
         </configuration>
       </plugin>
