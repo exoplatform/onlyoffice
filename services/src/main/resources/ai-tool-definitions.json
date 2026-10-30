@@ -34,7 +34,7 @@
         "idempotentHint": false,
         "openWorldHint": false
       },
-      "space_scope": { "object_arg": "document_id", "resolver": "document", "id_format": "hex32", "allowed_args": ["operations"] },
+      "space_scope": { "object_arg": "document_id", "resolver": "document", "id_format": "hex32", "allowed_args": ["operations"], "space_role": "member" },
       "require_approval": true
     },
     {
@@ -79,7 +79,7 @@
         "idempotentHint": false,
         "openWorldHint": false
       },
-      "space_scope": { "object_arg": "document_id", "resolver": "document", "id_format": "hex32", "allowed_args": ["operations"] },
+      "space_scope": { "object_arg": "document_id", "resolver": "document", "id_format": "hex32", "allowed_args": ["operations"], "space_role": "member" },
       "require_approval": true
     },
     {
@@ -124,7 +124,7 @@
         "idempotentHint": false,
         "openWorldHint": false
       },
-      "space_scope": { "object_arg": "document_id", "resolver": "document", "id_format": "hex32", "allowed_args": ["operations"] },
+      "space_scope": { "object_arg": "document_id", "resolver": "document", "id_format": "hex32", "allowed_args": ["operations"], "space_role": "member" },
       "require_approval": true
     },
     {
@@ -162,7 +162,7 @@
         "idempotentHint": false,
         "openWorldHint": false
       },
-      "space_scope": { "object_arg": "template_document_id", "resolver": "document", "id_format": "hex32", "allowed_args": ["name", "data"] },
+      "space_scope": { "object_arg": "template_document_id", "resolver": "document", "id_format": "hex32", "allowed_args": ["name", "data"], "space_role": "member" },
       "require_approval": true
     },
     {
@@ -196,7 +196,7 @@
         "idempotentHint": false,
         "openWorldHint": false
       },
-      "space_scope": { "object_arg": "document_id", "resolver": "document", "id_format": "hex32", "allowed_args": ["target_format"] },
+      "space_scope": { "object_arg": "document_id", "resolver": "document", "id_format": "hex32", "allowed_args": ["target_format"], "space_role": "member" },
       "require_approval": true
     },
     {
@@ -225,7 +225,7 @@
         "idempotentHint": false,
         "openWorldHint": false
       },
-      "space_scope": { "object_arg": "document_id", "resolver": "document", "id_format": "hex32" },
+      "space_scope": { "object_arg": "document_id", "resolver": "document", "id_format": "hex32", "space_role": "member" },
       "require_approval": true
     },
     {

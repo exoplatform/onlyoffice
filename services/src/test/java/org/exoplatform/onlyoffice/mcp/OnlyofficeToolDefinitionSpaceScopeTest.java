@@ -28,6 +28,7 @@ import static org.mockito.Mockito.when;
 
 import java.io.File;
 import java.net.URL;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -64,6 +65,14 @@ import tools.jackson.databind.json.JsonMapper;
  * opaque {@code operations} string and are checked by the tool itself.
  */
 public class OnlyofficeToolDefinitionSpaceScopeTest {
+
+  /** The role each space-scoped write declares in {@code space_role}. */
+  private static final Map<String, String> SPACE_ROLES = Map.of("convert_document", "member",
+                                                                "edit_document", "member",
+                                                                "edit_presentation", "member",
+                                                                "edit_spreadsheet", "member",
+                                                                "export_document_as_pdf", "member",
+                                                                "generate_document", "member");
 
   /** An argument that names another object or place. */
   private static final Pattern                   REFERENCE_SHAPED = Pattern.compile("(^|_)ids?$|[a-z]Ids?$|(?i:folder|space)");
@@ -280,6 +289,40 @@ public class OnlyofficeToolDefinitionSpaceScopeTest {
     } catch (Exception e) {
       throw new IllegalStateException("The office tool definitions couldn't be read", e);
     }
+  }
+
+  /**
+   * Each space-scoped write declares in {@code space_role} the role the member
+   * who asks a digital worker for it must hold in the call's space
+   * (EXO-91405), and no space-scoped read declares one: the file is in the
+   * space drive, whose folders grant every permission to
+   * {@code *:/spaces/<name>}, so each of them is {@code member}.
+   * Mutants: a write's role dropped or changed, or a read given one.
+   *
+   * @throws Exception when the shipped definitions can't be read
+   */
+  @Test
+  public void spaceScopedWritesDeclareTheAskersSpaceRole() throws Exception {
+    Map<String, String> roles = new HashMap<>();
+    URL classes = OnlyofficeMcpTool.class.getProtectionDomain().getCodeSource().getLocation();
+    JsonNode definitions = JsonMapper.builder().build().readTree(new File(new File(classes.toURI()), "ai-tool-definitions.json"));
+    for (JsonNode tool : definitions.path("tools")) {
+      String name = tool.path("name").asString();
+      JsonNode scope = tool.path("space_scope");
+      if (!scope.isObject()) {
+        continue;
+      }
+      if (tool.path("annotations").path("readOnlyHint").asBoolean(false)) {
+        assertFalse(name, scope.has("space_role"));
+      } else {
+        assertTrue(name, scope.has("space_role"));
+        roles.put(name, scope.path("space_role").asString());
+        if (scope.path("space_admin").asBoolean(false)) {
+          assertEquals(name, "manager", roles.get(name));
+        }
+      }
+    }
+    assertEquals(SPACE_ROLES, roles);
   }
 
 }
