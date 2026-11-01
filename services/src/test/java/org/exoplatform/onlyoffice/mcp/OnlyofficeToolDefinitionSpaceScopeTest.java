@@ -67,12 +67,12 @@ import tools.jackson.databind.json.JsonMapper;
 public class OnlyofficeToolDefinitionSpaceScopeTest {
 
   /** The role each space-scoped write declares in {@code space_role}. */
-  private static final Map<String, String> SPACE_ROLES = Map.of("convert_document", "member",
-                                                                "edit_document", "member",
-                                                                "edit_presentation", "member",
-                                                                "edit_spreadsheet", "member",
-                                                                "export_document_as_pdf", "member",
-                                                                "generate_document", "member");
+  private static final Map<String, String> SPACE_ROLES = Map.of("convert_document", "redactor",
+                                                                "edit_document", "redactor",
+                                                                "edit_presentation", "redactor",
+                                                                "edit_spreadsheet", "redactor",
+                                                                "export_document_as_pdf", "redactor",
+                                                                "generate_document", "redactor");
 
   /** An argument that names another object or place. */
   private static final Pattern                   REFERENCE_SHAPED = Pattern.compile("(^|_)ids?$|[a-z]Ids?$|(?i:folder|space)");
@@ -294,9 +294,14 @@ public class OnlyofficeToolDefinitionSpaceScopeTest {
   /**
    * Each space-scoped write declares in {@code space_role} the role the member
    * who asks a digital worker for it must hold in the call's space
-   * (EXO-91405), and no space-scoped read declares one: the file is in the
-   * space drive, whose folders grant every permission to
-   * {@code *:/spaces/<name>}, so each of them is {@code member}.
+   * (EXO-91405), and no space-scoped read declares one. The file is in the
+   * space drive, where who may write follows whether the space has
+   * redactors: without any, the drive grants every permission to
+   * {@code *:/spaces/<name>}; with some, members only read it and its
+   * managers, redactors and publishers write it
+   * ({@code DocumentUtils#buildStandardRedactionalSpacePermissions}). That
+   * is who may redact in the space ({@code SpaceService#canRedactOnSpace}),
+   * so each of them is {@code redactor}.
    * Mutants: a write's role dropped or changed, or a read given one.
    *
    * @throws Exception when the shipped definitions can't be read
