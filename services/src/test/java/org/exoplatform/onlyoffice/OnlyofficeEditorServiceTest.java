@@ -2006,14 +2006,25 @@ public class OnlyofficeEditorServiceTest extends BaseCommonsTestCase {
   }
 
   /**
-   * A user who holds a read right of their own on a document under the users
-   * folder, which grants no read right to any user, opens it in view mode and
-   * still gets its document location.
+   * A user opens in view mode a document of their own personal drive, which
+   * grants a read right to them and to no other user, and still gets its
+   * document location.
    */
   @Test
   public void testCreateViewerForUserKeepsDocumentLocation() throws Exception {
     // Given
     NodeImpl node = createDocument("User Document.docx", "nt:file", "testContent", false);
+    String privateFolderPath = "/Users/j___/jo___/joh___/" + USER_USERNAME + "/Private";
+    Node privateFolder = session.getRootNode();
+    for (String segment : privateFolderPath.substring(1).split("/")) {
+      privateFolder = privateFolder.hasNode(segment) ? privateFolder.getNode(segment)
+                                                     : privateFolder.addNode(segment, "nt:folder");
+    }
+    session.save();
+    session.move(node.getPath(), privateFolderPath + "/" + node.getName());
+    session.save();
+    node = (NodeImpl) session.getNodeByUUID(node.getUUID());
+    assertEquals(privateFolderPath + "/" + node.getName(), node.getPath());
     node.setPermissions(Map.of(USER_USERNAME, new String[] { PermissionType.READ }));
     node.save();
     assertTrue(node.getACL().getPermissions(IdentityConstants.ANY).isEmpty());
