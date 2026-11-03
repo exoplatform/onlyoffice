@@ -37,6 +37,7 @@ import org.exoplatform.services.log.ExoLogger;
 import org.exoplatform.services.log.Log;
 import org.exoplatform.services.security.ConversationState;
 import org.exoplatform.services.security.Identity;
+import org.exoplatform.services.security.IdentityConstants;
 import org.exoplatform.services.security.MembershipEntry;
 import org.exoplatform.social.core.space.model.Space;
 import org.exoplatform.social.core.space.spi.SpaceService;
@@ -229,6 +230,11 @@ public class OnlyofficeEditorServiceTest extends BaseCommonsTestCase {
     sessionProviderService.setSessionProvider(null, provider);
     SessionProvider systemSessionProvider = SessionProviderService.getSystemSessionProvider();
     session = systemSessionProvider.getSession("portal-test", SessionProviderService.getRepository());
+  }
+
+  protected void startAnonymousSession() {
+    ConversationState.setCurrent(new ConversationState(new Identity(IdentityConstants.ANONIM)));
+    sessionProviderService.setSessionProvider(null, SessionProvider.createAnonimProvider());
   }
 
   /**
@@ -1975,6 +1981,47 @@ public class OnlyofficeEditorServiceTest extends BaseCommonsTestCase {
                                                              .userId(userId)
                                                              .key(key)
                                                              .build());
+  }
+
+  /**
+   * An anonymous visitor of a public site opens a document in view mode: the
+   * portlet passes no user, the viewer is created and the visitor gets no
+   * document location to browse.
+   */
+  @Test
+  public void testCreateViewerForAnonymousVisitor() throws Exception {
+    // Given
+    Node node = createDocument("Anonymous Document.docx", "nt:file", "testContent", false);
+    assertTrue(node.getPath().startsWith("/Users"));
+    startAnonymousSession();
+
+    // When
+    Config config = editorService.createViewer("http", "127.0.0.1", 8080, null, null, node.getUUID());
+
+    // Then
+    assertNotNull(config);
+    assertEquals(OnlyofficeEditorService.VIEW_MODE, config.getEditorConfig().getMode());
+    assertFalse(config.getEditorConfig().isCanAccessDocumentLocation());
+    node.remove();
+  }
+
+  /**
+   * The same document opened in view mode by a user who can read it in a
+   * personal drive still gets its document location.
+   */
+  @Test
+  public void testCreateViewerForUserKeepsDocumentLocation() throws Exception {
+    // Given
+    Node node = createDocument("User Document.docx", "nt:file", "testContent", false);
+    startSessionAs(USER_USERNAME);
+
+    // When
+    Config config = editorService.createViewer("http", "127.0.0.1", 8080, USER_USERNAME, null, node.getUUID());
+
+    // Then
+    assertNotNull(config);
+    assertTrue(config.getEditorConfig().isCanAccessDocumentLocation());
+    node.remove();
   }
 
   /**

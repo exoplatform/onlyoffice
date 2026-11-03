@@ -841,7 +841,10 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
    }
 
     // Build a new editor config and document key
-    User user = getUser(userId);
+    // An anonymous visitor (public site viewer) comes with no user id: not
+    // every organization service accepts a null user name (the in-memory
+    // one throws), so none is looked up
+    User user = userId == null ? null : getUser(userId);
 
     String fileType = fileType(node);
     String docType = documentType(fileType);
@@ -1373,6 +1376,10 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
   }
 
   private boolean canAccessDocumentLocation(Node node, String userId) throws RepositoryException {
+    if (userId == null) {
+      // An anonymous visitor (public site viewer) has no drive or space to browse
+      return false;
+    }
     String path = node.getPath();
     String[] permissions = new String[] { PermissionType.READ };
     if (path.startsWith(usersPath)) {
