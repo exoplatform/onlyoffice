@@ -18,6 +18,8 @@
  */
 package org.exoplatform.onlyoffice.mcp;
 
+import static org.exoplatform.documents.util.MacOsMetadataUtils.isMacOsMetadata;
+
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -1245,8 +1247,14 @@ public class OnlyofficeMcpTool implements McpToolPlugin {
     if (bytes == null || bytes.length == 0) {
       throw new IllegalArgumentException("The produced document is empty; there is nothing to store.");
     }
-    getNode(parentFolderId);
     String entryName = sanitizeFileName(fileName);
+    // The Documents import skips macOS metadata names, so such a document would never be stored.
+    if (isMacOsMetadata(entryName)) {
+      throw new IllegalArgumentException(("The document name '%s' is a macOS metadata name (.DS_Store, a name starting with '._',"
+          + " or __MACOSX), which Documents does not store. Give the new document another name, or, when the name comes from"
+          + " a source document, ask the user to rename that document first.").formatted(entryName));
+    }
+    getNode(parentFolderId);
     String ownerId = String.valueOf(getOwnerId(parentFolderId));
     long userIdentityId = getCurrentUserIdentityId();
     Set<String> beforeFileIds = currentChildFileIds(parentFolderId);
