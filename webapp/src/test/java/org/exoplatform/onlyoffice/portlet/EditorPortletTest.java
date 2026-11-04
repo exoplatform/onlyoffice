@@ -101,17 +101,20 @@ class EditorPortletTest {
     requestContextStatic.when(RequestContext::getCurrentInstance).thenReturn(requestContext);
     when(requestContext.getRequestParameter("docId")).thenReturn(DOC_ID);
 
+    RequireJS requireJS = mock(RequireJS.class);
     onlyofficeContext = mockStatic(OnlyofficeContext.class);
-    onlyofficeContext.when(OnlyofficeContext::requireJS).thenReturn(mock(RequireJS.class));
+    onlyofficeContext.when(OnlyofficeContext::requireJS).thenReturn(requireJS);
 
-    when(i18nService.getResourceBundle(any(String[].class), any())).thenReturn(mock(ResourceBundle.class));
+    ResourceBundle resourceBundle = mock(ResourceBundle.class);
+    when(i18nService.getResourceBundle(any(String[].class), any())).thenReturn(resourceBundle);
     when(request.getLocale()).thenReturn(Locale.ENGLISH);
     lenient().when(request.getScheme()).thenReturn("http");
     lenient().when(request.getServerName()).thenReturn("localhost");
     lenient().when(request.getServerPort()).thenReturn(8080);
 
+    PortletRequestDispatcher dispatcher = mock(PortletRequestDispatcher.class);
     PortletContext portletContext = mock(PortletContext.class);
-    when(portletContext.getRequestDispatcher(anyString())).thenReturn(mock(PortletRequestDispatcher.class));
+    when(portletContext.getRequestDispatcher(anyString())).thenReturn(dispatcher);
     PortletConfig portletConfig = mock(PortletConfig.class);
     when(portletConfig.getPortletContext()).thenReturn(portletContext);
     portlet = new EditorPortlet();
