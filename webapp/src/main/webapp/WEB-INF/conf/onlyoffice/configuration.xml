@@ -225,7 +225,7 @@
               <long>${onlyoffice.EditorCache.TimeToLive:-1}</long>
             </field>
             <field name="cacheMode" profiles="cluster">
-              <string>${onlyoffice.EditorCache.cacheMode:replication}</string>
+              <string>${onlyoffice.EditorCache.cacheMode:asyncInvalidation}</string>
             </field>
           </object>
         </object-param>
@@ -265,7 +265,7 @@
               <long>${onlyoffice.EditorCache.TimeToLive:-1}</long>
             </field>
             <field name="cacheMode" profiles="cluster">
-              <string>${onlyoffice.EditorCache.cacheMode:replication}</string>
+              <string>${onlyoffice.EditorCache.cacheMode:asyncInvalidation}</string>
             </field>
           </object>
         </object-param>
