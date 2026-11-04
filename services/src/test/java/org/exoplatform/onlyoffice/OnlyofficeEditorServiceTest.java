@@ -11,6 +11,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import javax.jcr.AccessDeniedException;
 import javax.jcr.Node;
 import javax.jcr.Session;
 
@@ -2037,6 +2038,45 @@ public class OnlyofficeEditorServiceTest extends BaseCommonsTestCase {
     assertNotNull(config);
     assertTrue(config.getEditorConfig().isCanAccessDocumentLocation());
     node.remove();
+  }
+
+  /**
+   * An anonymous visitor asks for the viewer of a document that grants no read
+   * right to any user: the document is read through the request's anonymous
+   * session, which refuses it.
+   */
+  @Test
+  public void testCreateViewerRefusesAnonymousVisitorWithoutPublicRead() throws Exception {
+    // Given
+    NodeImpl node = createDocument("Private Document.docx", "nt:file", "testContent", false);
+    node.setPermissions(Map.of(USER_USERNAME, new String[] { PermissionType.READ }));
+    node.save();
+    assertTrue(node.getACL().getPermissions(IdentityConstants.ANY).isEmpty());
+    startAnonymousSession();
+
+    // When / Then
+    try {
+      editorService.createViewer("http", "127.0.0.1", 8080, null, null, node.getUUID());
+      fail("An anonymous visitor must not get the viewer of a document no user may read publicly");
+    } catch (AccessDeniedException e) {
+      // expected: the anonymous session cannot read the node
+    } finally {
+      node.remove();
+    }
+  }
+
+  /**
+   * The editor page opens an anonymous visitor in view mode whatever mode the
+   * link asks for, and a user in the mode the link asks for.
+   */
+  @Test
+  public void testResolveMode() {
+    assertEquals(OnlyofficeEditorService.VIEW_MODE, OnlyofficeEditorService.resolveMode(null, null));
+    assertEquals(OnlyofficeEditorService.VIEW_MODE,
+                 OnlyofficeEditorService.resolveMode(null, OnlyofficeEditorService.EDIT_MODE));
+    assertEquals(OnlyofficeEditorService.EDIT_MODE,
+                 OnlyofficeEditorService.resolveMode(USER_USERNAME, OnlyofficeEditorService.EDIT_MODE));
+    assertNull(OnlyofficeEditorService.resolveMode(USER_USERNAME, null));
   }
 
   /**
