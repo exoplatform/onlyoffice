@@ -231,6 +231,38 @@ public class SpreadsheetCellReaderTest {
   }
 
   /**
+   * One workbook is loaded at a time: a read that can't get its turn is
+   * refused with a message to call again, and a read gives its turn back
+   * once done, a refused one included. Mutants: the gate dropped; the turn
+   * not given back.
+   *
+   * @throws Exception never
+   */
+  @Test
+  public void oneWorkbookIsReadAtATime() throws Exception {
+    byte[] file;
+    try (Workbook workbook = new HSSFWorkbook()) {
+      workbook.createSheet("Data").createRow(0).createCell(0).setCellValue("x");
+      file = toBytes(workbook);
+    }
+    SpreadsheetCellReader.read("id", "data.xls", file, null, null);
+    assertEquals(1, SpreadsheetCellReader.READS.availablePermits());
+
+    SpreadsheetCellReader.READS.acquire();
+    try {
+      // an interrupted wait gives up at once, as a wait past its time does
+      Thread.currentThread().interrupt();
+      IllegalStateException busy = assertThrows(IllegalStateException.class,
+                                                () -> SpreadsheetCellReader.read("id", "data.xls", file, null, null));
+      assertEquals(SpreadsheetCellReader.MSG_BUSY, busy.getMessage());
+    } finally {
+      Thread.interrupted();
+      SpreadsheetCellReader.READS.release();
+    }
+    assertEquals(1, SpreadsheetCellReader.READS.availablePermits());
+  }
+
+  /**
    * The next range of a cut read names the sheet read, quoted as a formula
    * quotes it, so that the next call reads the same sheet and not the active
    * one. Mutants: the sheet left out of the next range; the doubled quote not
