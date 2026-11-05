@@ -68,6 +68,9 @@ final class SpreadsheetCellReader {
 
   private static final Log LOG                = ExoLogger.getLogger(SpreadsheetCellReader.class);
 
+  /** The answer when the workbook can't be read, the engine's text kept for the log */
+  static final String      MSG_UNREADABLE     = "The spreadsheet could not be read.";
+
   /** The sheets a workbook loaded whole keeps, by relationship: worksheets and chart sheets. */
   private static final Set<String> KEPT_SHEET_RELATIONS = Set.of(XSSFRelation.WORKSHEET.getRelation(),
                                                                  XSSFRelation.CHARTSHEET.getRelation());
@@ -104,7 +107,8 @@ final class SpreadsheetCellReader {
       }
       return names;
     } catch (IOException e) {
-      throw new IllegalStateException("The spreadsheet could not be read: " + e.getMessage());
+      LOG.debug("Can't read the spreadsheet", e);
+      throw new IllegalStateException(MSG_UNREADABLE, e);
     }
   }
 
@@ -175,7 +179,7 @@ final class SpreadsheetCellReader {
     String rangeRef = StringUtils.trimToNull(range);
     String requestedSheet = StringUtils.trimToNull(sheetName);
     if (rangeRef != null && rangeRef.contains("!")) {
-      requestedSheet = StringUtils.removeEnd(StringUtils.removeStart(StringUtils.substringBeforeLast(rangeRef, "!"), "'"), "'");
+      requestedSheet = unquoteSheetName(StringUtils.substringBeforeLast(rangeRef, "!"));
       rangeRef = StringUtils.substringAfterLast(rangeRef, "!");
     }
     try (Workbook workbook = open(bytes)) {
@@ -224,7 +228,10 @@ final class SpreadsheetCellReader {
           }
         }
         if (cells.size() + rowCells.size() > MAX_CELLS && !cells.isEmpty()) {
-          nextRange = new CellRangeAddress(r, area.getLastRow(), area.getFirstColumn(), area.getLastColumn()).formatAsString();
+          // the sheet read is named, quoted as a formula names it, so that the next call reads the same sheet
+          nextRange = new CellRangeAddress(r, area.getLastRow(), area.getFirstColumn(), area.getLastColumn())
+                                                                                                         .formatAsString(sheet.getSheetName(),
+                                                                                                                         false);
         } else {
           cells.addAll(rowCells);
         }
@@ -244,8 +251,25 @@ final class SpreadsheetCellReader {
                                        nextRange != null,
                                        nextRange);
     } catch (IOException e) {
-      throw new IllegalStateException("The spreadsheet could not be read: " + e.getMessage());
+      LOG.debug("Can't read the spreadsheet", e);
+      throw new IllegalStateException(MSG_UNREADABLE, e);
     }
+  }
+
+  /**
+   * Reads the sheet name of a range's prefix as a formula writes it: in single
+   * quotes when it holds a space or punctuation, each quote of the name
+   * doubled inside them.
+   *
+   * @param prefix the part of a range before its {@code !}
+   * @return the sheet name
+   */
+  static String unquoteSheetName(String prefix) {
+    String name = StringUtils.trimToEmpty(prefix);
+    if (name.length() >= 2 && name.startsWith("'") && name.endsWith("'")) {
+      return name.substring(1, name.length() - 1).replace("''", "'");
+    }
+    return name;
   }
 
   /**

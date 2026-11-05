@@ -224,9 +224,42 @@ public class SpreadsheetCellReaderTest {
     assertTrue(first.truncated());
     assertEquals(SpreadsheetCellReader.MAX_CELLS / 3 * 3, first.cells().size());
     assertEquals("C666", first.cells().get(first.cells().size() - 1).ref());
-    assertEquals("A667:C1000", first.nextRange());
+    assertEquals("Data!A667:C1000", first.nextRange());
     SpreadsheetCellsModel rest = SpreadsheetCellReader.read("id", "data.xls", file, null, first.nextRange());
     assertFalse(rest.truncated());
+    assertEquals(334 * 3, rest.cells().size());
+  }
+
+  /**
+   * The next range of a cut read names the sheet read, quoted as a formula
+   * quotes it, so that the next call reads the same sheet and not the active
+   * one. Mutants: the sheet left out of the next range; the doubled quote not
+   * undone when the range is read.
+   *
+   * @throws IOException never
+   */
+  @Test
+  public void theNextRangeOfANamedSheetStaysOnThatSheet() throws IOException {
+    byte[] file;
+    try (Workbook workbook = new HSSFWorkbook()) {
+      workbook.createSheet("Intro").createRow(0).createCell(0).setCellValue("Read me");
+      Sheet sheet = workbook.createSheet("Rob's data");
+      for (int r = 0; r < 1000; r++) {
+        Row row = sheet.createRow(r);
+        for (int c = 0; c < 3; c++) {
+          row.createCell(c).setCellValue(r * 3 + c);
+        }
+      }
+      workbook.setActiveSheet(0);
+      file = toBytes(workbook);
+    }
+
+    SpreadsheetCellsModel first = SpreadsheetCellReader.read("id", "data.xls", file, null, "'Rob''s data'!A1:C1000");
+
+    assertEquals("Rob's data", first.sheet());
+    assertEquals("'Rob''s data'!A667:C1000", first.nextRange());
+    SpreadsheetCellsModel rest = SpreadsheetCellReader.read("id", "data.xls", file, null, first.nextRange());
+    assertEquals("Rob's data", rest.sheet());
     assertEquals(334 * 3, rest.cells().size());
   }
 
