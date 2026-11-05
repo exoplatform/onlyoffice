@@ -32,6 +32,10 @@
   <name>eXo Add-on:: OnlyOffice Editor Extension Webapp</name>
   <description>eXo OnlyOffice Editor web application of portal extension</description>
 
+  <properties>
+    <exo.test.coverage.ratio>0.41</exo.test.coverage.ratio>
+  </properties>
+
   <dependencies>
     <dependency>
       <groupId>org.exoplatform.addons.onlyoffice</groupId>
