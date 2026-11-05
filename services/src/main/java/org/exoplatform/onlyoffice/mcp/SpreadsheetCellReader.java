@@ -24,6 +24,8 @@ import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.concurrent.Semaphore;
+import java.util.concurrent.TimeUnit;
 import java.util.Set;
 
 import org.apache.commons.lang3.StringUtils;
@@ -39,6 +41,7 @@ import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.ss.usermodel.WorkbookFactory;
 import org.apache.poi.ss.util.CellRangeAddress;
 import org.apache.poi.ss.util.CellReference;
+import org.apache.poi.util.RecordFormatException;
 import org.apache.poi.openxml4j.opc.PackagePart;
 import org.apache.poi.openxml4j.opc.PackageRelationship;
 import org.apache.poi.openxml4j.opc.PackageRelationshipTypes;
@@ -60,8 +63,27 @@ import org.exoplatform.services.log.Log;
  */
 final class SpreadsheetCellReader {
 
-  /** The largest workbook loaded whole, its cells read or, for an xls, its sheet names. */
-  static final long        MAX_WORKBOOK_BYTES = 20L * 1024 * 1024;
+  /**
+   * The largest workbook loaded whole, its cells read or, for an xls, its
+   * sheet names. Loaded whole, an xlsx takes about 170 times its size in
+   * heap (measured with POI 5.4.1 on dense workbooks: 359 MB for 2.1 MB, 714
+   * MB for 4.2 MB), and a dense one past about 8 MB is refused by POI's own
+   * record length limit, so the bound keeps one read under a gigabyte.
+   */
+  static final long        MAX_WORKBOOK_BYTES = 4L * 1024 * 1024;
+
+  /** How long a read waits for another one to end before it is refused. */
+  static final long        READ_WAIT_SECONDS  = 30;
+
+  /** The answer when another workbook is still being read. */
+  static final String      MSG_BUSY           = "Another spreadsheet is being read right now. Call again in a moment.";
+
+  /** The answer when the workbook holds a part larger than the engine reads. */
+  static final String      MSG_TOO_LARGE      = "The spreadsheet holds more cells than can be read from it. "
+      + "Read its text with get_document_content_by_id instead.";
+
+  /** One workbook loaded whole at a time: each one takes many times its size in heap. */
+  static final Semaphore   READS              = new Semaphore(1, true);
 
   /** The most non-empty cells one call returns. */
   static final int         MAX_CELLS          = 2000;
@@ -100,6 +122,7 @@ final class SpreadsheetCellReader {
     if (xlsxNames != null) {
       return xlsxNames;
     }
+    acquireRead();
     try (Workbook workbook = open(bytes)) {
       List<String> names = new ArrayList<>();
       for (int i = 0; i < workbook.getNumberOfSheets(); i++) {
@@ -109,6 +132,8 @@ final class SpreadsheetCellReader {
     } catch (IOException e) {
       LOG.debug("Can't read the spreadsheet", e);
       throw new IllegalStateException(MSG_UNREADABLE, e);
+    } finally {
+      READS.release();
     }
   }
 
@@ -176,6 +201,42 @@ final class SpreadsheetCellReader {
    *           the sheet or the range can't be found or read
    */
   static SpreadsheetCellsModel read(String id, String title, byte[] bytes, String sheetName, String range) {
+    acquireRead();
+    try {
+      return readCells(id, title, bytes, sheetName, range);
+    } finally {
+      READS.release();
+    }
+  }
+
+  /**
+   * Waits for the one workbook read at a time, and refuses the read when
+   * another one does not end in time.
+   *
+   * @throws IllegalStateException when another read holds it past the wait
+   */
+  private static void acquireRead() {
+    try {
+      if (!READS.tryAcquire(READ_WAIT_SECONDS, TimeUnit.SECONDS)) {
+        throw new IllegalStateException(MSG_BUSY);
+      }
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+      throw new IllegalStateException(MSG_BUSY, e);
+    }
+  }
+
+  /**
+   * Reads the cells of a range of a workbook, as {@link #read} describes.
+   *
+   * @param id the spreadsheet id
+   * @param title the spreadsheet title
+   * @param bytes the workbook file
+   * @param sheetName the sheet to read, blank for the active one
+   * @param range the range in A1 notation, blank for the sheet's used range
+   * @return the cells read
+   */
+  private static SpreadsheetCellsModel readCells(String id, String title, byte[] bytes, String sheetName, String range) {
     String rangeRef = StringUtils.trimToNull(range);
     String requestedSheet = StringUtils.trimToNull(sheetName);
     if (rangeRef != null && rangeRef.contains("!")) {
@@ -283,6 +344,9 @@ final class SpreadsheetCellReader {
   private static Workbook open(byte[] bytes) throws IOException {
     try {
       return WorkbookFactory.create(new ByteArrayInputStream(bytes));
+    } catch (RecordFormatException e) {
+      LOG.debug("The spreadsheet holds a part over the engine's record length", e);
+      throw new IllegalArgumentException(MSG_TOO_LARGE, e);
     } catch (IOException | RuntimeException e) {
       throw new IllegalArgumentException("The document isn't an Excel spreadsheet (xlsx or xls), so its cells can't be read. "
           + "Convert it to xlsx first with convert_document.");
