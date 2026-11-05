@@ -551,6 +551,10 @@
             "www": "exoplatform.com"
           }
         };
+        if (!eXo.env.portal.userName) {
+          // An anonymous visitor (public site viewer) has no document location to go back to
+          delete config.editorConfig.customization.goback;
+        }
 
         config.editorConfig.plugins = {
           "autostart": [],
