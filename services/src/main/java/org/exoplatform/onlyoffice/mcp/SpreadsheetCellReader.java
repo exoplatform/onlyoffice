@@ -72,6 +72,13 @@ final class SpreadsheetCellReader {
    */
   static final long        MAX_WORKBOOK_BYTES = 4L * 1024 * 1024;
 
+  /**
+   * The largest xlsx whose sheet names are read: they come from its workbook
+   * part alone, the sheets inflated but never parsed, so the bound is the
+   * former one, not the bound of a workbook loaded whole.
+   */
+  static final long        MAX_SHEET_NAMES_BYTES = 20L * 1024 * 1024;
+
   /** How long a read waits for another one to end before it is refused. */
   static final long        READ_WAIT_SECONDS  = 30;
 
@@ -101,10 +108,20 @@ final class SpreadsheetCellReader {
   }
 
   /**
-   * Lists the sheet names of a workbook, in order, up to
-   * {@link #MAX_WORKBOOK_BYTES}: an xlsx's from its workbook part, its sheets
-   * inflated in memory but never parsed, a macro or dialog sheet left out as
-   * a workbook loaded whole leaves it out; an xls's by opening it.
+   * @param bound the bound the spreadsheet is over
+   * @return the refusal of a spreadsheet too large to find its sheets in
+   */
+  private static IllegalArgumentException tooLargeToFindSheets(long bound) {
+    return new IllegalArgumentException("The spreadsheet is over %d MB, too large to find its sheets in. Leave out 'sheet' to write in its active sheet."
+                                                                                                                                .formatted(bound / (1024 * 1024)));
+  }
+
+  /**
+   * Lists the sheet names of a workbook, in order: an xlsx's from its
+   * workbook part, up to {@link #MAX_SHEET_NAMES_BYTES}, its sheets inflated
+   * in memory but never parsed, a macro or dialog sheet left out as a
+   * workbook loaded whole leaves it out; an xls's by opening it, up to
+   * {@link #MAX_WORKBOOK_BYTES}.
    *
    * @param bytes the workbook file
    * @return the sheet names
@@ -112,15 +129,16 @@ final class SpreadsheetCellReader {
    *           is too large
    */
   static List<String> sheetNames(byte[] bytes) {
-    if (bytes.length > MAX_WORKBOOK_BYTES) {
+    if (bytes.length > MAX_SHEET_NAMES_BYTES) {
       // an xlsx read from memory is inflated whole by POI, its sheets with it
-      throw new IllegalArgumentException("The spreadsheet is over %d MB, too large to find its sheets in. Leave out 'sheet' to write in its active sheet."
-                                                                                                                                  .formatted(MAX_WORKBOOK_BYTES
-                                                                                                                                      / (1024 * 1024)));
+      throw tooLargeToFindSheets(MAX_SHEET_NAMES_BYTES);
     }
     List<String> xlsxNames = xlsxSheetNames(bytes);
     if (xlsxNames != null) {
       return xlsxNames;
+    } else if (bytes.length > MAX_WORKBOOK_BYTES) {
+      // an xls's names come from loading it whole
+      throw tooLargeToFindSheets(MAX_WORKBOOK_BYTES);
     }
     acquireRead();
     try (Workbook workbook = open(bytes)) {
