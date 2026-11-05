@@ -231,6 +231,33 @@ public class SpreadsheetCellReaderTest {
   }
 
   /**
+   * A workbook holding a part longer than POI reads is refused with its own
+   * message, not as a file that isn't a spreadsheet: POI throws a
+   * {@code RecordFormatException} past its record length (100 MB by default),
+   * which a dense xlsx of about 8 MB reaches; the engine is stubbed to throw
+   * it. Mutant: the record-length failure answered as an unreadable file.
+   *
+   * @throws IOException never
+   */
+  @Test
+  public void aWorkbookWithAPartOverTheEngineLimitSaysItIsTooDense() throws IOException {
+    byte[] file;
+    try (Workbook workbook = new XSSFWorkbook()) {
+      workbook.createSheet("Data").createRow(0).createCell(0).setCellValue("x");
+      file = toBytes(workbook);
+    }
+    try (org.mockito.MockedStatic<org.apache.poi.ss.usermodel.WorkbookFactory> factory =
+                                                                                     org.mockito.Mockito.mockStatic(org.apache.poi.ss.usermodel.WorkbookFactory.class)) {
+      factory.when(() -> org.apache.poi.ss.usermodel.WorkbookFactory.create(org.mockito.ArgumentMatchers.any(java.io.InputStream.class)))
+             .thenThrow(new org.apache.poi.util.RecordFormatException("Tried to read data but the maximum length for this record type is 100,000,000."));
+
+      IllegalArgumentException error = assertThrows(IllegalArgumentException.class,
+                                                    () -> SpreadsheetCellReader.read("id", "data.xlsx", file, null, null));
+      assertEquals(SpreadsheetCellReader.MSG_TOO_LARGE, error.getMessage());
+    }
+  }
+
+  /**
    * One workbook is loaded at a time: a read that can't get its turn is
    * refused with a message to call again, and a read gives its turn back
    * once done, a refused one included. Mutants: the gate dropped; the turn
@@ -411,7 +438,7 @@ public class SpreadsheetCellReaderTest {
    * leaves them out, while a chart sheet is; and an xlsx over the size a
    * workbook is loaded at is refused, POI inflating it whole in memory.
    * Mutants: a macro or dialog sheet kept, a chart sheet dropped, an xlsx
-   * over the size accepted.
+   * over the size accepted, or one past the bound of a whole load refused.
    *
    * @throws IOException never
    */
@@ -425,7 +452,10 @@ public class SpreadsheetCellReaderTest {
                                           0);
     byte[] large = xlsxWithSecondSheetAs("application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml",
                                          "http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet",
-                                         (int) SpreadsheetCellReader.MAX_WORKBOOK_BYTES + 1);
+                                         (int) SpreadsheetCellReader.MAX_SHEET_NAMES_BYTES + 1);
+    byte[] overTheWholeLoadBound = xlsxWithSecondSheetAs("application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml",
+                                                         "http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet",
+                                                         (int) SpreadsheetCellReader.MAX_WORKBOOK_BYTES + 1);
 
     assertEquals(List.of("Data"), SpreadsheetCellReader.sheetNames(macro));
     assertEquals(List.of("Data"), SpreadsheetCellReader.sheetNames(dialog));
@@ -434,7 +464,9 @@ public class SpreadsheetCellReaderTest {
                  SpreadsheetCellReader.sheetNames(xlsxWithSecondSheetAs("application/vnd.openxmlformats-officedocument.spreadsheetml.chartsheet+xml",
                                                                         "http://schemas.openxmlformats.org/officeDocument/2006/relationships/chartsheet",
                                                                         0)));
-    assertTrue(large.length > SpreadsheetCellReader.MAX_WORKBOOK_BYTES);
+    // an xlsx past the bound of a whole load still gives its names: they never load its sheets
+    assertEquals(List.of("Data", "Macro1"), SpreadsheetCellReader.sheetNames(overTheWholeLoadBound));
+    assertTrue(large.length > SpreadsheetCellReader.MAX_SHEET_NAMES_BYTES);
     assertTrue(assertThrows(IllegalArgumentException.class, () -> SpreadsheetCellReader.sheetNames(large)).getMessage()
                                                                                                      .contains("Leave out 'sheet'"));
   }
