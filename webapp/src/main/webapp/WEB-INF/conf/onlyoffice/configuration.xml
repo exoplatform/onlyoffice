@@ -225,7 +225,7 @@
               <long>${onlyoffice.EditorCache.TimeToLive:-1}</long>
             </field>
             <field name="cacheMode" profiles="cluster">
-              <string>${onlyoffice.EditorCache.cacheMode:replication}</string>
+              <string>${onlyoffice.EditorCache.cacheMode:asyncInvalidation}</string>
             </field>
           </object>
         </object-param>
@@ -244,6 +244,7 @@
             <field name="liveTime">
               <long>${onlyoffice.ViewerCache.TimeToLive:-1}</long>
             </field>
+            <!-- A viewer configuration is state no store holds, which the document server downloads through any node: replicated -->
             <field name="cacheMode" profiles="cluster">
               <string>${onlyoffice.ViewerCache.cacheMode:replication}</string>
             </field>
@@ -265,7 +266,7 @@
               <long>${onlyoffice.EditorCache.TimeToLive:-1}</long>
             </field>
             <field name="cacheMode" profiles="cluster">
-              <string>${onlyoffice.EditorCache.cacheMode:replication}</string>
+              <string>${onlyoffice.EditorCache.cacheMode:asyncInvalidation}</string>
             </field>
           </object>
         </object-param>
