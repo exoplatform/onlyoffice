@@ -342,6 +342,7 @@ public class OnlyofficeMcpToolTest {
                                                                      null));
 
     assertTrue(ex.getMessage().contains("'._draft.docx' is a macOS metadata name"));
+    assertTrue(ex.getMessage().contains("Ask the user for another name for the new document"));
     verify(documentFileService, never()).importFiles(any(), any(), any(), any(), any(), any(), anyLong());
   }
 
@@ -458,7 +459,7 @@ public class OnlyofficeMcpToolTest {
                                                () -> tool.exportDocumentAsPdf("doc-1", "target-folder"));
 
     assertTrue(ex.getMessage().contains("'._notes.pdf' is a macOS metadata name"));
-    assertTrue(ex.getMessage().contains("ask the user to rename that document first"));
+    assertTrue(ex.getMessage().contains("when the name comes from a source document, to rename that document first"));
     verify(documentFileService, never()).importFiles(any(), any(), any(), any(), any(), any(), anyLong());
   }
 

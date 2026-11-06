@@ -1251,8 +1251,8 @@ public class OnlyofficeMcpTool implements McpToolPlugin {
     // The Documents import skips macOS metadata names, so such a document would never be stored.
     if (isMacOsMetadata(entryName)) {
       throw new IllegalArgumentException(("The document name '%s' is a macOS metadata name (.DS_Store, a name starting with '._',"
-          + " or __MACOSX), which Documents does not store. Give the new document another name, or, when the name comes from"
-          + " a source document, ask the user to rename that document first.").formatted(entryName));
+          + " or __MACOSX), which Documents does not store. Ask the user for another name for the new document, or, when the"
+          + " name comes from a source document, to rename that document first.").formatted(entryName));
     }
     getNode(parentFolderId);
     String ownerId = String.valueOf(getOwnerId(parentFolderId));
