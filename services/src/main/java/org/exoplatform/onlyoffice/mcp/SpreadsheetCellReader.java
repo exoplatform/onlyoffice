@@ -29,6 +29,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.Set;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.poi.openxml4j.opc.OPCPackage;
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.CellType;
@@ -75,7 +76,9 @@ final class SpreadsheetCellReader {
   /**
    * The largest xlsx whose sheet names are read: they come from its workbook
    * part alone, the sheets inflated but never parsed, so the bound is the
-   * former one, not the bound of a workbook loaded whole.
+   * former one, not the bound of a workbook loaded whole. POI still inflates
+   * every part in memory, so the read takes the one-read permit, and a dense
+   * xlsx whose part passes POI's record length is refused as too dense.
    */
   static final long        MAX_SHEET_NAMES_BYTES = 20L * 1024 * 1024;
 
@@ -84,6 +87,10 @@ final class SpreadsheetCellReader {
 
   /** The answer when another workbook is still being read. */
   static final String      MSG_BUSY           = "Another spreadsheet is being read right now. Call again in a moment.";
+
+  /** The answer when a workbook's sheets can't be found: it holds a part larger than the engine reads. */
+  static final String      MSG_TOO_DENSE_TO_FIND_SHEETS = "The spreadsheet holds more cells than its sheets can be found in. "
+      + "Leave out 'sheet' to write in its active sheet.";
 
   /** The answer when the workbook holds a part larger than the engine reads. */
   static final String      MSG_TOO_LARGE      = "The spreadsheet holds more cells than can be read from it. "
@@ -121,35 +128,40 @@ final class SpreadsheetCellReader {
    * workbook part, up to {@link #MAX_SHEET_NAMES_BYTES}, its sheets inflated
    * in memory but never parsed, a macro or dialog sheet left out as a
    * workbook loaded whole leaves it out; an xls's by opening it, up to
-   * {@link #MAX_WORKBOOK_BYTES}.
+   * {@link #MAX_WORKBOOK_BYTES}. Either way under the one-read permit, since
+   * POI inflates an xlsx's parts in memory too.
    *
    * @param bytes the workbook file
    * @return the sheet names
-   * @throws IllegalArgumentException when the file isn't an Excel workbook, or
-   *           is too large
+   * @throws IllegalArgumentException when the file isn't an Excel workbook, is
+   *           too large, or holds a part over the engine's record length
+   * @throws IllegalStateException when another read holds the permit past the
+   *           wait, or the file can't be read
    */
   static List<String> sheetNames(byte[] bytes) {
     if (bytes.length > MAX_SHEET_NAMES_BYTES) {
       // an xlsx read from memory is inflated whole by POI, its sheets with it
       throw tooLargeToFindSheets(MAX_SHEET_NAMES_BYTES);
     }
-    List<String> xlsxNames = xlsxSheetNames(bytes);
-    if (xlsxNames != null) {
-      return xlsxNames;
-    } else if (bytes.length > MAX_WORKBOOK_BYTES) {
-      // an xls's names come from loading it whole
-      throw tooLargeToFindSheets(MAX_WORKBOOK_BYTES);
-    }
     acquireRead();
-    try (Workbook workbook = open(bytes)) {
-      List<String> names = new ArrayList<>();
-      for (int i = 0; i < workbook.getNumberOfSheets(); i++) {
-        names.add(workbook.getSheetName(i));
+    try {
+      List<String> xlsxNames = xlsxSheetNames(bytes);
+      if (xlsxNames != null) {
+        return xlsxNames;
+      } else if (bytes.length > MAX_WORKBOOK_BYTES) {
+        // an xls's names come from loading it whole
+        throw tooLargeToFindSheets(MAX_WORKBOOK_BYTES);
       }
-      return names;
-    } catch (IOException e) {
-      LOG.debug("Can't read the spreadsheet", e);
-      throw new IllegalStateException(MSG_UNREADABLE, e);
+      try (Workbook workbook = open(bytes)) {
+        List<String> names = new ArrayList<>();
+        for (int i = 0; i < workbook.getNumberOfSheets(); i++) {
+          names.add(workbook.getSheetName(i));
+        }
+        return names;
+      } catch (IOException e) {
+        LOG.debug("Can't read the spreadsheet", e);
+        throw new IllegalStateException(MSG_UNREADABLE, e);
+      }
     } finally {
       READS.release();
     }
@@ -162,6 +174,8 @@ final class SpreadsheetCellReader {
    *
    * @param bytes the file
    * @return the names, null when the file isn't an xlsx
+   * @throws IllegalArgumentException when the xlsx holds a part over the
+   *           engine's record length: a dense xlsx, not a file of another kind
    */
   private static List<String> xlsxSheetNames(byte[] bytes) {
     try (OPCPackage pkg = OPCPackage.open(new ByteArrayInputStream(bytes))) {
@@ -179,6 +193,10 @@ final class SpreadsheetCellReader {
       }
       return names;
     } catch (Exception e) { // NOSONAR not an xlsx: read as any workbook
+      if (ExceptionUtils.indexOfType(e, RecordFormatException.class) >= 0) {
+        LOG.debug("The xlsx holds a part over the engine's record length", e);
+        throw new IllegalArgumentException(MSG_TOO_DENSE_TO_FIND_SHEETS, e);
+      }
       LOG.debug("Not an xlsx, its sheet names are read by opening it", e);
       return null;
     }

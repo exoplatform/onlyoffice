@@ -258,6 +258,56 @@ public class SpreadsheetCellReaderTest {
   }
 
   /**
+   * A dense xlsx whose part passes POI's record length is refused, when its
+   * sheet names are read, as too dense to find its sheets in, not read again
+   * as a file of another kind and refused for its size; the permit is given
+   * back. POI's package read is stubbed to throw the record-length failure.
+   * Mutant: the failure swallowed as "not an xlsx".
+   *
+   * @throws IOException never
+   */
+  @Test
+  public void aDenseXlsxIsRefusedAsTooDenseToFindItsSheets() throws IOException {
+    byte[] file = xlsxWithSecondSheetAs("application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml",
+                                        "http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet",
+                                        0);
+    try (org.mockito.MockedStatic<org.apache.poi.openxml4j.opc.OPCPackage> pkg =
+                                                                                org.mockito.Mockito.mockStatic(org.apache.poi.openxml4j.opc.OPCPackage.class)) {
+      pkg.when(() -> org.apache.poi.openxml4j.opc.OPCPackage.open(org.mockito.ArgumentMatchers.any(java.io.InputStream.class)))
+         .thenThrow(new org.apache.poi.util.RecordFormatException("Tried to read data but the maximum length for this record type is 100,000,000."));
+
+      IllegalArgumentException error = assertThrows(IllegalArgumentException.class, () -> SpreadsheetCellReader.sheetNames(file));
+      assertEquals(SpreadsheetCellReader.MSG_TOO_DENSE_TO_FIND_SHEETS, error.getMessage());
+    }
+    assertEquals(1, SpreadsheetCellReader.READS.availablePermits());
+  }
+
+  /**
+   * An xlsx's sheet names are read under the one-read permit, POI inflating
+   * its parts in memory: a read that can't get its turn is refused. Mutant:
+   * the xlsx read before the permit is taken.
+   *
+   * @throws Exception never
+   */
+  @Test
+  public void anXlsxsSheetNamesWaitForTheReadPermit() throws Exception {
+    byte[] file = xlsxWithSecondSheetAs("application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml",
+                                        "http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet",
+                                        0);
+    SpreadsheetCellReader.READS.acquire();
+    try {
+      Thread.currentThread().interrupt();
+      IllegalStateException busy = assertThrows(IllegalStateException.class, () -> SpreadsheetCellReader.sheetNames(file));
+      assertEquals(SpreadsheetCellReader.MSG_BUSY, busy.getMessage());
+    } finally {
+      Thread.interrupted();
+      SpreadsheetCellReader.READS.release();
+    }
+    assertEquals(List.of("Data", "Macro1"), SpreadsheetCellReader.sheetNames(file));
+    assertEquals(1, SpreadsheetCellReader.READS.availablePermits());
+  }
+
+  /**
    * One workbook is loaded at a time: a read that can't get its turn is
    * refused with a message to call again, and a read gives its turn back
    * once done, a refused one included. Mutants: the gate dropped; the turn
