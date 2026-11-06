@@ -192,6 +192,7 @@
             <include>**/**/CometdUpdatedOutsideEventTest.java</include>
             <include>**/**/OnlyofficeMcpToolSpaceScopeTest.java</include>
             <include>**/**/OnlyofficeToolDefinitionSpaceScopeTest.java</include>
+            <include>**/**/SpreadsheetCellReaderTest.java</include>
           </includes>
         </configuration>
       </plugin>
