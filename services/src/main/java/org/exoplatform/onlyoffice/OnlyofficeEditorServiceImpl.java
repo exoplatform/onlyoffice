@@ -1745,6 +1745,10 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
         return;
       }
       NodeImpl node = (NodeImpl) getDocumentById(workspace, docId);
+      if (!canRenameDocument(node)) {
+        LOG.debug("User {} is not allowed to rename document docId: {}", userId, docId);
+        return;
+      }
       Node parentNode = node.getParent();
       if (parentNode.canAddMixin(NodetypeConstant.MIX_REFERENCEABLE)) {
         parentNode.addMixin(NodetypeConstant.MIX_REFERENCEABLE);
