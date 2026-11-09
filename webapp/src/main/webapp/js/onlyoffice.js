@@ -1209,36 +1209,36 @@
       $.ajax({
         url: "/portal/rest/onlyoffice/editor/versions/" + workspace + "/" + docId + "/" + itemParPage + "/" + pageNum,
         success: function(data) {
-          var html = "";
+          var versions = [];
           for (var i = 0; i < data.length; i++) {
-            let versionLabels = data[i].versionLabels
-            versionLabels = DOMPurify.sanitize(versionLabels);
-            html += "<table class='tableContentStyle'>" + "<tr class='tableHead'>" + "<th class='displayAvatarFullName'>" +
-              "<div class='avatarCircle'>" + "<img src='/rest/v1/social/users/" +
-              data[i].author +
-              "/avatar'>" +
-              "</div>" +
-              "<div class='user-edit'>" +
-              data[i].fullName +
-              "</div>" +
-              "<div class='created-date' rel='tooltip' data-placement='bottom'  data-original-title='" +
-              UI.getAbsoluteTime(data[i].createdTime) +
-              "'>" +
-              UI.getRelativeTime(data[i].createdTime) +
-              "</div>" +
+            // The skeleton holds no data: user-entered values are set as text or attribute values only
+            var $version = $("<table class='tableContentStyle'>" + "<tr class='tableHead'>" + "<th class='displayAvatarFullName'>" +
+              "<div class='avatarCircle'><img></div>" +
+              "<div class='user-edit'></div>" +
+              "<div class='created-date' rel='tooltip' data-placement='bottom'></div>" +
               "</th>" +
               "</tr>" +
               "<tr class='tableContent'>" +
               "<th>" +
-              "<div class='editors-comment-versions b' rel='tooltip' data-placement='bottom'  data-original-title='" +
-              versionLabels + "'>" + versionLabels + "</div>" + "</th>" + "</tr>" + "</table>";
+              "<div class='editors-comment-versions b' rel='tooltip' data-placement='bottom'></div>" +
+              "</th>" + "</tr>" + "</table>");
+            var versionLabels = [].concat(data[i].versionLabels || []).join(",");
+            $version.find(".avatarCircle img").attr("src", "/rest/v1/social/users/" + data[i].author + "/avatar");
+            $version.find(".user-edit").text(data[i].fullName);
+            $version.find(".created-date")
+              .attr("data-original-title", UI.getAbsoluteTime(data[i].createdTime))
+              .text(UI.getRelativeTime(data[i].createdTime));
+            $version.find(".editors-comment-versions")
+              .attr("data-original-title", versionLabels)
+              .text(versionLabels);
+            versions.push($version);
           };
 
           // Test update DOM versions list or load more versions
           if (updateVesionsList) {
-            $("#versions").html(html);
+            $("#versions").empty().append(versions);
           } else {
-            $("#versions").append(html);
+            $("#versions").append(versions);
           };
           $(".editors-comment-versions").tooltip();
           $(".created-date").tooltip();
