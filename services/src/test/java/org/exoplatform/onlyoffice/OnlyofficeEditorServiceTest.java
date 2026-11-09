@@ -1232,6 +1232,36 @@ public class OnlyofficeEditorServiceTest extends BaseCommonsTestCase {
   }
 
   /**
+   * A user who may not add documents in the document's folder is not allowed to
+   * rename it: the document keeps its name and its permissions.
+   */
+  @Test
+  public void testUpdateTitleRefusedWhenUserCannotRename() throws Exception {
+    // Given
+    NodeImpl node = createDocument("Test Document.docx", "nt:file", "testContent", false);
+    NodeImpl folder = (NodeImpl) node.getParent();
+    folder.addMixin("mix:referenceable");
+    folder.addMixin("exo:privilegeable");
+    folder.setPermissions(Map.of(IdentityConstants.ANY,
+                                 new String[] { PermissionType.READ },
+                                 "*:/platform/administrators",
+                                 PermissionType.ALL));
+    folder.save();
+    assertFalse(node.getACL().getPermissions(USER_USERNAME).contains(PermissionType.REMOVE));
+
+    // When
+    editorService.updateTitle("portal-test", node.getUUID(), "TestDocumentMary.docx", USER_USERNAME);
+
+    // Then
+    startSessionAs("root");
+    node = (NodeImpl) session.getNodeByUUID(node.getUUID());
+    assertEquals("Test Document.docx", node.getName());
+    assertFalse(node.getACL().getPermissions(USER_USERNAME).contains(PermissionType.REMOVE));
+    node.getParent().remove();
+    session.save();
+  }
+
+  /**
    * Test update title when new title is empty
    */
   @Test
