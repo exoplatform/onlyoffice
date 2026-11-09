@@ -1241,11 +1241,11 @@ public class OnlyofficeEditorServiceTest extends BaseCommonsTestCase {
   @Test
   public void testUpdateTitleRefusedWhenUserCannotRename() throws Exception {
     // Given
+    NodeImpl node = createDocument("Test Document Refused.docx", "nt:file", "testContent", false);
+    NodeImpl folder = (NodeImpl) node.getParent();
     IdentityRegistry identityRegistry = getContainer().getComponentInstanceOfType(IdentityRegistry.class);
     Identity registeredIdentity = identityRegistry.getIdentity(USER_USERNAME);
     identityRegistry.register(new Identity(USER_USERNAME, Set.of(new MembershipEntry("/platform/users", "member"))));
-    NodeImpl node = createDocument("Test Document Refused.docx", "nt:file", "testContent", false);
-    NodeImpl folder = (NodeImpl) node.getParent();
     try {
       folder.addMixin("mix:referenceable");
       folder.addMixin("exo:privilegeable");
