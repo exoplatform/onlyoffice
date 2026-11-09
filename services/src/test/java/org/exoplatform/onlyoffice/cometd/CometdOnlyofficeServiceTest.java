@@ -21,6 +21,7 @@ package org.exoplatform.onlyoffice.cometd;
 import static org.junit.Assert.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.nullable;
 import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -142,10 +143,11 @@ public class CometdOnlyofficeServiceTest {
    */
   @Test
   public void testEventWithoutUserIsNotHandled() {
-    when(exoBayeux.isSubscribed(anyString(), anyString())).thenReturn(true);
+    when(exoBayeux.isSubscribed(nullable(String.class), anyString())).thenReturn(true);
 
     john.getChannel(CHANNEL).publish(titleEvent(null));
 
+    verify(exoBayeux, never()).isSubscribed(nullable(String.class), nullable(String.class));
     verify(executor, never()).submit(any(Runnable.class));
   }
 
