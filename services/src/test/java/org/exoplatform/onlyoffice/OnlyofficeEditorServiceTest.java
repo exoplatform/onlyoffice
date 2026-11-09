@@ -39,6 +39,7 @@ import org.exoplatform.services.log.Log;
 import org.exoplatform.services.security.ConversationState;
 import org.exoplatform.services.security.Identity;
 import org.exoplatform.services.security.IdentityConstants;
+import org.exoplatform.services.security.IdentityRegistry;
 import org.exoplatform.services.security.MembershipEntry;
 import org.exoplatform.social.core.space.model.Space;
 import org.exoplatform.social.core.space.spi.SpaceService;
@@ -1233,32 +1234,46 @@ public class OnlyofficeEditorServiceTest extends BaseCommonsTestCase {
 
   /**
    * A user who may not add documents in the document's folder is not allowed to
-   * rename it: the document keeps its name and its permissions.
+   * rename it: the document keeps its name and its permissions. The user's
+   * identity is registered for the test with a plain membership, since an
+   * identity another test left registered may carry other memberships.
    */
   @Test
   public void testUpdateTitleRefusedWhenUserCannotRename() throws Exception {
     // Given
-    NodeImpl node = createDocument("Test Document.docx", "nt:file", "testContent", false);
+    IdentityRegistry identityRegistry = getContainer().getComponentInstanceOfType(IdentityRegistry.class);
+    Identity registeredIdentity = identityRegistry.getIdentity(USER_USERNAME);
+    identityRegistry.register(new Identity(USER_USERNAME, Set.of(new MembershipEntry("/platform/users", "member"))));
+    NodeImpl node = createDocument("Test Document Refused.docx", "nt:file", "testContent", false);
     NodeImpl folder = (NodeImpl) node.getParent();
-    folder.addMixin("mix:referenceable");
-    folder.addMixin("exo:privilegeable");
-    folder.setPermissions(Map.of(IdentityConstants.ANY,
-                                 new String[] { PermissionType.READ },
-                                 "*:/platform/administrators",
-                                 PermissionType.ALL));
-    folder.save();
-    assertFalse(node.getACL().getPermissions(USER_USERNAME).contains(PermissionType.REMOVE));
+    try {
+      folder.addMixin("mix:referenceable");
+      folder.addMixin("exo:privilegeable");
+      folder.setPermissions(Map.of(IdentityConstants.ANY,
+                                   new String[] { PermissionType.READ },
+                                   "*:/platform/administrators",
+                                   PermissionType.ALL));
+      folder.save();
+      String name = node.getName();
+      assertFalse(node.getACL().getPermissions(USER_USERNAME).contains(PermissionType.REMOVE));
 
-    // When
-    editorService.updateTitle("portal-test", node.getUUID(), "TestDocumentMary.docx", USER_USERNAME);
+      // When
+      editorService.updateTitle("portal-test", node.getUUID(), "Renamed Document.docx", USER_USERNAME);
 
-    // Then
-    startSessionAs("root");
-    node = (NodeImpl) session.getNodeByUUID(node.getUUID());
-    assertEquals("Test Document.docx", node.getName());
-    assertFalse(node.getACL().getPermissions(USER_USERNAME).contains(PermissionType.REMOVE));
-    node.getParent().remove();
-    session.save();
+      // Then
+      startSessionAs("root");
+      node = (NodeImpl) session.getNodeByUUID(node.getUUID());
+      assertEquals(name, node.getName());
+      assertFalse(node.getACL().getPermissions(USER_USERNAME).contains(PermissionType.REMOVE));
+    } finally {
+      identityRegistry.unregister(USER_USERNAME);
+      if (registeredIdentity != null) {
+        identityRegistry.register(registeredIdentity);
+      }
+      startSessionAs("root");
+      session.getNodeByUUID(folder.getUUID()).remove();
+      session.save();
+    }
   }
 
   /**
