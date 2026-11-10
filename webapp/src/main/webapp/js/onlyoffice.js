@@ -1223,7 +1223,7 @@
               "<div class='editors-comment-versions b' rel='tooltip' data-placement='bottom'></div>" +
               "</th>" + "</tr>" + "</table>");
             var versionLabels = [].concat(data[i].versionLabels || []).join(",");
-            $version.find(".avatarCircle img").attr("src", "/rest/v1/social/users/" + data[i].author + "/avatar");
+            $version.find(".avatarCircle img").attr("src", "/rest/v1/social/users/" + encodeURIComponent(data[i].author) + "/avatar");
             $version.find(".user-edit").text(data[i].fullName);
             $version.find(".created-date")
               .attr("data-original-title", UI.getAbsoluteTime(data[i].createdTime))
