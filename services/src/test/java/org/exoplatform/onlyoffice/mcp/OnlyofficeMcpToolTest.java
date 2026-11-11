@@ -29,6 +29,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -325,6 +326,27 @@ public class OnlyofficeMcpToolTest {
   }
 
   @Test
+  public void editDocument_create_withMacOsMetadataName_throwsIllegalArgument() throws Exception {
+    Node parent = mock(Node.class);
+    when(session.getNodeByUUID("folder-1")).thenReturn(parent);
+    when(editorService.runDocBuilderScript(anyString(), any(), eq("docx"), eq("result.docx"), eq(USER)))
+                                                                                                        .thenReturn(new byte[] { 5 });
+
+    IllegalArgumentException ex =
+                                assertThrows(IllegalArgumentException.class,
+                                             () -> tool.editDocument(null,
+                                                                     "folder-1",
+                                                                     "._draft",
+                                                                     "[{\"type\":\"add_paragraph\",\"text\":\"Body\"}]",
+                                                                     null,
+                                                                     null));
+
+    assertTrue(ex.getMessage().contains("'._draft.docx' is a macOS metadata name"));
+    assertTrue(ex.getMessage().contains("Ask the user for another name for the new document"));
+    verify(documentFileService, never()).importFiles(any(), any(), any(), any(), any(), any(), anyLong());
+  }
+
+  @Test
   public void editDocument_setHtml_withDocumentId_throwsIllegalArgument() {
     assertThrows(IllegalArgumentException.class,
                  () -> tool.editDocument("doc-1", null, null, "[{\"type\":\"set_html\",\"html\":\"<p>x</p>\"}]", null, null));
@@ -425,6 +447,20 @@ public class OnlyofficeMcpToolTest {
     assertNotNull(result);
     assertEquals("pdf-doc-id", result.getId());
     assertEquals("Quarter.pdf", result.getName());
+  }
+
+  @Test
+  public void exportDocumentAsPdf_sourceWithMacOsMetadataName_throwsIllegalArgument() throws Exception {
+    Node node = stubExistingDocument("doc-1", "._notes.docx",
+                                     "application/vnd.openxmlformats-officedocument.wordprocessingml.document");
+    when(editorService.convertNodeContentToPdf(node, USER)).thenReturn(new byte[] { 9 });
+
+    IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+                                               () -> tool.exportDocumentAsPdf("doc-1", "target-folder"));
+
+    assertTrue(ex.getMessage().contains("'._notes.pdf' is a macOS metadata name"));
+    assertTrue(ex.getMessage().contains("when the name comes from a source document, to rename that document first"));
+    verify(documentFileService, never()).importFiles(any(), any(), any(), any(), any(), any(), anyLong());
   }
 
   @Test
