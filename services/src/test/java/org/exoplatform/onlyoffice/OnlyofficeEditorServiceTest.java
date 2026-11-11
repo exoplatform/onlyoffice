@@ -11,6 +11,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import javax.jcr.AccessDeniedException;
 import javax.jcr.Node;
 import javax.jcr.Session;
 
@@ -37,6 +38,7 @@ import org.exoplatform.services.log.ExoLogger;
 import org.exoplatform.services.log.Log;
 import org.exoplatform.services.security.ConversationState;
 import org.exoplatform.services.security.Identity;
+import org.exoplatform.services.security.IdentityConstants;
 import org.exoplatform.services.security.MembershipEntry;
 import org.exoplatform.social.core.space.model.Space;
 import org.exoplatform.social.core.space.spi.SpaceService;
@@ -229,6 +231,11 @@ public class OnlyofficeEditorServiceTest extends BaseCommonsTestCase {
     sessionProviderService.setSessionProvider(null, provider);
     SessionProvider systemSessionProvider = SessionProviderService.getSystemSessionProvider();
     session = systemSessionProvider.getSession("portal-test", SessionProviderService.getRepository());
+  }
+
+  protected void startAnonymousSession() {
+    ConversationState.setCurrent(new ConversationState(new Identity(IdentityConstants.ANONIM)));
+    sessionProviderService.setSessionProvider(null, SessionProvider.createAnonimProvider());
   }
 
   /**
@@ -1975,6 +1982,101 @@ public class OnlyofficeEditorServiceTest extends BaseCommonsTestCase {
                                                              .userId(userId)
                                                              .key(key)
                                                              .build());
+  }
+
+  /**
+   * An anonymous visitor of a public site opens a document in view mode: the
+   * portlet passes no user, the viewer is created and the visitor gets no
+   * document location to browse.
+   */
+  @Test
+  public void testCreateViewerForAnonymousVisitor() throws Exception {
+    // Given
+    Node node = createDocument("Anonymous Document.docx", "nt:file", "testContent", false);
+    assertTrue(node.getPath().startsWith("/Users"));
+    startAnonymousSession();
+
+    // When
+    Config config = editorService.createViewer("http", "127.0.0.1", 8080, null, null, node.getUUID());
+
+    // Then
+    assertNotNull(config);
+    assertEquals(OnlyofficeEditorService.VIEW_MODE, config.getEditorConfig().getMode());
+    assertFalse(config.getEditorConfig().isCanAccessDocumentLocation());
+    node.remove();
+  }
+
+  /**
+   * A user opens in view mode a document of their own personal drive, which
+   * grants a read right to them and to no other user, and still gets its
+   * document location.
+   */
+  @Test
+  public void testCreateViewerForUserKeepsDocumentLocation() throws Exception {
+    // Given
+    NodeImpl node = createDocument("User Document.docx", "nt:file", "testContent", false);
+    String privateFolderPath = "/Users/j___/jo___/joh___/" + USER_USERNAME + "/Private";
+    Node privateFolder = session.getRootNode();
+    for (String segment : privateFolderPath.substring(1).split("/")) {
+      privateFolder = privateFolder.hasNode(segment) ? privateFolder.getNode(segment)
+                                                     : privateFolder.addNode(segment, "nt:folder");
+    }
+    session.save();
+    session.move(node.getPath(), privateFolderPath + "/" + node.getName());
+    session.save();
+    node = (NodeImpl) session.getNodeByUUID(node.getUUID());
+    assertEquals(privateFolderPath + "/" + node.getName(), node.getPath());
+    node.setPermissions(Map.of(USER_USERNAME, new String[] { PermissionType.READ }));
+    node.save();
+    assertTrue(node.getACL().getPermissions(IdentityConstants.ANY).isEmpty());
+    startSessionAs(USER_USERNAME);
+
+    // When
+    Config config = editorService.createViewer("http", "127.0.0.1", 8080, USER_USERNAME, null, node.getUUID());
+
+    // Then
+    assertNotNull(config);
+    assertTrue(config.getEditorConfig().isCanAccessDocumentLocation());
+    node.remove();
+  }
+
+  /**
+   * An anonymous visitor asks for the viewer of a document that grants no read
+   * right to any user: the document is read through the request's anonymous
+   * session, which refuses it.
+   */
+  @Test
+  public void testCreateViewerRefusesAnonymousVisitorWithoutPublicRead() throws Exception {
+    // Given
+    NodeImpl node = createDocument("Private Document.docx", "nt:file", "testContent", false);
+    node.setPermissions(Map.of(USER_USERNAME, new String[] { PermissionType.READ }));
+    node.save();
+    assertTrue(node.getACL().getPermissions(IdentityConstants.ANY).isEmpty());
+    startAnonymousSession();
+
+    // When / Then
+    try {
+      editorService.createViewer("http", "127.0.0.1", 8080, null, null, node.getUUID());
+      fail("An anonymous visitor must not get the viewer of a document no user may read publicly");
+    } catch (AccessDeniedException e) {
+      // expected: the anonymous session cannot read the node
+    } finally {
+      node.remove();
+    }
+  }
+
+  /**
+   * The editor page opens an anonymous visitor in view mode whatever mode the
+   * link asks for, and a user in the mode the link asks for.
+   */
+  @Test
+  public void testResolveMode() {
+    assertEquals(OnlyofficeEditorService.VIEW_MODE, OnlyofficeEditorService.resolveMode(null, null));
+    assertEquals(OnlyofficeEditorService.VIEW_MODE,
+                 OnlyofficeEditorService.resolveMode(null, OnlyofficeEditorService.EDIT_MODE));
+    assertEquals(OnlyofficeEditorService.EDIT_MODE,
+                 OnlyofficeEditorService.resolveMode(USER_USERNAME, OnlyofficeEditorService.EDIT_MODE));
+    assertNull(OnlyofficeEditorService.resolveMode(USER_USERNAME, null));
   }
 
   /**
