@@ -117,7 +117,7 @@ public class EditorPortlet extends GenericPortlet {
 
     
     RequestContext requestContext = RequestContext.getCurrentInstance();
-    String mode = requestContext.getRequestParameter("mode");
+    String mode = OnlyofficeEditorService.resolveMode(request.getRemoteUser(), requestContext.getRequestParameter("mode"));
     Config config = getConfig(request, response, i18n, mode);
     if (config != null) {
       try {

@@ -58,6 +58,21 @@ public interface OnlyofficeEditorService {
   static String EDITOR_ERROR_EVENT   = "exo.onlyoffice.editor.error";
 
   /**
+   * Resolve the mode the editor page opens a document in. An anonymous visitor
+   * (no user, a public site's page) can only view a document, whatever mode
+   * the link asks for; a user gets the requested mode.
+   *
+   * @param userId the user opening the document, <code>null</code> for an
+   *          anonymous visitor
+   * @param requestedMode the mode the link asks for, may be <code>null</code>
+   * @return {@link #VIEW_MODE} for an anonymous visitor, the requested mode
+   *         otherwise
+   */
+  static String resolveMode(String userId, String requestedMode) {
+    return userId == null ? VIEW_MODE : requestedMode;
+  }
+
+  /**
    * Return existing editor configuration for given user and node. If editor not
    * open for given node or user then <code>null</code> will be returned. If
    * user not valid then OnlyofficeEditorException will be thrown.
