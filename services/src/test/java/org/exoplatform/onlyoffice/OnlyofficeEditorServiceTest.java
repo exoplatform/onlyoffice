@@ -137,6 +137,17 @@ public class OnlyofficeEditorServiceTest extends BaseCommonsTestCase {
     node.remove();
   }
 
+  /**
+   * Gives the user the rights an editor of the document holds, which a rename
+   * needs on the document itself.
+   */
+  protected void grantEditRights(NodeImpl node) throws Exception {
+    node.setPermission(USER_USERNAME,
+                       new String[] { PermissionType.READ, PermissionType.ADD_NODE, PermissionType.SET_PROPERTY,
+                           PermissionType.REMOVE });
+    node.save();
+  }
+
   /* create document */
   protected NodeImpl createDocument(String title, String type, String data, Boolean createAtRoot) throws Exception {
     startSessionAs("root");
@@ -1203,7 +1214,8 @@ public class OnlyofficeEditorServiceTest extends BaseCommonsTestCase {
   public void testUpdateTitle() throws Exception {
     // Given
     startSessionAs(USER_USERNAME);
-    Node node = createDocument("Test Document.docx", "nt:file", "testContent", false);
+    NodeImpl node = createDocument("Test Document.docx", "nt:file", "testContent", false);
+    grantEditRights(node);
 
     // When
     editorService.updateTitle("portal-test", node.getUUID(), "TestDocumentMary.docx", USER_USERNAME);
@@ -1221,7 +1233,8 @@ public class OnlyofficeEditorServiceTest extends BaseCommonsTestCase {
   public void testUpdateTitleRootNode() throws Exception {
     // Given
     startSessionAs(USER_USERNAME);
-    Node node = createDocument("Test Document.docx", "nt:file", "testContent", true);
+    NodeImpl node = createDocument("Test Document.docx", "nt:file", "testContent", true);
+    grantEditRights(node);
 
     // When
     editorService.updateTitle("portal-test", node.getUUID(), "TestDocumentMary.docx", USER_USERNAME);
@@ -1273,6 +1286,89 @@ public class OnlyofficeEditorServiceTest extends BaseCommonsTestCase {
       startSessionAs("root");
       session.getNodeByUUID(folder.getUUID()).remove();
       session.save();
+    }
+  }
+
+  /**
+   * A user who may add documents in the folder and edit the document, but not
+   * remove it, is not allowed to rename it: the editor does not offer the
+   * rename, the document keeps its name and its folder is left unchanged, and
+   * the user gains no right on it. A user who may remove the document but not
+   * set its properties is not offered the rename either.
+   */
+  @Test
+  public void testUpdateTitleRefusedWhenUserCannotRemoveTheDocument() throws Exception {
+    // Given
+    NodeImpl node = createDocument("Test Document Not Removable.docx", "nt:file", "testContent", false);
+    NodeImpl folder = (NodeImpl) node.getParent();
+    String folderPath = folder.getPath();
+    IdentityRegistry identityRegistry = getContainer().getComponentInstanceOfType(IdentityRegistry.class);
+    Identity registeredIdentity = identityRegistry.getIdentity(USER_USERNAME);
+    identityRegistry.register(new Identity(USER_USERNAME, Set.of(new MembershipEntry("/platform/users", "member"))));
+    try {
+      folder.addMixin("exo:privilegeable");
+      folder.setPermissions(Map.of(USER_USERNAME,
+                                   new String[] { PermissionType.READ, PermissionType.ADD_NODE, PermissionType.SET_PROPERTY },
+                                   "*:/platform/administrators",
+                                   PermissionType.ALL));
+      folder.save();
+      List<String> editRights = List.of(PermissionType.READ, PermissionType.ADD_NODE, PermissionType.SET_PROPERTY);
+      setUserPermissions(node, editRights);
+      String name = node.getName();
+      assertFalse(canUserRename(identityRegistry, node));
+
+      // When
+      editorService.updateTitle("portal-test", node.getUUID(), "Renamed Not Removable Document.docx", USER_USERNAME);
+
+      // Then
+      startSessionAs("root");
+      node = (NodeImpl) session.getNodeByUUID(node.getUUID());
+      assertEquals(name, node.getName());
+      assertEquals(editRights, node.getACL().getPermissions(USER_USERNAME));
+      // A refused rename writes nothing, on the folder either
+      assertFalse(node.getParent().isNodeType("mix:referenceable"));
+
+      setUserPermissions(node, List.of(PermissionType.READ, PermissionType.ADD_NODE, PermissionType.REMOVE));
+      assertFalse(canUserRename(identityRegistry, node));
+    } finally {
+      identityRegistry.unregister(USER_USERNAME);
+      if (registeredIdentity != null) {
+        identityRegistry.register(registeredIdentity);
+      }
+      startSessionAs("root");
+      session.getItem(folderPath).remove();
+      session.save();
+    }
+  }
+
+  private void setUserPermissions(NodeImpl node, List<String> permissions) throws Exception {
+    if (node.canAddMixin("exo:privilegeable")) {
+      node.addMixin("exo:privilegeable");
+    }
+    node.setPermissions(Map.of(USER_USERNAME,
+                               permissions.toArray(new String[0]),
+                               "*:/platform/administrators",
+                               PermissionType.ALL));
+    node.save();
+    assertEquals(permissions, node.getACL().getPermissions(USER_USERNAME));
+  }
+
+  /**
+   * Evaluates the editor's rename check with the user's own session, which
+   * takes its identity from the current conversation state.
+   */
+  private boolean canUserRename(IdentityRegistry identityRegistry, NodeImpl node) throws Exception {
+    ConversationState currentState = ConversationState.getCurrent();
+    ConversationState userState = new ConversationState(identityRegistry.getIdentity(USER_USERNAME));
+    ConversationState.setCurrent(userState);
+    SessionProvider userProvider = new SessionProvider(userState);
+    try {
+      Node userNode = userProvider.getSession("portal-test", SessionProviderService.getRepository())
+                                  .getNodeByUUID(node.getUUID());
+      return ((OnlyofficeEditorServiceImpl) editorService).canRenameDocument(userNode);
+    } finally {
+      userProvider.close();
+      ConversationState.setCurrent(currentState);
     }
   }
 
