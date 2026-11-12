@@ -2185,6 +2185,34 @@ public class OnlyofficeEditorServiceTest extends BaseCommonsTestCase {
   }
 
   /**
+   * A save error reported with a content URL for a key that a content write
+   * closed keeps the key superseded: a later open notification does not reopen
+   * it.
+   */
+  @Test
+  public void testSaveErrorWithUrlKeepsASupersededKeyClosed() throws Exception {
+    startSessionAs(USER_USERNAME);
+    Node node = createDocument("Superseded Error Test.docx", "nt:file", "testContent", true);
+    String docId = node.getUUID();
+    String staleKey = openEditor(node, USER_USERNAME).getDocument().getKey();
+    openInDocumentServer(USER_USERNAME, staleKey);
+    editorService.contentUpdatedOutsideEditor(docId, "mary");
+
+    editorService.updateDocument(new DocumentStatus.Builder().status(3L)
+                                                             .users(new String[] { USER_USERNAME })
+                                                             .userId(USER_USERNAME)
+                                                             .url("http://127.0.0.1:8080/editor/")
+                                                             .key(staleKey)
+                                                             .build());
+
+    assertEquals(OnlyofficeEditorServiceImpl.CONTENT_UPDATED_OUTSIDE_EDITOR,
+                 rdbmsStorage().getConfigsByKey(staleKey).get(USER_USERNAME).getError());
+    openInDocumentServer(USER_USERNAME, staleKey);
+    assertTrue(onlyofficeEditorService.cachedEditorConfigStorage.getActiveConfigsByDocId(docId).isEmpty());
+    node.remove();
+  }
+
+  /**
    * A version restore re-creates the content rather than setting it: it closes
    * the editor sessions of the document as a write does.
    */

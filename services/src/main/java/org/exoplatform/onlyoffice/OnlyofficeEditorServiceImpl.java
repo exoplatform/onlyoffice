@@ -1300,7 +1300,7 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
     if (statusCode == 0) {
       // Onlyoffice doesn't know about such document. Keep a closed record for a grace period
       // instead of hard deleting immediately, so concurrent platform flows can still resolve it.
-      config.setError("Error editing document: document ID not found");
+      setEditorError(config, "Error editing document: document ID not found");
       closeConfigs(key, configs);
       LOG.warn("Received Onlyoffice status: no document with the key identifier could be found. Key: " + key + ". Document: "
           + nodePath);
