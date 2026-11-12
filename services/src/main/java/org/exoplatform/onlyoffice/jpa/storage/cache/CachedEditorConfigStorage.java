@@ -62,6 +62,12 @@ public class CachedEditorConfigStorage implements EditorConfigStorage {
   }
 
   @Override
+  public List<Config> getAllActiveConfigsByDocId(String docId) {
+    // not cached: read only when the document's sessions are closed for a write
+    return storage.getAllActiveConfigsByDocId(docId);
+  }
+
+  @Override
   public List<Config> deleteClosedConfigsBefore(long expirationTime, int limit) {
     List<Config> deletedConfigs = storage.deleteClosedConfigsBefore(expirationTime, limit);
     deletedConfigs.forEach(config -> {
