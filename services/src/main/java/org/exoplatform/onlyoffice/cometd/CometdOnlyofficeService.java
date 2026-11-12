@@ -413,7 +413,7 @@ public class CometdOnlyofficeService implements Startable {
 
         @Override
         public void onContentUpdatedOutsideEditor(DocumentStatus status) {
-          publishUpdatedOutsideEvent(status.getConfig().getDocId());
+          publishUpdatedOutsideEvent(status.getConfig().getDocId(), status.getKey());
         }
 
       });
@@ -789,8 +789,10 @@ public class CometdOnlyofficeService implements Startable {
      * content was written outside them.
      *
      * @param docId the doc id
+     * @param writingKey the key of the editor session that wrote the content,
+     *          whose editors hold it, null for a write outside any editor
      */
-    protected void publishUpdatedOutsideEvent(String docId) {
+    protected void publishUpdatedOutsideEvent(String docId, String writingKey) {
       ServerChannel channel = bayeux.getChannel(CHANNEL_NAME + docId);
       if (channel != null) {
         StringBuilder data = new StringBuilder();
@@ -800,7 +802,10 @@ public class CometdOnlyofficeService implements Startable {
         data.append("\", ");
         data.append("\"docId\": \"");
         data.append(docId);
-        data.append("\"}");
+        data.append("\", ");
+        data.append("\"writingKey\": ");
+        data.append(writingKey == null ? "null" : "\"" + writingKey + "\"");
+        data.append('}');
         channel.publish(localSession, data.toString(), Promise.noop());
       }
     }

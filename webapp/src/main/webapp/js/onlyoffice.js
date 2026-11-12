@@ -667,7 +667,8 @@
               if (state.type === DOCUMENT_DELETED) {
                 UI.showError(message("ErrorTitle"), message("ErrorFileDeletedEditor"));
               }
-              if (state.type === DOCUMENT_UPDATED_OUTSIDE && state.docId === currentConfig.docId) {
+              if (state.type === DOCUMENT_UPDATED_OUTSIDE && state.docId === currentConfig.docId
+                  && state.writingKey !== currentConfig.document.key) {
                 // The content was written outside this editor: reloading opens it with a new key
                 UI.addRefreshBanner(currentConfig, DESKTOP_MODE);
               }
