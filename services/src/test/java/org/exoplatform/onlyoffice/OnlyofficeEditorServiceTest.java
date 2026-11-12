@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 
 import javax.jcr.AccessDeniedException;
 import javax.jcr.Node;
@@ -1970,6 +1971,186 @@ public class OnlyofficeEditorServiceTest extends BaseCommonsTestCase {
 
     assertTrue(rdbmsStorage().getConfigsByKey(newestKey).isEmpty());
     node.remove();
+  }
+
+  /**
+   * A content write outside the editor (an upload of a new version) closes every
+   * active session of the document without deleting it: the next opening gets a
+   * new key, a late open callback of the stale key does not reactivate it, its
+   * callbacks still resolve, and the open editors are told.
+   */
+  @Test
+  public void testContentUpdatedOutsideEditorClosesSessionsAndNextOpenGetsNewKey() throws Exception {
+    startSessionAs(USER_USERNAME);
+    Node node = createDocument("Outside Write Test.docx", "nt:file", "testContent", true);
+    String docId = node.getUUID();
+    String staleKey = openEditor(node, USER_USERNAME).getDocument().getKey();
+    openInDocumentServer(USER_USERNAME, staleKey);
+    assertEquals(staleKey, openEditor(node, "root").getDocument().getKey());
+    AtomicReference<DocumentStatus> notified = new AtomicReference<>();
+    OnlyofficeEditorListener listener = outsideWriteListener(docId, notified);
+    editorService.addListener(listener);
+    try {
+      editorService.contentUpdatedOutsideEditor(docId, "mary");
+    } finally {
+      editorService.removeListener(listener);
+    }
+
+    assertTrue(onlyofficeEditorService.cachedEditorConfigStorage.getActiveConfigsByDocId(docId).isEmpty());
+    Map<String, Config> staleConfigs = rdbmsStorage().getConfigsByKey(staleKey);
+    assertEquals(Set.of(USER_USERNAME, "root"), staleConfigs.keySet());
+    staleConfigs.values().forEach(c -> {
+      assertTrue(c.isClosed());
+      assertEquals(OnlyofficeEditorServiceImpl.CONTENT_UPDATED_OUTSIDE_EDITOR, c.getError());
+    });
+    assertNotNull(notified.get());
+    assertEquals("mary", notified.get().getUserId());
+
+    openInDocumentServer(USER_USERNAME, staleKey);
+    assertTrue(editorService.getEditorByKey(USER_USERNAME, staleKey).isClosed());
+    assertTrue(onlyofficeEditorService.cachedEditorConfigStorage.getActiveConfigsByDocId(docId).isEmpty());
+
+    String newKey = openEditor(node, USER_USERNAME).getDocument().getKey();
+    org.junit.Assert.assertNotEquals(staleKey, newKey);
+    editorService.updateDocument(new DocumentStatus.Builder().status(4L)
+                                                             .users(new String[] {})
+                                                             .userId(USER_USERNAME)
+                                                             .key(staleKey)
+                                                             .build());
+    assertNotNull(editorService.getEditorByKey(USER_USERNAME, staleKey));
+    node.remove();
+  }
+
+  /**
+   * The editor's own save does not close the sessions of its own key, only the
+   * other active keys of the document, whose content it makes stale; once the
+   * save is over, a write closes every key again.
+   */
+  @Test
+  public void testEditorOwnSaveClosesOnlyTheOtherKeys() throws Exception {
+    startSessionAs(USER_USERNAME);
+    Node node = createDocument("Own Save Test.docx", "nt:file", "testContent", true);
+    String docId = node.getUUID();
+    String editingKey = openEditor(node, USER_USERNAME).getDocument().getKey();
+    openInDocumentServer(USER_USERNAME, editingKey);
+    String otherKey = storeUnopenedConversionConfig(node, "mary");
+    // the content write of the save calls the service on the saving thread, as
+    // the document update handler does
+    OnlyofficeEditorListener listener = new OnlyofficeEditorListener() {
+      @Override
+      public void onSaved(DocumentStatus status) {
+        if (docId.equals(status.getConfig().getDocId())) {
+          editorService.contentUpdatedOutsideEditor(docId, USER_USERNAME);
+        }
+      }
+
+      @Override
+      public void onCreate(DocumentStatus status) {
+        // Nothing
+      }
+
+      @Override
+      public void onGet(DocumentStatus status) {
+        // Nothing
+      }
+
+      @Override
+      public void onJoined(DocumentStatus status) {
+        // Nothing
+      }
+
+      @Override
+      public void onLeaved(DocumentStatus status) {
+        // Nothing
+      }
+
+      @Override
+      public void onError(DocumentStatus status) {
+        // Nothing
+      }
+    };
+    editorService.addListener(listener);
+    try {
+      editorService.downloadVersion(USER_USERNAME, editingKey, false, false, null, null);
+    } finally {
+      editorService.removeListener(listener);
+    }
+
+    assertTrue(rdbmsStorage().getConfigsByKey(editingKey).get(USER_USERNAME).isOpen());
+    Config otherConfig = rdbmsStorage().getConfigsByKey(otherKey).get("mary");
+    assertTrue(otherConfig.isClosed());
+    assertEquals(OnlyofficeEditorServiceImpl.CONTENT_UPDATED_OUTSIDE_EDITOR, otherConfig.getError());
+
+    editorService.contentUpdatedOutsideEditor(docId, "mary");
+    assertTrue(rdbmsStorage().getConfigsByKey(editingKey).get(USER_USERNAME).isClosed());
+    node.remove();
+  }
+
+  /**
+   * The active configs are read one per user: a user's older active config,
+   * hidden by a newer one, is closed too.
+   */
+  @Test
+  public void testContentUpdatedOutsideEditorClosesHiddenConfigsOfAUser() throws Exception {
+    startSessionAs(USER_USERNAME);
+    Node node = createDocument("Hidden Config Test.docx", "nt:file", "testContent", true);
+    String docId = node.getUUID();
+    String editingKey = openEditor(node, USER_USERNAME).getDocument().getKey();
+    openInDocumentServer(USER_USERNAME, editingKey);
+    String newerKey = storeUnopenedConversionConfig(node, USER_USERNAME);
+    assertEquals(newerKey,
+                 onlyofficeEditorService.cachedEditorConfigStorage.getActiveConfigsByDocId(docId)
+                                                                  .get(USER_USERNAME)
+                                                                  .getDocument()
+                                                                  .getKey());
+
+    editorService.contentUpdatedOutsideEditor(docId, "mary");
+
+    assertTrue(onlyofficeEditorService.cachedEditorConfigStorage.getActiveConfigsByDocId(docId).isEmpty());
+    assertTrue(rdbmsStorage().getConfigsByKey(editingKey).get(USER_USERNAME).isClosed());
+    assertTrue(rdbmsStorage().getConfigsByKey(newerKey).get(USER_USERNAME).isClosed());
+    node.remove();
+  }
+
+  private OnlyofficeEditorListener outsideWriteListener(String docId, AtomicReference<DocumentStatus> notified) {
+    return new OnlyofficeEditorListener() {
+      @Override
+      public void onContentUpdatedOutsideEditor(DocumentStatus status) {
+        if (docId.equals(status.getConfig().getDocId())) {
+          notified.set(status);
+        }
+      }
+
+      @Override
+      public void onCreate(DocumentStatus status) {
+        // Nothing
+      }
+
+      @Override
+      public void onGet(DocumentStatus status) {
+        // Nothing
+      }
+
+      @Override
+      public void onJoined(DocumentStatus status) {
+        // Nothing
+      }
+
+      @Override
+      public void onLeaved(DocumentStatus status) {
+        // Nothing
+      }
+
+      @Override
+      public void onSaved(DocumentStatus status) {
+        // Nothing
+      }
+
+      @Override
+      public void onError(DocumentStatus status) {
+        // Nothing
+      }
+    };
   }
 
   private Config openEditor(Node node, String userId) throws Exception {

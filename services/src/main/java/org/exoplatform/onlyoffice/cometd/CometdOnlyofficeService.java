@@ -223,6 +223,9 @@ public class CometdOnlyofficeService implements Startable {
   /** The Constant DOCUMENT_CONTENT_UPDATED_EVENT. */
   public static final String              DOCUMENT_CONTENT_UPDATED_EVENT = "DOCUMENT_CONTENT_UPDATED";
 
+  /** The content was written outside the editor: the open editors show stale content. */
+  public static final String              DOCUMENT_UPDATED_OUTSIDE_EVENT = "DOCUMENT_UPDATED_OUTSIDE";
+
   /**
    * Base minimum number of threads for document updates thread executors.
    */
@@ -402,6 +405,11 @@ public class CometdOnlyofficeService implements Startable {
         @Override
         public void onCreate(DocumentStatus status) {
           // Nothing
+        }
+
+        @Override
+        public void onContentUpdatedOutsideEditor(DocumentStatus status) {
+          publishUpdatedOutsideEvent(status.getConfig().getDocId());
         }
 
       });
@@ -738,6 +746,27 @@ public class CometdOnlyofficeService implements Startable {
         data.append("\", ");
         data.append("\"userId\": \"");
         data.append(userId);
+        data.append("\"}");
+        channel.publish(localSession, data.toString(), Promise.noop());
+      }
+    }
+
+    /**
+     * Publish the event that tells the open editors of a document that its
+     * content was written outside them.
+     *
+     * @param docId the doc id
+     */
+    protected void publishUpdatedOutsideEvent(String docId) {
+      ServerChannel channel = bayeux.getChannel(CHANNEL_NAME + docId);
+      if (channel != null) {
+        StringBuilder data = new StringBuilder();
+        data.append('{');
+        data.append("\"type\": \"");
+        data.append(DOCUMENT_UPDATED_OUTSIDE_EVENT);
+        data.append("\", ");
+        data.append("\"docId\": \"");
+        data.append(docId);
         data.append("\"}");
         channel.publish(localSession, data.toString(), Promise.noop());
       }

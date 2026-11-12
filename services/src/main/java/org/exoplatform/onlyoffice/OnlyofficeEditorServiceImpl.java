@@ -199,6 +199,27 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
   protected static final int     CLOSED_CONFIGS_PURGE_BATCH = 100;
 
   /**
+   * The error recorded on a config closed because its document's content was
+   * written outside its editor session: a late open callback of its key does
+   * not reactivate it.
+   */
+  protected static final String  CONTENT_UPDATED_OUTSIDE_EDITOR = "Document content updated outside the editor";
+
+  /**
+   * The rounds of closing the active configs of one document after a write
+   * outside the editor: the active configs are read one per user, so a user's
+   * newer config hides an older one until the newer is closed.
+   */
+  protected static final int     OUTSIDE_WRITE_CLOSE_ROUNDS = 100;
+
+  /**
+   * The document key of the editor session whose content this thread is writing
+   * to the document ({@link #download(DocumentStatus)}), so that the write does
+   * not close that session's configs.
+   */
+  private static final ThreadLocal<String> EDITOR_WRITE_KEY = new ThreadLocal<>();
+
+  /**
    * Configuration key for Document Server's allowed hosts in requests from a DS
    * to eXo side.
    */
@@ -1096,6 +1117,61 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
     });
   }
 
+  /**
+   * {@inheritDoc}
+   */
+  @Override
+  public void contentUpdatedOutsideEditor(String docId, String userId) {
+    if (docId == null) {
+      return;
+    }
+    String writingKey = EDITOR_WRITE_KEY.get();
+    Config closedConfig = null;
+    int round = 0;
+    for (; round < OUTSIDE_WRITE_CLOSE_ROUNDS; round++) {
+      Map<String, Config> activeConfigs = cachedEditorConfigStorage.getActiveConfigsByDocId(docId);
+      List<Config> staleConfigs = activeConfigs == null ? List.of()
+                                                        : activeConfigs.values()
+                                                                       .stream()
+                                                                       .filter(c -> c != null
+                                                                           && !c.getDocument().getKey().equals(writingKey))
+                                                                       .toList();
+      if (staleConfigs.isEmpty()) {
+        break;
+      }
+      for (Config config : staleConfigs) {
+        config.setError(CONTENT_UPDATED_OUTSIDE_EDITOR);
+        closeConfigs(config.getDocument().getKey(), Map.of(config.getDocId(), config));
+        closedConfig = config;
+      }
+    }
+    if (round == OUTSIDE_WRITE_CLOSE_ROUNDS) {
+      LOG.warn("Editor configs of document {} still active after closing {} rounds of them for a content write outside the editor",
+               docId,
+               OUTSIDE_WRITE_CLOSE_ROUNDS);
+    }
+    if (closedConfig != null) {
+      LOG.info("Closed the editor configs of document {} after a content write outside the editor by {}", docId, userId);
+      fireContentUpdatedOutsideEditor(new DocumentStatus.Builder().config(closedConfig)
+                                                                  .key(closedConfig.getDocument().getKey())
+                                                                  .userId(userId)
+                                                                  .build());
+    }
+  }
+
+  /**
+   * Tells whether a config of the key was closed because the document's content
+   * was written outside its editor session.
+   *
+   * @param configs the configs of a key
+   * @return true when the key is superseded by such a write
+   */
+  protected boolean isClosedByOutsideWrite(Map<String, Config> configs) {
+    return configs.values()
+                  .stream()
+                  .anyMatch(c -> c != null && c.isClosed() && CONTENT_UPDATED_OUTSIDE_EDITOR.equals(c.getError()));
+  }
+
   protected boolean hasActiveConfigForDifferentKey(String docId, String key) {
     Map<String, Config> activeConfigs = cachedEditorConfigStorage.getActiveConfigsByDocId(docId);
     return activeConfigs != null
@@ -1172,7 +1248,7 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
     } else if (statusCode == 1) {
       // If this is a late open notification for an old key after a new active key was created,
       // keep the old config closed and do not reactivate it for docId lookup.
-      if (config.isClosed() && hasActiveConfigForDifferentKey(config.getDocId(), key)) {
+      if (config.isClosed() && (hasActiveConfigForDifferentKey(config.getDocId(), key) || isClosedByOutsideWrite(configs))) {
         LOG.warn("Ignoring late open status for superseded OnlyOffice key " + key + ". Document: " + nodePath);
       } else {
         syncUsers(configs, safeUsers(status));
@@ -2211,6 +2287,8 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
     // remember real context state and session provider to restore them at the end
     ConversationState contextState = ConversationState.getCurrent();
     SessionProvider contextProvider = sessionProviders.getSessionProvider(null);
+    String previousWriteKey = EDITOR_WRITE_KEY.get();
+    EDITOR_WRITE_KEY.set(config.getDocument().getKey());
     try {
       // We want do all the job under actual (last editor) user here
       // Notable that some WCM actions (FileUpdateActivityListener) will fail if
@@ -2534,6 +2612,11 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
         throw new OnlyofficeEditorException("Document locked " + nodePath);
       }
     } finally {
+      if (previousWriteKey == null) {
+        EDITOR_WRITE_KEY.remove();
+      } else {
+        EDITOR_WRITE_KEY.set(previousWriteKey);
+      }
       restoreConvoState(contextState, contextProvider);
     }
   }
@@ -3033,6 +3116,21 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
         l.onSaved(status);
       } catch (Throwable t) {
         LOG.warn("Saving listener error", t);
+      }
+    }
+  }
+
+  /**
+   * Fire content updated outside the editor.
+   *
+   * @param status the status
+   */
+  protected void fireContentUpdatedOutsideEditor(DocumentStatus status) {
+    for (OnlyofficeEditorListener l : listeners) {
+      try {
+        l.onContentUpdatedOutsideEditor(status);
+      } catch (Throwable t) {
+        LOG.warn("Content updated outside the editor listener error", t);
       }
     }
   }
