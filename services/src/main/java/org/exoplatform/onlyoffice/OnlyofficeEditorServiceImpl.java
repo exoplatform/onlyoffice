@@ -209,13 +209,6 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
   protected static final String  CONTENT_UPDATED_OUTSIDE_EDITOR = "Document content updated outside the editor";
 
   /**
-   * The rounds of closing the active configs of one document after a write
-   * outside the editor: the active configs are read one per user, so a user's
-   * newer config hides an older one until the newer is closed.
-   */
-  protected static final int     OUTSIDE_WRITE_CLOSE_ROUNDS = 100;
-
-  /**
    * The document key of the editor session whose content this thread is writing
    * to the document ({@link #download(DocumentStatus)}), so that the write does
    * not close that session's configs.
@@ -1130,28 +1123,17 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
     }
     String writingKey = EDITOR_WRITE_KEY.get();
     Config closedConfig = null;
-    int round = 0;
-    for (; round < OUTSIDE_WRITE_CLOSE_ROUNDS; round++) {
-      Map<String, Config> activeConfigs = cachedEditorConfigStorage.getActiveConfigsByDocId(docId);
-      List<Config> staleConfigs = activeConfigs == null ? List.of()
-                                                        : activeConfigs.values()
-                                                                       .stream()
-                                                                       .filter(c -> c != null
-                                                                           && !c.getDocument().getKey().equals(writingKey))
-                                                                       .toList();
-      if (staleConfigs.isEmpty()) {
-        break;
-      }
-      for (Config config : staleConfigs) {
+    // every active row, a user's older ones included: one hidden behind a row of
+    // the writing key would be joined once that key closes
+    for (Config config : cachedEditorConfigStorage.getAllActiveConfigsByDocId(docId)) {
+      if (!config.getDocument().getKey().equals(writingKey)) {
         config.setError(CONTENT_UPDATED_OUTSIDE_EDITOR);
+        // a session reopened after a first close keeps that close's time: the
+        // retention counts from this close, or the next opening purges a live session
+        config.setClosedTime(System.currentTimeMillis());
         closeConfigs(config.getDocument().getKey(), Map.of(config.getDocId(), config));
         closedConfig = config;
       }
-    }
-    if (round == OUTSIDE_WRITE_CLOSE_ROUNDS) {
-      LOG.warn("Editor configs of document {} still active after closing {} rounds of them for a content write outside the editor",
-               docId,
-               OUTSIDE_WRITE_CLOSE_ROUNDS);
     }
     if (closedConfig != null) {
       LOG.info("Closed the editor configs of document {} after a content write outside the editor by {}", docId, userId);

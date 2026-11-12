@@ -2075,12 +2075,18 @@ public class OnlyofficeEditorServiceTest extends BaseCommonsTestCase {
         // Nothing
       }
     };
+    AtomicReference<DocumentStatus> notified = new AtomicReference<>();
+    OnlyofficeEditorListener notifiedListener = outsideWriteListener(docId, notified);
     editorService.addListener(listener);
+    editorService.addListener(notifiedListener);
     try {
       editorService.downloadVersion(USER_USERNAME, editingKey, false, false, null, null);
     } finally {
       editorService.removeListener(listener);
+      editorService.removeListener(notifiedListener);
     }
+    // the editors of the writing key hold the written content: the notification names it
+    assertEquals(editingKey, notified.get().getKey());
 
     assertEquals(Boolean.TRUE, editingKeyOpenDuringSave.get());
     assertTrue(rdbmsStorage().getConfigsByKey(editingKey).get(USER_USERNAME).isOpen());
@@ -2090,6 +2096,63 @@ public class OnlyofficeEditorServiceTest extends BaseCommonsTestCase {
 
     editorService.contentUpdatedOutsideEditor(docId, "mary");
     assertTrue(rdbmsStorage().getConfigsByKey(editingKey).get(USER_USERNAME).isClosed());
+    node.remove();
+  }
+
+  /**
+   * An editor session's write closes a hidden older config of the writing user
+   * under another key: it would become the user's active config, joined by the
+   * next opener, once the writing key closes.
+   */
+  @Test
+  @SuppressWarnings("unchecked")
+  public void testEditorWriteClosesAHiddenOlderConfigOfTheWritingUser() throws Exception {
+    startSessionAs(USER_USERNAME);
+    Node node = createDocument("Hidden Writer Config Test.docx", "nt:file", "testContent", true);
+    String docId = node.getUUID();
+    String olderKey = storeUnopenedConversionConfig(node, USER_USERNAME);
+    String writingKey = storeUnopenedConversionConfig(node, USER_USERNAME);
+    assertEquals(writingKey,
+                 onlyofficeEditorService.cachedEditorConfigStorage.getActiveConfigsByDocId(docId)
+                                                                  .get(USER_USERNAME)
+                                                                  .getDocument()
+                                                                  .getKey());
+    java.lang.reflect.Field writeKeyField = OnlyofficeEditorServiceImpl.class.getDeclaredField("EDITOR_WRITE_KEY");
+    writeKeyField.setAccessible(true);
+    ThreadLocal<String> writeKey = (ThreadLocal<String>) writeKeyField.get(null);
+    writeKey.set(writingKey);
+    try {
+      editorService.contentUpdatedOutsideEditor(docId, USER_USERNAME);
+    } finally {
+      writeKey.remove();
+    }
+
+    assertTrue(rdbmsStorage().getConfigsByKey(olderKey).get(USER_USERNAME).isClosed());
+    assertFalse(rdbmsStorage().getConfigsByKey(writingKey).get(USER_USERNAME).isClosed());
+    node.remove();
+  }
+
+  /**
+   * A session reopened after a first close keeps that close's time: closed by a
+   * content write, it stays resolvable for the whole retention, not purged by
+   * the next opening.
+   */
+  @Test
+  public void testReopenedSessionClosedByAContentWriteIsNotPurgedAtTheNextOpening() throws Exception {
+    startSessionAs(USER_USERNAME);
+    Node node = createDocument("Reopened Session Test.docx", "nt:file", "testContent", true);
+    String docId = node.getUUID();
+    String staleKey = openEditor(node, USER_USERNAME).getDocument().getKey();
+    openInDocumentServer(USER_USERNAME, staleKey);
+    Config reopened = rdbmsStorage().getConfigsByKey(staleKey).get(USER_USERNAME);
+    reopened.setClosedTime(System.currentTimeMillis() - 3 * 60 * 60 * 1000L);
+    onlyofficeEditorService.cachedEditorConfigStorage.saveConfig(List.of(staleKey, docId), reopened, false);
+    assertTrue(rdbmsStorage().getConfigsByKey(staleKey).get(USER_USERNAME).isOpen());
+
+    editorService.contentUpdatedOutsideEditor(docId, "mary");
+    openEditor(node, "root");
+
+    assertNotNull(rdbmsStorage().getConfigsByKey(staleKey).get(USER_USERNAME));
     node.remove();
   }
 
