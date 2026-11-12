@@ -4052,6 +4052,8 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
       // the DS while JCR + version history already have the new content. Drop the cached
       // configs (same eviction used in getEditor when a stale key is detected) to force a
       // new key -> DS re-fetch -> the editor shows the just-written content.
+      // node.save() above already closed them (observeContentWrites runs on this thread
+      // after the commit): this eviction finds active configs only when that listener failed.
       try {
         String docId = node.getUUID();
         Map<String, Config> activeConfigs = cachedEditorConfigStorage.getActiveConfigsByDocId(docId);
