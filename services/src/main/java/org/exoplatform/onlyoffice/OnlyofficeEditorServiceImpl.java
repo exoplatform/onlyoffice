@@ -1160,7 +1160,10 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
   /**
    * Observes the content writes of the documents of the default workspace,
    * once they are saved, to close the editor sessions they leave stale
-   * ({@link #contentUpdatedOutsideEditor(String, String)}). The listener is
+   * ({@link #contentUpdatedOutsideEditor(String, String)}). A write sets the
+   * content ({@code PROPERTY_CHANGED}); a version restore re-creates it
+   * ({@code PROPERTY_ADDED}), as does the creation of a document, which has no
+   * editor session to close. The listener is
    * called on the saving thread, after the storage commit: a write by
    * {@link #download(DocumentStatus)} is told apart by its key.
    */
@@ -1171,7 +1174,7 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
       session = jcrService.getCurrentRepository().getSystemSession(workspace);
       ObservationManager observation = session.getWorkspace().getObservationManager();
       observation.addEventListener(events -> onContentWrites(workspace, events),
-                                   Event.PROPERTY_CHANGED,
+                                   Event.PROPERTY_ADDED | Event.PROPERTY_CHANGED,
                                    "/",
                                    true,
                                    null,

@@ -2181,6 +2181,31 @@ public class OnlyofficeEditorServiceTest extends BaseCommonsTestCase {
   }
 
   /**
+   * A version restore re-creates the content rather than setting it: it closes
+   * the editor sessions of the document as a write does.
+   */
+  @Test
+  public void testRestoredVersionClosesTheEditorSessions() throws Exception {
+    startSessionAs(USER_USERNAME);
+    Node node = createResourceDocument("Restore Test.docx");
+    javax.jcr.version.Version firstVersion = node.checkin();
+    node.checkout();
+    node.getNode("jcr:content").setProperty("jcr:data", new java.io.ByteArrayInputStream("secondContent".getBytes()));
+    node.save();
+    String staleKey = openEditor(node, USER_USERNAME).getDocument().getKey();
+    openInDocumentServer(USER_USERNAME, staleKey);
+
+    node.restore(firstVersion, true);
+
+    Config staleConfig = rdbmsStorage().getConfigsByKey(staleKey).get(USER_USERNAME);
+    assertTrue(staleConfig.isClosed());
+    assertEquals(OnlyofficeEditorServiceImpl.CONTENT_UPDATED_OUTSIDE_EDITOR, staleConfig.getError());
+    node.checkout();
+    org.junit.Assert.assertNotEquals(staleKey, openEditor(node, USER_USERNAME).getDocument().getKey());
+    node.remove();
+  }
+
+  /**
    * The active configs are read one per user: a user's older active config,
    * hidden by a newer one, is closed too.
    */
