@@ -2008,6 +2008,11 @@ public class OnlyofficeEditorServiceTest extends BaseCommonsTestCase {
 
     openInDocumentServer(USER_USERNAME, staleKey);
     assertTrue(editorService.getEditorByKey(USER_USERNAME, staleKey).isClosed());
+    editorService.updateDocument(new DocumentStatus.Builder().status(3L)
+                                                             .users(new String[] { USER_USERNAME, "root" })
+                                                             .userId(USER_USERNAME)
+                                                             .key(staleKey)
+                                                             .build());
     assertTrue(onlyofficeEditorService.cachedEditorConfigStorage.getActiveConfigsByDocId(docId).isEmpty());
 
     String newKey = openEditor(node, USER_USERNAME).getDocument().getKey();
@@ -2029,20 +2034,18 @@ public class OnlyofficeEditorServiceTest extends BaseCommonsTestCase {
   @Test
   public void testEditorOwnSaveClosesOnlyTheOtherKeys() throws Exception {
     startSessionAs(USER_USERNAME);
-    Node node = createDocument("Own Save Test.docx", "nt:file", "testContent", true);
+    Node node = createResourceDocument("Own Save Test.docx");
     String docId = node.getUUID();
     String editingKey = openEditor(node, USER_USERNAME).getDocument().getKey();
     openInDocumentServer(USER_USERNAME, editingKey);
     String otherKey = storeUnopenedConversionConfig(node, "mary");
-    // the content write of the save calls the service on the saving thread, as
-    // the document update handler does; the save then stores its own config again,
-    // so the state of its key is read right after the call
+    // the save stores its own config again once it is over: the state of its key
+    // is read right after the content write
     AtomicReference<Boolean> editingKeyOpenDuringSave = new AtomicReference<>();
     OnlyofficeEditorListener listener = new OnlyofficeEditorListener() {
       @Override
       public void onSaved(DocumentStatus status) {
         if (docId.equals(status.getConfig().getDocId())) {
-          editorService.contentUpdatedOutsideEditor(docId, USER_USERNAME);
           editingKeyOpenDuringSave.set(rdbmsStorage().getConfigsByKey(editingKey).get(USER_USERNAME).isOpen());
         }
       }
@@ -2091,6 +2094,30 @@ public class OnlyofficeEditorServiceTest extends BaseCommonsTestCase {
   }
 
   /**
+   * A new version written to the document outside the editor, as Documents
+   * uploads one, closes its editor sessions once the write is saved.
+   */
+  @Test
+  public void testSavedContentWriteClosesTheEditorSessions() throws Exception {
+    startSessionAs(USER_USERNAME);
+    Node node = createResourceDocument("Saved Write Test.docx");
+    String docId = node.getUUID();
+    String staleKey = openEditor(node, USER_USERNAME).getDocument().getKey();
+    openInDocumentServer(USER_USERNAME, staleKey);
+
+    Node content = node.getNode("jcr:content");
+    content.setProperty("jcr:data", new java.io.ByteArrayInputStream("uploadedContent".getBytes()));
+    assertTrue(rdbmsStorage().getConfigsByKey(staleKey).get(USER_USERNAME).isOpen());
+    node.save();
+
+    Config staleConfig = rdbmsStorage().getConfigsByKey(staleKey).get(USER_USERNAME);
+    assertTrue(staleConfig.isClosed());
+    assertEquals(OnlyofficeEditorServiceImpl.CONTENT_UPDATED_OUTSIDE_EDITOR, staleConfig.getError());
+    org.junit.Assert.assertNotEquals(staleKey, openEditor(node, USER_USERNAME).getDocument().getKey());
+    node.remove();
+  }
+
+  /**
    * The active configs are read one per user: a user's older active config,
    * hidden by a newer one, is closed too.
    */
@@ -2114,6 +2141,38 @@ public class OnlyofficeEditorServiceTest extends BaseCommonsTestCase {
     assertTrue(rdbmsStorage().getConfigsByKey(editingKey).get(USER_USERNAME).isClosed());
     assertTrue(rdbmsStorage().getConfigsByKey(newerKey).get(USER_USERNAME).isClosed());
     node.remove();
+  }
+
+  /**
+   * Creates a document whose content node is an nt:resource, as Documents
+   * stores it: the content writes the service observes are on nt:resource.
+   */
+  private Node createResourceDocument(String title) throws Exception {
+    startSessionAs("root");
+    NodeImpl rootNode = (NodeImpl) session.getRootNode();
+    rootNode.setPermission(USER_USERNAME, new String[] { PermissionType.ADD_NODE, PermissionType.SET_PROPERTY });
+    NodeImpl node = (NodeImpl) rootNode.addNode(title, "nt:file");
+    node.addMixin("exo:privilegeable");
+    node.addMixin("exo:activityInfo");
+    node.addMixin("exo:datetime");
+    node.addMixin("exo:modify");
+    node.addMixin("exo:sortable");
+    node.setProperty("exo:activityId", Calendar.getInstance());
+    node.setProperty("exo:dateModified", Calendar.getInstance());
+    node.setProperty("exo:lastModifier", USER_USERNAME);
+    node.setProperty("exo:lastModifiedDate", Calendar.getInstance());
+    Node contentNode = node.addNode("jcr:content", "nt:resource");
+    contentNode.addMixin("exo:datetime");
+    contentNode.setProperty("jcr:mimeType", "application/vnd.oasis.opendocument.text");
+    contentNode.setProperty("jcr:lastModified", Calendar.getInstance());
+    contentNode.setProperty("jcr:data", "testContent");
+    contentNode.setProperty("exo:dateCreated", Calendar.getInstance());
+    contentNode.setProperty("exo:dateModified", Calendar.getInstance());
+    node.addMixin("mix:referenceable");
+    node.addMixin("mix:versionable");
+    rootNode.getSession().save();
+    startSessionAs(USER_USERNAME);
+    return node;
   }
 
   private OnlyofficeEditorListener outsideWriteListener(String docId, AtomicReference<DocumentStatus> notified) {

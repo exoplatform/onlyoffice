@@ -494,14 +494,15 @@ public interface OnlyofficeEditorService {
 
   /**
    * Closes the active editor configs of a document whose content was written
-   * outside the editor session that holds them (an upload of a new version, a
-   * restore, another session's save), so that the next opening gets a new
+   * outside the editor session that holds them (an upload of a new version from
+   * Documents, another editor session's save), so that the next opening gets a new
    * document key and the Document Server fetches the written content instead of
    * serving the content it holds for the old key. The configs are closed, never
    * deleted: the sessions still open keep their callbacks resolvable until the
    * closed configs retention purges them, and their editors are told the
-   * content changed. A write by the editor session itself closes nothing of its
-   * own key.
+   * content changed. A write by an editor session closes nothing of its own
+   * key: {@link DocumentStatus#getKey()} of the notification is that key, null
+   * for a write outside any editor.
    *
    * @param docId the document node's UUID
    * @param userId the user who wrote the content, may be null

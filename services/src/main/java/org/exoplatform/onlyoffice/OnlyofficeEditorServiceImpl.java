@@ -67,6 +67,9 @@ import javax.jcr.Session;
 import javax.jcr.Value;
 import javax.jcr.ValueFormatException;
 import javax.jcr.lock.Lock;
+import javax.jcr.observation.Event;
+import javax.jcr.observation.EventIterator;
+import javax.jcr.observation.ObservationManager;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.io.input.AutoCloseInputStream;
@@ -1152,24 +1155,82 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
     }
     if (closedConfig != null) {
       LOG.info("Closed the editor configs of document {} after a content write outside the editor by {}", docId, userId);
+      // the status key is the writing session's (null for a write outside any
+      // editor): its editors hold the written content
       fireContentUpdatedOutsideEditor(new DocumentStatus.Builder().config(closedConfig)
-                                                                  .key(closedConfig.getDocument().getKey())
+                                                                  .key(writingKey)
                                                                   .userId(userId)
                                                                   .build());
     }
   }
 
   /**
-   * Tells whether a config of the key was closed because the document's content
-   * was written outside its editor session.
+   * Tells whether a config was closed because the document's content was
+   * written outside its editor session: no callback of its key reopens it.
    *
-   * @param configs the configs of a key
-   * @return true when the key is superseded by such a write
+   * @param config the config
+   * @return true when its key is superseded by such a write
    */
-  protected boolean isClosedByOutsideWrite(Map<String, Config> configs) {
-    return configs.values()
-                  .stream()
-                  .anyMatch(c -> c != null && c.isClosed() && CONTENT_UPDATED_OUTSIDE_EDITOR.equals(c.getError()));
+  protected boolean isClosedByOutsideWrite(Config config) {
+    return config.isClosed() && CONTENT_UPDATED_OUTSIDE_EDITOR.equals(config.getError());
+  }
+
+  /**
+   * Observes the content writes of the documents of the default workspace,
+   * once they are saved, to close the editor sessions they leave stale
+   * ({@link #contentUpdatedOutsideEditor(String, String)}). The listener is
+   * called on the saving thread, after the storage commit: a write by
+   * {@link #download(DocumentStatus)} is told apart by its key.
+   */
+  protected void observeContentWrites() {
+    Session session = null;
+    try {
+      String workspace = jcrService.getCurrentRepository().getConfiguration().getDefaultWorkspaceName();
+      session = jcrService.getCurrentRepository().getSystemSession(workspace);
+      ObservationManager observation = session.getWorkspace().getObservationManager();
+      observation.addEventListener(events -> onContentWrites(workspace, events),
+                                   Event.PROPERTY_CHANGED,
+                                   "/",
+                                   true,
+                                   null,
+                                   new String[] { NodetypeConstant.NT_RESOURCE },
+                                   false);
+    } catch (RepositoryException e) {
+      LOG.error("Cannot observe the documents content writes: the editors will not see a content written outside them", e);
+    } finally {
+      if (session != null) {
+        session.logout();
+      }
+    }
+  }
+
+  /**
+   * Closes the editor sessions a saved content write leaves stale.
+   *
+   * @param workspace the workspace of the events
+   * @param events the property changes saved
+   */
+  protected void onContentWrites(String workspace, EventIterator events) {
+    while (events.hasNext()) {
+      Event event = events.nextEvent();
+      Session session = null;
+      try {
+        if (event.getPath().endsWith("/" + NodetypeConstant.JCR_DATA)) {
+          session = jcrService.getCurrentRepository().getSystemSession(workspace);
+          Node file = ((Property) session.getItem(event.getPath())).getParent().getParent();
+          if (file.isNodeType(NodetypeConstant.NT_FILE) && file.isNodeType(NodetypeConstant.MIX_REFERENCEABLE)
+              && isDocumentMimeSupported(file)) {
+            contentUpdatedOutsideEditor(file.getUUID(), event.getUserID());
+          }
+        }
+      } catch (RepositoryException | RuntimeException e) {
+        LOG.warn("Cannot close the editor sessions left stale by a content write", e);
+      } finally {
+        if (session != null) {
+          session.logout();
+        }
+      }
+    }
   }
 
   protected boolean hasActiveConfigForDifferentKey(String docId, String key) {
@@ -1248,7 +1309,7 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
     } else if (statusCode == 1) {
       // If this is a late open notification for an old key after a new active key was created,
       // keep the old config closed and do not reactivate it for docId lookup.
-      if (config.isClosed() && (hasActiveConfigForDifferentKey(config.getDocId(), key) || isClosedByOutsideWrite(configs))) {
+      if (config.isClosed() && hasActiveConfigForDifferentKey(config.getDocId(), key)) {
         LOG.warn("Ignoring late open status for superseded OnlyOffice key " + key + ". Document: " + nodePath);
       } else {
         syncUsers(configs, safeUsers(status));
@@ -1571,6 +1632,7 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
         }
       }
     }
+    observeContentWrites();
     LOG.info("Onlyoffice Editor service successfuly started");
   }
 
@@ -2160,7 +2222,7 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
                                                           .build();
 
       if (editors.contains(user)) {
-        if (config.isCreated() || config.isClosed()) {
+        if ((config.isCreated() || config.isClosed()) && !isClosedByOutsideWrite(config)) {
           // editor was (re)opened by user
           config.open();
           fireJoined(status);
