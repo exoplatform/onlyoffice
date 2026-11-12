@@ -2035,12 +2035,15 @@ public class OnlyofficeEditorServiceTest extends BaseCommonsTestCase {
     openInDocumentServer(USER_USERNAME, editingKey);
     String otherKey = storeUnopenedConversionConfig(node, "mary");
     // the content write of the save calls the service on the saving thread, as
-    // the document update handler does
+    // the document update handler does; the save then stores its own config again,
+    // so the state of its key is read right after the call
+    AtomicReference<Boolean> editingKeyOpenDuringSave = new AtomicReference<>();
     OnlyofficeEditorListener listener = new OnlyofficeEditorListener() {
       @Override
       public void onSaved(DocumentStatus status) {
         if (docId.equals(status.getConfig().getDocId())) {
           editorService.contentUpdatedOutsideEditor(docId, USER_USERNAME);
+          editingKeyOpenDuringSave.set(rdbmsStorage().getConfigsByKey(editingKey).get(USER_USERNAME).isOpen());
         }
       }
 
@@ -2076,6 +2079,7 @@ public class OnlyofficeEditorServiceTest extends BaseCommonsTestCase {
       editorService.removeListener(listener);
     }
 
+    assertEquals(Boolean.TRUE, editingKeyOpenDuringSave.get());
     assertTrue(rdbmsStorage().getConfigsByKey(editingKey).get(USER_USERNAME).isOpen());
     Config otherConfig = rdbmsStorage().getConfigsByKey(otherKey).get("mary");
     assertTrue(otherConfig.isClosed());
