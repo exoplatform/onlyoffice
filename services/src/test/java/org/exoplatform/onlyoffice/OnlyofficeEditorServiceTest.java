@@ -2213,6 +2213,37 @@ public class OnlyofficeEditorServiceTest extends BaseCommonsTestCase {
   }
 
   /**
+   * A not-found status for a key that a content write closed keeps the key
+   * superseded: a later open notification does not reopen it.
+   */
+  @Test
+  public void testNotFoundStatusKeepsASupersededKeyClosed() throws Exception {
+    startSessionAs(USER_USERNAME);
+    Node node = createDocument("Superseded Not Found Test.docx", "nt:file", "testContent", true);
+    String docId = node.getUUID();
+    String staleKey = openEditor(node, USER_USERNAME).getDocument().getKey();
+    openInDocumentServer(USER_USERNAME, staleKey);
+    editorService.contentUpdatedOutsideEditor(docId, "mary");
+
+    try {
+      editorService.updateDocument(new DocumentStatus.Builder().status(0L)
+                                                               .users(new String[] { USER_USERNAME })
+                                                               .userId(USER_USERNAME)
+                                                               .key(staleKey)
+                                                               .build());
+      org.junit.Assert.fail("A not-found status is reported as an error");
+    } catch (OnlyofficeEditorException e) {
+      // expected
+    }
+
+    assertEquals(OnlyofficeEditorServiceImpl.CONTENT_UPDATED_OUTSIDE_EDITOR,
+                 rdbmsStorage().getConfigsByKey(staleKey).get(USER_USERNAME).getError());
+    openInDocumentServer(USER_USERNAME, staleKey);
+    assertTrue(onlyofficeEditorService.cachedEditorConfigStorage.getActiveConfigsByDocId(docId).isEmpty());
+    node.remove();
+  }
+
+  /**
    * A version restore re-creates the content rather than setting it: it closes
    * the editor sessions of the document as a write does.
    */
