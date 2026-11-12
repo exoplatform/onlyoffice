@@ -28,6 +28,8 @@ import static org.mockito.Mockito.when;
 
 import java.lang.reflect.Field;
 
+import javax.jcr.RepositoryException;
+
 import org.cometd.bayeux.server.BayeuxServer;
 import org.cometd.bayeux.server.LocalSession;
 import org.cometd.bayeux.server.ServerChannel;
@@ -37,6 +39,9 @@ import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.mortbay.cometd.continuation.EXoContinuationBayeux;
 
+import org.exoplatform.onlyoffice.Config;
+import org.exoplatform.onlyoffice.DocumentStatus;
+import org.exoplatform.onlyoffice.OnlyofficeEditorListener;
 import org.exoplatform.onlyoffice.OnlyofficeEditorService;
 import org.exoplatform.services.jcr.RepositoryService;
 
@@ -55,11 +60,16 @@ class CometdUpdatedOutsideEventTest {
 
   private CometdOnlyofficeService.CometdService  cometdService;
 
+  private OnlyofficeEditorService                editors;
+
   @BeforeEach
   void setUp() throws Exception {
+    editors = mock(OnlyofficeEditorService.class);
+    RepositoryService repositoryService = mock(RepositoryService.class);
+    when(repositoryService.getCurrentRepository()).thenThrow(new RepositoryException("no repository in this test"));
     CometdOnlyofficeService service = new CometdOnlyofficeService(mock(EXoContinuationBayeux.class),
-                                                                  mock(OnlyofficeEditorService.class),
-                                                                  mock(RepositoryService.class));
+                                                                  editors,
+                                                                  repositoryService);
     cometdService = service.service;
     BayeuxServer bayeux = mock(BayeuxServer.class);
     channel = mock(ServerChannel.class);
@@ -86,6 +96,22 @@ class CometdUpdatedOutsideEventTest {
     JSONObject message = publishedMessage();
     assertEquals(DOC_ID, message.getString("docId"));
     assertTrue(message.isNull("writingKey"));
+  }
+
+  @Test
+  void editorListenerPublishesTheWritingKeyOfTheNotification() throws Exception {
+    cometdService.postConstruct();
+    ArgumentCaptor<OnlyofficeEditorListener> listener = ArgumentCaptor.forClass(OnlyofficeEditorListener.class);
+    verify(editors).addListener(listener.capture());
+    Config config = mock(Config.class);
+    when(config.getDocId()).thenReturn(DOC_ID);
+
+    listener.getValue()
+            .onContentUpdatedOutsideEditor(new DocumentStatus.Builder().config(config).key("writing-key").build());
+
+    JSONObject message = publishedMessage();
+    assertEquals(DOC_ID, message.getString("docId"));
+    assertEquals("writing-key", message.getString("writingKey"));
   }
 
   private JSONObject publishedMessage() throws Exception {

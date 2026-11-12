@@ -2014,6 +2014,10 @@ public class OnlyofficeEditorServiceTest extends BaseCommonsTestCase {
                                                              .key(staleKey)
                                                              .build());
     assertTrue(onlyofficeEditorService.cachedEditorConfigStorage.getActiveConfigsByDocId(docId).isEmpty());
+    assertEquals(OnlyofficeEditorServiceImpl.CONTENT_UPDATED_OUTSIDE_EDITOR,
+                 rdbmsStorage().getConfigsByKey(staleKey).get(USER_USERNAME).getError());
+    openInDocumentServer(USER_USERNAME, staleKey);
+    assertTrue(onlyofficeEditorService.cachedEditorConfigStorage.getActiveConfigsByDocId(docId).isEmpty());
 
     String newKey = openEditor(node, USER_USERNAME).getDocument().getKey();
     org.junit.Assert.assertNotEquals(staleKey, newKey);

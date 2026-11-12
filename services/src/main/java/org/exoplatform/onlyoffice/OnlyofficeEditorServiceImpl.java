@@ -1158,6 +1158,20 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
   }
 
   /**
+   * Records an editor error on a config, unless a content write outside the
+   * editor closed it: its error is the marker that keeps its key from being
+   * reopened ({@link #isClosedByOutsideWrite(Config)}).
+   *
+   * @param config the config
+   * @param error the error
+   */
+  protected void setEditorError(Config config, String error) {
+    if (!isClosedByOutsideWrite(config)) {
+      config.setError(error);
+    }
+  }
+
+  /**
    * Observes the content writes of the documents of the default workspace,
    * once they are saved, to close the editor sessions they leave stale
    * ({@link #contentUpdatedOutsideEditor(String, String)}). A write sets the
@@ -1328,7 +1342,7 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
         if (StringUtils.isNotBlank(url)) {
           // if URL available then we can download it assuming it's last successful modification
           downloadClosed(status);
-          config.setError("Error in editor (" + status.getError() + "). Last change was successfully saved");
+          setEditorError(config, "Error in editor (" + status.getError() + "). Last change was successfully saved");
           cachedEditorConfigStorage.saveConfig(List.of(key, config.getDocId()), config, false);
           fireError(status);
           broadcastEvent(status, OnlyofficeEditorService.EDITOR_ERROR_EVENT);
@@ -1338,7 +1352,7 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
         } else {
           LOG.warn("Received Onlyoffice error of saving document without changes URL. Key: " + key + ". Users: "
               + Arrays.toString(status.getUsers()) + ". Document: " + nodePath + ". Error: " + status.getError());
-          config.setError("Error in editor (" + status.getError() + "). No changes saved");
+          setEditorError(config, "Error in editor (" + status.getError() + "). No changes saved");
           cachedEditorConfigStorage.saveConfig(List.of(key, config.getDocId()), config,false);
           fireError(status);
           broadcastEvent(status, OnlyofficeEditorService.EDITOR_ERROR_EVENT);
@@ -1346,7 +1360,7 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
       } else {
         LOG.warn("Received Onlyoffice error of saving document with several editors. Key: " + key + ". Users: "
             + Arrays.toString(status.getUsers()) + ". Document: " + nodePath);
-        config.setError("Error in editor. Document still in editing state");
+        setEditorError(config, "Error in editor. Document still in editing state");
         cachedEditorConfigStorage.saveConfig(List.of(key, config.getDocId()), config,false);
         fireError(status);
         broadcastEvent(status, OnlyofficeEditorService.EDITOR_ERROR_EVENT);
