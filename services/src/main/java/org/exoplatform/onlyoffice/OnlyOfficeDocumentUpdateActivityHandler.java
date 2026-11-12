@@ -15,6 +15,9 @@ import org.exoplatform.services.cms.documents.DocumentUpdateActivityHandler;
 import org.exoplatform.services.ext.action.InvocationContext;
 import org.exoplatform.services.jcr.impl.core.NodeImpl;
 import org.exoplatform.services.listener.Event;
+import org.exoplatform.services.log.ExoLogger;
+import org.exoplatform.services.log.Log;
+import org.exoplatform.services.security.ConversationState;
 import org.exoplatform.services.thumbnail.ImageThumbnailService;
 import org.exoplatform.services.wcm.core.NodetypeConstant;
 import org.exoplatform.wcm.ext.component.activity.listener.FileUpdateActivityListener;
@@ -33,6 +36,12 @@ public class OnlyOfficeDocumentUpdateActivityHandler extends FileUpdateActivityL
 
   /** The Constant EVENT_DELAY in min. */
   protected static final long     EVENT_DELAY = 10;
+
+  /** The content property of a document. */
+  private static final String     JCR_DATA    = "jcr:data";
+
+  /** The logger. */
+  private static final Log        LOG         = ExoLogger.getLogger(OnlyOfficeDocumentUpdateActivityHandler.class);
 
   /** The editor service. */
   private OnlyofficeEditorService editorService;
@@ -56,6 +65,9 @@ public class OnlyOfficeDocumentUpdateActivityHandler extends FileUpdateActivityL
     String nodeId = getNodeId(currentNode);
     if (nodeId != null) {
       imageThumbnailService.deleteThumbnails(OfficeDocumentsThumbnailPlugin.DOCUMENTS_OFFICE, nodeId);
+      if (JCR_DATA.equals(event.getData())) {
+        closeEditorsOfOutsideWrite(nodeId);
+      }
     }
     // If there is no manually added comment from the editor
     if (!isCommentedNode(currentNode)) {
@@ -77,6 +89,23 @@ public class OnlyOfficeDocumentUpdateActivityHandler extends FileUpdateActivityL
     return true;
   }
 
+
+  /**
+   * Closes the editor sessions the content write leaves stale, the write's own
+   * editor session excepted, so that the next opening shows the written content.
+   * A failure is logged: it never fails the write.
+   *
+   * @param docId the document node's UUID
+   */
+  protected void closeEditorsOfOutsideWrite(String docId) {
+    try {
+      ConversationState conversationState = ConversationState.getCurrent();
+      String userId = conversationState == null ? null : conversationState.getIdentity().getUserId();
+      editorService.contentUpdatedOutsideEditor(docId, userId);
+    } catch (RuntimeException e) {
+      LOG.warn("Cannot close the editor sessions of document {} after its content was written outside the editor", docId, e);
+    }
+  }
 
   /**
    * Checks if a node has comment.
