@@ -289,6 +289,10 @@ public class CometdOnlyofficeService implements Startable {
    */
   @Override
   public void start() {
+    // A document's events are published by the node that handles the change,
+    // a Document Server callback included, while its editors are connected to
+    // any node: Oort relays the editor channels to every node
+    exoBayeux.observeChannel(CHANNEL_NAME + "**");
     // instantiate processor after the eXo container start, to let
     // start-dependent logic worked before us
     final AtomicReference<ServerAnnotationProcessor> processor = new AtomicReference<>();
@@ -689,7 +693,9 @@ public class CometdOnlyofficeService implements Startable {
      * @param comment the comment
      */
     protected void publishSavedEvent(String docId, String userId, String comment) {
-      ServerChannel channel = bayeux.getChannel(CHANNEL_NAME + docId);
+      // Created when no session of this node subscribed to it, so that the
+      // other nodes' editors receive the event through Oort
+      ServerChannel channel = bayeux.createChannelIfAbsent(CHANNEL_NAME + docId).getReference();
       if (channel != null) {
         StringBuilder data = new StringBuilder();
         data.append('{');
@@ -723,7 +729,9 @@ public class CometdOnlyofficeService implements Startable {
      * @param userId the user id
      */
     protected void publishContentUpdatedEvent(String workspace, String docId, String userId) {
-      ServerChannel channel = bayeux.getChannel(CHANNEL_NAME + docId);
+      // Created when no session of this node subscribed to it, so that the
+      // other nodes' editors receive the event through Oort
+      ServerChannel channel = bayeux.createChannelIfAbsent(CHANNEL_NAME + docId).getReference();
       if (channel != null) {
         StringBuilder data = new StringBuilder();
         data.append('{');
@@ -749,7 +757,9 @@ public class CometdOnlyofficeService implements Startable {
      * @param docId the doc id
      */
     protected void publishDeletedEvent(String docId) {
-      ServerChannel channel = bayeux.getChannel(CHANNEL_NAME + docId);
+      // Created when no session of this node subscribed to it, so that the
+      // other nodes' editors receive the event through Oort
+      ServerChannel channel = bayeux.createChannelIfAbsent(CHANNEL_NAME + docId).getReference();
       if (channel != null) {
         StringBuilder data = new StringBuilder();
         data.append('{');
