@@ -55,7 +55,7 @@ public class RDBMSEditorConfigStorageImpl implements EditorConfigStorage {
   }
 
   @Override
-  @ExoTransactional // as the class's other storage methods
+  @ExoTransactional // as the class's other annotated methods
   public List<Config> getAllActiveConfigsByDocId(String docId) {
     return editorConfigDAO.getActiveConfigByDocId(docId).stream().map(this::buildFromEntity).toList();
   }
@@ -119,7 +119,7 @@ public class RDBMSEditorConfigStorageImpl implements EditorConfigStorage {
   }
 
   @Override
-  @ExoTransactional // as the class's other storage methods
+  @ExoTransactional // as the class's other annotated methods
   public boolean reopenConfig(Config config) {
     return editorConfigDAO.reopenConfig(config.getDatabaseId(),
                                         config.getOpenedTime(),
