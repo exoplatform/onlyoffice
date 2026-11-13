@@ -66,4 +66,16 @@ public class EditorConfigDAOImpl extends GenericDAOJPAImpl<EditorConfigEntity, L
     return opened;
   }
 
+  @Override
+  public int lockConfigUnlessClosedWith(long id, String closedError) {
+    Query query = getEntityManager().createNamedQuery("EditorConfigEntity.lockConfigUnlessClosedWith");
+    query.setParameter("id", id);
+    query.setParameter("closedError", closedError);
+    int locked = query.executeUpdate();
+    // the update bypasses the persistence context: an entity it already holds
+    // would keep the state it was loaded with
+    getEntityManager().clear();
+    return locked;
+  }
+
 }

@@ -26,6 +26,8 @@ import org.exoplatform.component.test.ConfigurationUnit;
 import org.exoplatform.component.test.ConfiguredBy;
 import org.exoplatform.component.test.ContainerScope;
 import org.exoplatform.container.ExoContainerContext;
+import org.exoplatform.container.ExoContainer;
+import org.exoplatform.onlyoffice.jpa.EditorConfigDAO;
 import org.exoplatform.onlyoffice.jpa.storage.impl.RDBMSEditorConfigStorageImpl;
 import org.exoplatform.services.cms.documents.DocumentService;
 import org.exoplatform.services.cms.drives.DriveData;
@@ -2294,9 +2296,68 @@ public class OnlyofficeEditorServiceTest extends BaseCommonsTestCase {
   }
 
   /**
-   * A save of a session that a content write superseded is a write of its own:
-   * it closes the session opened after the write, whose content it replaces,
-   * and its editors are told.
+   * A save of a copy read before a content write, whose transaction straddles
+   * the write's, keeps the write's close: the write waits for the save's row
+   * lock, then closes the row the save wrote.
+   */
+  @Test
+  public void testSaveStraddlingAContentWriteKeepsTheWritesClose() throws Exception {
+    startSessionAs(USER_USERNAME);
+    Node node = createDocument("Straddling Save Test.docx", "nt:file", "testContent", true);
+    String docId = node.getUUID();
+    String staleKey = openEditor(node, USER_USERNAME).getDocument().getKey();
+    openInDocumentServer(USER_USERNAME, staleKey);
+    Config readBeforeWrite = rdbmsStorage().getConfigsByKey(staleKey).get(USER_USERNAME);
+    readBeforeWrite.closed();
+
+    ExoContainer container = getContainer();
+    EditorConfigDAO dao = container.getComponentInstanceOfType(EditorConfigDAO.class);
+    java.util.concurrent.CountDownLatch saveRead = new java.util.concurrent.CountDownLatch(1);
+    java.util.concurrent.CountDownLatch writeDone = new java.util.concurrent.CountDownLatch(1);
+    EditorConfigDAO pausingDao = (EditorConfigDAO) java.lang.reflect.Proxy.newProxyInstance(
+        EditorConfigDAO.class.getClassLoader(), new Class<?>[] { EditorConfigDAO.class }, (proxy, method, args) -> {
+          Object result;
+          try {
+            result = method.invoke(dao, args);
+          } catch (java.lang.reflect.InvocationTargetException e) {
+            throw e.getCause();
+          }
+          if ("lockConfigUnlessClosedWith".equals(method.getName())) {
+            // the write runs now: done unless it waits for this save's lock
+            saveRead.countDown();
+            writeDone.await(2, java.util.concurrent.TimeUnit.SECONDS);
+          }
+          return result;
+        });
+    Thread writer = new Thread(() -> {
+      ExoContainerContext.setCurrentContainer(container);
+      try {
+        saveRead.await();
+        editorService.contentUpdatedOutsideEditor(docId, "mary");
+      } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
+      } finally {
+        writeDone.countDown();
+      }
+    });
+    writer.start();
+    new RDBMSEditorConfigStorageImpl(pausingDao).saveConfig(staleKey, readBeforeWrite, false);
+    writer.join(10000);
+
+    assertFalse(writer.isAlive());
+    // read the row as a later request does, not the entity this thread's save left
+    container.getComponentInstanceOfType(org.exoplatform.commons.persistence.impl.EntityManagerService.class)
+             .getEntityManager()
+             .clear();
+    assertEquals(OnlyofficeEditorServiceImpl.CONTENT_UPDATED_OUTSIDE_EDITOR,
+                 rdbmsStorage().getConfigsByKey(staleKey).get(USER_USERNAME).getError());
+    node.remove();
+  }
+
+  /**
+   * The Document Server's final save of a session that a content write
+   * superseded is a write of its own: it closes the session opened after the
+   * write, whose content it replaces, and its editors are told.
    */
   @Test
   public void testSaveOfASupersededSessionClosesTheSessionOpenedAfterTheWrite() throws Exception {
@@ -2313,12 +2374,28 @@ public class OnlyofficeEditorServiceTest extends BaseCommonsTestCase {
     AtomicReference<DocumentStatus> notified = new AtomicReference<>();
     OnlyofficeEditorListener notifiedListener = outsideWriteListener(docId, notified);
     editorService.addListener(notifiedListener);
+    com.sun.net.httpserver.HttpServer contentServer = com.sun.net.httpserver.HttpServer.create(new java.net.InetSocketAddress("127.0.0.1", 0), 0);
+    byte[] savedContent = "superseded session's edits".getBytes();
+    contentServer.createContext("/saved", exchange -> {
+      exchange.sendResponseHeaders(200, savedContent.length);
+      exchange.getResponseBody().write(savedContent);
+      exchange.close();
+    });
+    contentServer.start();
     try {
-      editorService.downloadVersion(USER_USERNAME, supersededKey, false, false, null, null);
+      editorService.updateDocument(new DocumentStatus.Builder().status(2L)
+                                                               .users(new String[] { USER_USERNAME })
+                                                               .userId(USER_USERNAME)
+                                                               .url("http://127.0.0.1:" + contentServer.getAddress().getPort() + "/saved")
+                                                               .key(supersededKey)
+                                                               .build());
     } finally {
+      contentServer.stop(0);
       editorService.removeListener(notifiedListener);
     }
 
+    assertEquals("superseded session's edits",
+                 new String(node.getNode("jcr:content").getProperty("jcr:data").getStream().readAllBytes()));
     Config newer = rdbmsStorage().getConfigsByKey(newerKey).get("root");
     assertTrue(newer.isClosed());
     assertEquals(OnlyofficeEditorServiceImpl.CONTENT_UPDATED_OUTSIDE_EDITOR, newer.getError());

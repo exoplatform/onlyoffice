@@ -15,6 +15,7 @@ import jakarta.persistence.Table;
 @NamedQuery(name = "EditorConfigEntity.getActiveConfigByDocId", query = "SELECT e FROM EditorConfigEntity e WHERE e.documentId = :docId AND (e.closedTime IS NULL OR e.open = true OR e.closing = true) ORDER BY e.id DESC")
 @NamedQuery(name = "EditorConfigEntity.getClosedConfigBefore", query = "SELECT e FROM EditorConfigEntity e WHERE e.open = false AND e.closing = false AND e.closedTime IS NOT NULL AND e.closedTime < :expirationTime ORDER BY e.id ASC")
 @NamedQuery(name = "EditorConfigEntity.reopenConfig", query = "UPDATE EditorConfigEntity e SET e.open = true, e.closing = false, e.openedTime = :openedTime WHERE e.id = :id AND (e.error IS NULL OR e.error <> :closedError)")
+@NamedQuery(name = "EditorConfigEntity.lockConfigUnlessClosedWith", query = "UPDATE EditorConfigEntity e SET e.closedTime = e.closedTime WHERE e.id = :id AND (e.error IS NULL OR e.error <> :closedError)")
 @NamedQuery(name = "EditorConfigEntity.closeUnopenedConversionConfigs", query = "UPDATE EditorConfigEntity e SET e.closedTime = :closedTime WHERE e.closedTime IS NULL AND e.open = false AND e.explorerUrl = ''")
 public class EditorConfigEntity {
 

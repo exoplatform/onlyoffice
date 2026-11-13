@@ -55,7 +55,7 @@ public class RDBMSEditorConfigStorageImpl implements EditorConfigStorage {
   }
 
   @Override
-  @ExoTransactional // as every method of this class
+  @ExoTransactional // as the class's other storage methods
   public List<Config> getAllActiveConfigsByDocId(String docId) {
     return editorConfigDAO.getActiveConfigByDocId(docId).stream().map(this::buildFromEntity).toList();
   }
@@ -78,12 +78,16 @@ public class RDBMSEditorConfigStorageImpl implements EditorConfigStorage {
       editorConfigDAO.create(entity);
       config.setDatabaseId(entity.getId());
     } else {
+      // a copy without the marker locks the row until its update commits: a
+      // content write closing the config meanwhile waits, then closes the row
+      // this save writes; a row the write closed already keeps its close
+      boolean marked = CONTENT_UPDATED_OUTSIDE_EDITOR.equals(config.getError());
+      boolean closedByOutsideWrite = !marked
+          && editorConfigDAO.lockConfigUnlessClosedWith(config.getDatabaseId(), CONTENT_UPDATED_OUTSIDE_EDITOR) == 0;
       EditorConfigEntity stored = editorConfigDAO.find(config.getDatabaseId());
       if (stored!=null) {
         EditorConfigEntity entity = buildFromDTO(config);
-        if (CONTENT_UPDATED_OUTSIDE_EDITOR.equals(stored.getError())
-            && !CONTENT_UPDATED_OUTSIDE_EDITOR.equals(config.getError())) {
-          // a copy read before a content write closed the config keeps it closed
+        if (closedByOutsideWrite) {
           entity.setError(stored.getError());
           entity.setOpen(false);
           entity.setClosing(false);
@@ -115,7 +119,7 @@ public class RDBMSEditorConfigStorageImpl implements EditorConfigStorage {
   }
 
   @Override
-  @ExoTransactional // as every method of this class
+  @ExoTransactional // as the class's other storage methods
   public boolean reopenConfig(Config config) {
     return editorConfigDAO.reopenConfig(config.getDatabaseId(),
                                         config.getOpenedTime(),
