@@ -244,7 +244,10 @@
             <field name="liveTime">
               <long>${onlyoffice.ViewerCache.TimeToLive:-1}</long>
             </field>
-            <!-- A viewer configuration is state no store holds, which the document server downloads through any node: replicated -->
+            <!-- A viewer configuration is state no store holds, which the document server downloads through any node: replicated.
+                 A node that starts holds none: the cluster's cache template does not transfer a cache's state. A viewer
+                 opened before the node started, whose document the document server downloads through that node, fails to
+                 load until it is opened again, which puts its configuration again. -->
             <field name="cacheMode" profiles="cluster">
               <string>${onlyoffice.ViewerCache.cacheMode:replication}</string>
             </field>
