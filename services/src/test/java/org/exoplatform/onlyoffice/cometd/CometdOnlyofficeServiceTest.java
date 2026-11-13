@@ -22,6 +22,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -30,6 +31,8 @@ import java.lang.reflect.Field;
 import org.cometd.bayeux.MarkedReference;
 import org.cometd.bayeux.server.BayeuxServer;
 import org.cometd.bayeux.server.ServerChannel;
+import org.cometd.bayeux.server.ServerMessage;
+import org.cometd.bayeux.server.ServerSession;
 import org.junit.Test;
 import org.mortbay.cometd.continuation.EXoContinuationBayeux;
 
@@ -72,5 +75,24 @@ public class CometdOnlyofficeServiceTest {
     cometdService.service.publishDeletedEvent("doc1");
 
     verify(channel).publish(any(), anyString(), any());
+  }
+
+  @Test
+  public void testAnEditorEventRelayedFromAnotherNodeIsLeftToThatNode() throws Exception {
+    EXoContinuationBayeux exoBayeux = mock(EXoContinuationBayeux.class);
+    CometdOnlyofficeService cometdService = new CometdOnlyofficeService(exoBayeux,
+                                                                        mock(OnlyofficeEditorService.class),
+                                                                        mock(RepositoryService.class));
+    ServerSession oortSession = mock(ServerSession.class);
+    when(exoBayeux.isRelayed(oortSession)).thenReturn(true);
+    ServerMessage.Mutable relayed = mock(ServerMessage.Mutable.class);
+    ServerMessage.Mutable published = mock(ServerMessage.Mutable.class);
+
+    cometdService.service.subscribeDocuments(oortSession, relayed, "doc1");
+    cometdService.service.subscribeDocuments(mock(ServerSession.class), published, "doc1");
+
+    // Read, then handled, only on the node the editor published it to
+    verify(relayed, never()).getData();
+    verify(published).getData();
   }
 }

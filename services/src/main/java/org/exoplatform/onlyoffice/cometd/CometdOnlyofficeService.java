@@ -45,8 +45,7 @@ import org.cometd.annotation.Param;
 import org.cometd.annotation.server.ServerAnnotationProcessor;
 import org.cometd.annotation.Service;
 import org.cometd.annotation.Session;
-import org.cometd.annotation.Subscription;
-import org.cometd.bayeux.Message;
+import org.cometd.annotation.Listener;
 import org.cometd.bayeux.Promise;
 import org.cometd.bayeux.server.BayeuxServer;
 import org.cometd.bayeux.server.LocalSession;
@@ -457,9 +456,15 @@ public class CometdOnlyofficeService implements Startable {
      * @throws OnlyofficeEditorException the onlyoffice editor exception
      * @throws RepositoryException the repository exception
      */
-    @Subscription(CHANNEL_NAME_PARAMS)
-    public void subscribeDocuments(Message message, @Param("docId") String docId) throws OnlyofficeEditorException,
-                                                                                  RepositoryException {
+    @Listener(CHANNEL_NAME_PARAMS)
+    public void subscribeDocuments(ServerSession sender,
+                                   ServerMessage.Mutable message,
+                                   @Param("docId") String docId) throws OnlyofficeEditorException, RepositoryException {
+      if (exoBayeux.isRelayed(sender)) {
+        // Handled on the node the editor published it to: the editor
+        // channels are relayed to every node of a cluster
+        return;
+      }
       Object objData = message.getData();
       if (!Map.class.isInstance(objData)) {
         if (LOG.isDebugEnabled()) {
