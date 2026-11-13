@@ -23,4 +23,16 @@ public interface EditorConfigDAO extends GenericDAO<EditorConfigEntity,Long> {
    */
   int closeUnopenedConversionConfigs(long closedTime);
 
+  /**
+   * Opens a config at the given time, unless its stored error is the given
+   * one: a single conditional update, so a close written meanwhile by another
+   * transaction is never overwritten.
+   *
+   * @param id the config's database id
+   * @param openedTime the opened time to set
+   * @param closedError the error that keeps the config closed
+   * @return the number of opened configs, 0 or 1
+   */
+  int reopenConfig(long id, long openedTime, String closedError);
+
 }
