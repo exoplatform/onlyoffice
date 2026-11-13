@@ -82,6 +82,7 @@ import org.exoplatform.commons.api.settings.data.Context;
 import org.exoplatform.commons.api.settings.data.Scope;
 import org.exoplatform.commons.utils.CommonsUtils;
 import org.exoplatform.commons.utils.MimeTypeResolver;
+import org.exoplatform.container.ExoContainer;
 import org.exoplatform.container.ExoContainerContext;
 import org.exoplatform.container.PortalContainer;
 import org.exoplatform.container.component.ComponentPlugin;
@@ -413,6 +414,14 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
    * existing file being modified, images).
    */
   protected static final long                                     DOCBUILDER_ASSET_TTL_MS = 120000L;
+
+  /**
+   * The URL the Document Server reaches this node at, to fetch the assets this
+   * node staged for a Document Builder run. They stay in this node's memory,
+   * and the fetch carries no user session a balancer could route by: in a
+   * cluster, each node sets its own URL. Defaults to {@code exo.base.url}.
+   */
+  public static final String                                      DOCBUILDER_NODE_URL_PROPERTY = "onlyoffice.docbuilder.nodeUrl";
 
   /**
    * In-memory registry of short-lived, single-use assets served to the Document
@@ -1454,6 +1463,11 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
    */
   @Override
   public void start() {
+    if (ExoContainer.hasProfile("cluster") && StringUtils.isBlank(System.getProperty(DOCBUILDER_NODE_URL_PROPERTY))) {
+      LOG.warn("Property '{}' is not set: in a cluster, the Document Server fetches the assets of a Document Builder run "
+          + "through exo.base.url, which can lead it to another node than the one holding them. Set it on each node "
+          + "to a URL the Document Server reaches that node at", DOCBUILDER_NODE_URL_PROPERTY);
+    }
     InputStream is = null;
     Session session = null;
     String nodetypeConfigurationFile = "/conf/portal/jcr/onlyoffice-nodetypes.xml";
@@ -3633,14 +3647,7 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
     if (scriptBody == null || scriptBody.trim().isEmpty()) {
       throw new IllegalArgumentException("The Document Builder script is empty; nothing to run.");
     }
-    String base = System.getProperty("exo.base.url");
-    if (base == null || base.trim().isEmpty()) {
-      throw new IllegalStateException("The platform base URL (exo.base.url) is not configured, so the Document Server "
-          + "cannot fetch the Document Builder script and assets. Configure exo.base.url to a URL the Document Server can reach.");
-    }
-    if (base.endsWith("/")) {
-      base = base.substring(0, base.length() - 1);
-    }
+    String base = getDocBuilderBaseUrl();
     String rest = PortalContainer.getCurrentRestContextName();
     String uid = (userId == null || userId.trim().isEmpty()) ? "null" : userId;
     long expiresAt = System.currentTimeMillis() + DOCBUILDER_ASSET_TTL_MS;
@@ -3686,6 +3693,24 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
         docBuilderAssets.remove(key);
       }
     }
+  }
+
+  /**
+   * @return the URL the Document Server fetches this node's staged assets at,
+   *         without a trailing slash: {@link #DOCBUILDER_NODE_URL_PROPERTY},
+   *         else {@code exo.base.url}
+   */
+  static String getDocBuilderBaseUrl() {
+    String base = System.getProperty(DOCBUILDER_NODE_URL_PROPERTY);
+    if (base == null || base.trim().isEmpty()) {
+      base = System.getProperty("exo.base.url");
+    }
+    if (base == null || base.trim().isEmpty()) {
+      throw new IllegalStateException("The platform base URL (exo.base.url) is not configured, so the Document Server "
+          + "cannot fetch the Document Builder script and assets. Configure exo.base.url to a URL the Document Server can reach.");
+    }
+    base = base.trim();
+    return base.endsWith("/") ? base.substring(0, base.length() - 1) : base;
   }
 
   /**
