@@ -55,7 +55,7 @@ public class RDBMSEditorConfigStorageImpl implements EditorConfigStorage {
   }
 
   @Override
-  @ExoTransactional
+  @ExoTransactional // as every method of this class
   public List<Config> getAllActiveConfigsByDocId(String docId) {
     return editorConfigDAO.getActiveConfigByDocId(docId).stream().map(this::buildFromEntity).toList();
   }
