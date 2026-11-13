@@ -1463,10 +1463,9 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
    */
   @Override
   public void start() {
-    if (ExoContainer.hasProfile("cluster") && StringUtils.isBlank(System.getProperty(DOCBUILDER_NODE_URL_PROPERTY))) {
-      LOG.warn("Property '{}' is not set: in a cluster, the Document Server fetches the assets of a Document Builder run "
-          + "through exo.base.url, which can lead it to another node than the one holding them. Set it on each node "
-          + "to a URL the Document Server reaches that node at", DOCBUILDER_NODE_URL_PROPERTY);
+    if (isCluster() && StringUtils.isBlank(System.getProperty(DOCBUILDER_NODE_URL_PROPERTY))) {
+      LOG.warn("Property '{}' is not set: in a cluster, the Document Builder runs fail until each node sets it to a URL "
+          + "the Document Server reaches that node at", DOCBUILDER_NODE_URL_PROPERTY);
     }
     InputStream is = null;
     Session session = null;
@@ -3647,7 +3646,7 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
     if (scriptBody == null || scriptBody.trim().isEmpty()) {
       throw new IllegalArgumentException("The Document Builder script is empty; nothing to run.");
     }
-    String base = getDocBuilderBaseUrl();
+    String base = getDocBuilderBaseUrl(isCluster());
     String rest = PortalContainer.getCurrentRestContextName();
     String uid = (userId == null || userId.trim().isEmpty()) ? "null" : userId;
     long expiresAt = System.currentTimeMillis() + DOCBUILDER_ASSET_TTL_MS;
@@ -3696,21 +3695,37 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
   }
 
   /**
+   * @param cluster whether the platform runs as a cluster
    * @return the URL the Document Server fetches this node's staged assets at,
    *         without a trailing slash: {@link #DOCBUILDER_NODE_URL_PROPERTY},
-   *         else {@code exo.base.url}
+   *         else, outside a cluster, {@code exo.base.url}. In a cluster that URL
+   *         can lead to another node than the one holding the assets, so a run
+   *         fails when the property is not set rather than fail at random.
    */
-  static String getDocBuilderBaseUrl() {
+  static String getDocBuilderBaseUrl(boolean cluster) {
     String base = System.getProperty(DOCBUILDER_NODE_URL_PROPERTY);
-    if (base == null || base.trim().isEmpty()) {
+    if (StringUtils.isBlank(base)) {
+      if (cluster) {
+        throw new IllegalStateException("Property '" + DOCBUILDER_NODE_URL_PROPERTY + "' is not set, so the Document Server "
+            + "cannot fetch the Document Builder script and assets from the node that holds them. In a cluster, set it on "
+            + "each node to a URL the Document Server reaches that node at.");
+      }
       base = System.getProperty("exo.base.url");
     }
-    if (base == null || base.trim().isEmpty()) {
-      throw new IllegalStateException("The platform base URL (exo.base.url) is not configured, so the Document Server "
-          + "cannot fetch the Document Builder script and assets. Configure exo.base.url to a URL the Document Server can reach.");
+    if (StringUtils.isBlank(base)) {
+      throw new IllegalStateException("Neither '" + DOCBUILDER_NODE_URL_PROPERTY + "' nor 'exo.base.url' is configured, so "
+          + "the Document Server cannot fetch the Document Builder script and assets. Set one to a URL the Document Server "
+          + "can reach.");
     }
     base = base.trim();
     return base.endsWith("/") ? base.substring(0, base.length() - 1) : base;
+  }
+
+  /**
+   * @return whether the platform runs as a cluster
+   */
+  protected boolean isCluster() {
+    return ExoContainer.hasProfile("cluster");
   }
 
   /**
@@ -3771,7 +3786,7 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
    * signed exactly like {@link #convertNodeContent} (JWT over the request body,
    * carried both as the {@code token} field and the {@code Authorization} header).
    */
-  private byte[] postDocBuilder(String scriptUrl, String outputName) {
+  byte[] postDocBuilder(String scriptUrl, String outputName) {
     HttpURLConnection connection = null;
     try {
       JSONObject body = new JSONObject();
