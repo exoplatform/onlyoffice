@@ -2294,6 +2294,39 @@ public class OnlyofficeEditorServiceTest extends BaseCommonsTestCase {
   }
 
   /**
+   * A save of a session that a content write superseded is a write of its own:
+   * it closes the session opened after the write, whose content it replaces,
+   * and its editors are told.
+   */
+  @Test
+  public void testSaveOfASupersededSessionClosesTheSessionOpenedAfterTheWrite() throws Exception {
+    startSessionAs(USER_USERNAME);
+    Node node = createResourceDocument("Superseded Save Test.docx");
+    String docId = node.getUUID();
+    String supersededKey = openEditor(node, USER_USERNAME).getDocument().getKey();
+    openInDocumentServer(USER_USERNAME, supersededKey);
+    editorService.contentUpdatedOutsideEditor(docId, "mary");
+    String newerKey = openEditor(node, "root").getDocument().getKey();
+    openInDocumentServer("root", newerKey);
+    org.junit.Assert.assertNotEquals(supersededKey, newerKey);
+
+    AtomicReference<DocumentStatus> notified = new AtomicReference<>();
+    OnlyofficeEditorListener notifiedListener = outsideWriteListener(docId, notified);
+    editorService.addListener(notifiedListener);
+    try {
+      editorService.downloadVersion(USER_USERNAME, supersededKey, false, false, null, null);
+    } finally {
+      editorService.removeListener(notifiedListener);
+    }
+
+    Config newer = rdbmsStorage().getConfigsByKey(newerKey).get("root");
+    assertTrue(newer.isClosed());
+    assertEquals(OnlyofficeEditorServiceImpl.CONTENT_UPDATED_OUTSIDE_EDITOR, newer.getError());
+    assertEquals(supersededKey, notified.get().getKey());
+    node.remove();
+  }
+
+  /**
    * A version restore re-creates the content rather than setting it: it closes
    * the editor sessions of the document as a write does.
    */
