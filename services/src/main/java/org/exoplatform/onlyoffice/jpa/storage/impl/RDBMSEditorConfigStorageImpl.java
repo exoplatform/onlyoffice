@@ -78,9 +78,17 @@ public class RDBMSEditorConfigStorageImpl implements EditorConfigStorage {
       editorConfigDAO.create(entity);
       config.setDatabaseId(entity.getId());
     } else {
-      EditorConfigEntity entity = editorConfigDAO.find(config.getDatabaseId());
-      if (entity!=null) {
-        entity = buildFromDTO(config);
+      EditorConfigEntity stored = editorConfigDAO.find(config.getDatabaseId());
+      if (stored!=null) {
+        EditorConfigEntity entity = buildFromDTO(config);
+        if (CONTENT_UPDATED_OUTSIDE_EDITOR.equals(stored.getError())
+            && !CONTENT_UPDATED_OUTSIDE_EDITOR.equals(config.getError())) {
+          // a copy read before a content write closed the config keeps it closed
+          entity.setError(stored.getError());
+          entity.setOpen(false);
+          entity.setClosing(false);
+          entity.setClosedTime(stored.getClosedTime());
+        }
         editorConfigDAO.update(entity);
       } else {
         throw new RuntimeException("Unable to save OO Config");
@@ -104,6 +112,14 @@ public class RDBMSEditorConfigStorageImpl implements EditorConfigStorage {
   @Override
   public void deleteConfig(List<String> keys, Config config) {
     this.deleteConfig("",config);
+  }
+
+  @Override
+  @ExoTransactional // as every method of this class
+  public boolean reopenConfig(Config config) {
+    return editorConfigDAO.reopenConfig(config.getDatabaseId(),
+                                        config.getOpenedTime(),
+                                        CONTENT_UPDATED_OUTSIDE_EDITOR) > 0;
   }
 
   @Override

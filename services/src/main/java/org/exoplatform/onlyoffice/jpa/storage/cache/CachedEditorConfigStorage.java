@@ -122,6 +122,16 @@ public class CachedEditorConfigStorage implements EditorConfigStorage {
   }
 
   @Override
+  public boolean reopenConfig(Config config) {
+    try {
+      return storage.reopenConfig(config);
+    } finally {
+      futureCache.remove(config.getDocument().getKey());
+      futureCache.remove(config.getDocId());
+    }
+  }
+
+  @Override
   public int closeUnopenedConversionConfigs() {
     try {
       return storage.closeUnopenedConversionConfigs();

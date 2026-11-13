@@ -97,6 +97,7 @@ import org.exoplatform.ecm.utils.permission.PermissionUtil;
 import org.exoplatform.services.wcm.utils.Utils;
 import org.exoplatform.onlyoffice.Config.Editor;
 import org.exoplatform.onlyoffice.jcr.NodeFinder;
+import org.exoplatform.onlyoffice.jpa.EditorConfigStorage;
 import org.exoplatform.onlyoffice.jpa.storage.cache.CachedEditorConfigStorage;
 import org.exoplatform.onlyoffice.model.VersionNode;
 import org.exoplatform.portal.application.PortalRequestContext;
@@ -206,7 +207,7 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
    * written outside its editor session: a late open callback of its key does
    * not reactivate it.
    */
-  protected static final String  CONTENT_UPDATED_OUTSIDE_EDITOR = "Document content updated outside the editor";
+  protected static final String  CONTENT_UPDATED_OUTSIDE_EDITOR = EditorConfigStorage.CONTENT_UPDATED_OUTSIDE_EDITOR;
 
   /**
    * The document key of the editor session whose content this thread is writing
@@ -2224,10 +2225,16 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
         if ((config.isCreated() || config.isClosed()) && !isClosedByOutsideWrite(config)) {
           // editor was (re)opened by user
           config.open();
-          fireJoined(status);
-          broadcastEvent(status, OnlyofficeEditorService.EDITOR_OPENED_EVENT);
-          updated = true;
-          updateCache(config);
+          // opened in the storage only if no content write closed it since this
+          // copy was read: a callback read before the write would reopen the key
+          if (cachedEditorConfigStorage.reopenConfig(config)) {
+            fireJoined(status);
+            broadcastEvent(status, OnlyofficeEditorService.EDITOR_OPENED_EVENT);
+            updated = true;
+          } else {
+            config.setError(CONTENT_UPDATED_OUTSIDE_EDITOR);
+            config.closed();
+          }
         }
       } else {
         // editor was closed by user: it will be closing if closed via WebUI of

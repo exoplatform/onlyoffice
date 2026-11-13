@@ -2244,6 +2244,56 @@ public class OnlyofficeEditorServiceTest extends BaseCommonsTestCase {
   }
 
   /**
+   * An open notification whose configs were read before a content write closed
+   * the key does not reopen it: the next opening gets a new key.
+   */
+  @Test
+  public void testOpenNotificationReadBeforeAContentWriteDoesNotReopenTheKey() throws Exception {
+    startSessionAs(USER_USERNAME);
+    Node node = createDocument("Callback Race Test.docx", "nt:file", "testContent", true);
+    String docId = node.getUUID();
+    String staleKey = openEditor(node, USER_USERNAME).getDocument().getKey();
+    // the callback reads its key's configs, then the write closes them
+    Map<String, Config> readBeforeWrite = rdbmsStorage().getConfigsByKey(staleKey);
+    assertTrue(readBeforeWrite.get(USER_USERNAME).isCreated());
+    editorService.contentUpdatedOutsideEditor(docId, "mary");
+
+    assertFalse(onlyofficeEditorService.syncUsers(readBeforeWrite, new String[] { USER_USERNAME }));
+
+    Config stored = rdbmsStorage().getConfigsByKey(staleKey).get(USER_USERNAME);
+    assertTrue(stored.isClosed());
+    assertEquals(OnlyofficeEditorServiceImpl.CONTENT_UPDATED_OUTSIDE_EDITOR, stored.getError());
+    assertTrue(onlyofficeEditorService.cachedEditorConfigStorage.getActiveConfigsByDocId(docId).isEmpty());
+    org.junit.Assert.assertNotEquals(staleKey, openEditor(node, USER_USERNAME).getDocument().getKey());
+    node.remove();
+  }
+
+  /**
+   * A close notification whose configs were read before a content write closed
+   * the key keeps the write's marker: a later open notification does not
+   * reopen the key.
+   */
+  @Test
+  public void testCloseNotificationReadBeforeAContentWriteKeepsTheKeyClosed() throws Exception {
+    startSessionAs(USER_USERNAME);
+    Node node = createDocument("Close Race Test.docx", "nt:file", "testContent", true);
+    String docId = node.getUUID();
+    String staleKey = openEditor(node, USER_USERNAME).getDocument().getKey();
+    openInDocumentServer(USER_USERNAME, staleKey);
+    Map<String, Config> readBeforeWrite = rdbmsStorage().getConfigsByKey(staleKey);
+    assertTrue(readBeforeWrite.get(USER_USERNAME).isOpen());
+    editorService.contentUpdatedOutsideEditor(docId, "mary");
+
+    onlyofficeEditorService.syncUsers(readBeforeWrite, new String[0]);
+
+    assertEquals(OnlyofficeEditorServiceImpl.CONTENT_UPDATED_OUTSIDE_EDITOR,
+                 rdbmsStorage().getConfigsByKey(staleKey).get(USER_USERNAME).getError());
+    openInDocumentServer(USER_USERNAME, staleKey);
+    assertTrue(onlyofficeEditorService.cachedEditorConfigStorage.getActiveConfigsByDocId(docId).isEmpty());
+    node.remove();
+  }
+
+  /**
    * A version restore re-creates the content rather than setting it: it closes
    * the editor sessions of the document as a write does.
    */
