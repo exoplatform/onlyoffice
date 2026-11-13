@@ -2355,6 +2355,69 @@ public class OnlyofficeEditorServiceTest extends BaseCommonsTestCase {
   }
 
   /**
+   * A save of a copy read before a content write that waits on the write's
+   * uncommitted close keeps it: once the write commits, the save finds the
+   * row closed by the write.
+   */
+  @Test
+  public void testSaveWaitingOnAContentWriteKeepsTheWritesClose() throws Exception {
+    startSessionAs(USER_USERNAME);
+    Node node = createDocument("Waiting Save Test.docx", "nt:file", "testContent", true);
+    String staleKey = openEditor(node, USER_USERNAME).getDocument().getKey();
+    openInDocumentServer(USER_USERNAME, staleKey);
+    Config readBeforeWrite = rdbmsStorage().getConfigsByKey(staleKey).get(USER_USERNAME);
+    readBeforeWrite.closed();
+    Config closedByWrite = rdbmsStorage().getConfigsByKey(staleKey).get(USER_USERNAME);
+    closedByWrite.setError(OnlyofficeEditorServiceImpl.CONTENT_UPDATED_OUTSIDE_EDITOR);
+    closedByWrite.setClosedTime(System.currentTimeMillis());
+    closedByWrite.closed();
+
+    ExoContainer container = getContainer();
+    EditorConfigDAO dao = container.getComponentInstanceOfType(EditorConfigDAO.class);
+    org.exoplatform.commons.persistence.impl.EntityManagerService entityManagerService =
+        container.getComponentInstanceOfType(org.exoplatform.commons.persistence.impl.EntityManagerService.class);
+    java.util.concurrent.CountDownLatch writeFlushed = new java.util.concurrent.CountDownLatch(1);
+    java.util.concurrent.CountDownLatch saveDone = new java.util.concurrent.CountDownLatch(1);
+    EditorConfigDAO pausingDao = (EditorConfigDAO) java.lang.reflect.Proxy.newProxyInstance(
+        EditorConfigDAO.class.getClassLoader(), new Class<?>[] { EditorConfigDAO.class }, (proxy, method, args) -> {
+          Object result;
+          try {
+            result = method.invoke(dao, args);
+          } catch (java.lang.reflect.InvocationTargetException e) {
+            throw e.getCause();
+          }
+          if ("update".equals(method.getName())) {
+            // the write's close is in the row, uncommitted: the save runs now
+            entityManagerService.getEntityManager().flush();
+            writeFlushed.countDown();
+            saveDone.await(2, java.util.concurrent.TimeUnit.SECONDS);
+          }
+          return result;
+        });
+    Thread saver = new Thread(() -> {
+      ExoContainerContext.setCurrentContainer(container);
+      try {
+        writeFlushed.await();
+        rdbmsStorage().saveConfig(staleKey, readBeforeWrite, false);
+      } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
+      } finally {
+        saveDone.countDown();
+      }
+    });
+    saver.start();
+    new RDBMSEditorConfigStorageImpl(pausingDao).saveConfig(staleKey, closedByWrite, false);
+    saver.join(10000);
+
+    assertFalse(saver.isAlive());
+    // read the row as a later request does, not the entity this thread's write left
+    entityManagerService.getEntityManager().clear();
+    assertEquals(OnlyofficeEditorServiceImpl.CONTENT_UPDATED_OUTSIDE_EDITOR,
+                 rdbmsStorage().getConfigsByKey(staleKey).get(USER_USERNAME).getError());
+    node.remove();
+  }
+
+  /**
    * The Document Server's final save of a session that a content write
    * superseded is a write of its own: it closes the session opened after the
    * write, whose content it replaces, and its editors are told.
