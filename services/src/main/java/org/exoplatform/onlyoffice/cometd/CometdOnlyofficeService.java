@@ -45,8 +45,7 @@ import org.cometd.annotation.Param;
 import org.cometd.annotation.server.ServerAnnotationProcessor;
 import org.cometd.annotation.Service;
 import org.cometd.annotation.Session;
-import org.cometd.annotation.Subscription;
-import org.cometd.bayeux.Message;
+import org.cometd.annotation.Listener;
 import org.cometd.bayeux.Promise;
 import org.cometd.bayeux.server.BayeuxServer;
 import org.cometd.bayeux.server.LocalSession;
@@ -289,6 +288,10 @@ public class CometdOnlyofficeService implements Startable {
    */
   @Override
   public void start() {
+    // A document's events are published by the node that handles the change,
+    // a Document Server callback included, while its editors are connected to
+    // any node: Oort relays the editor channels to every node
+    exoBayeux.observeChannel(CHANNEL_NAME + "**");
     // instantiate processor after the eXo container start, to let
     // start-dependent logic worked before us
     final AtomicReference<ServerAnnotationProcessor> processor = new AtomicReference<>();
@@ -453,9 +456,15 @@ public class CometdOnlyofficeService implements Startable {
      * @throws OnlyofficeEditorException the onlyoffice editor exception
      * @throws RepositoryException the repository exception
      */
-    @Subscription(CHANNEL_NAME_PARAMS)
-    public void subscribeDocuments(Message message, @Param("docId") String docId) throws OnlyofficeEditorException,
-                                                                                  RepositoryException {
+    @Listener(CHANNEL_NAME_PARAMS)
+    public void subscribeDocuments(ServerSession sender,
+                                   ServerMessage.Mutable message,
+                                   @Param("docId") String docId) throws OnlyofficeEditorException, RepositoryException {
+      if (exoBayeux.isRelayed(sender)) {
+        // Handled on the node the editor published it to: the editor
+        // channels are relayed to every node of a cluster
+        return;
+      }
       Object objData = message.getData();
       if (!Map.class.isInstance(objData)) {
         if (LOG.isDebugEnabled()) {
@@ -689,7 +698,9 @@ public class CometdOnlyofficeService implements Startable {
      * @param comment the comment
      */
     protected void publishSavedEvent(String docId, String userId, String comment) {
-      ServerChannel channel = bayeux.getChannel(CHANNEL_NAME + docId);
+      // Created when no session of this node subscribed to it, so that the
+      // other nodes' editors receive the event through Oort
+      ServerChannel channel = bayeux.createChannelIfAbsent(CHANNEL_NAME + docId).getReference();
       if (channel != null) {
         StringBuilder data = new StringBuilder();
         data.append('{');
@@ -723,7 +734,9 @@ public class CometdOnlyofficeService implements Startable {
      * @param userId the user id
      */
     protected void publishContentUpdatedEvent(String workspace, String docId, String userId) {
-      ServerChannel channel = bayeux.getChannel(CHANNEL_NAME + docId);
+      // Created when no session of this node subscribed to it, so that the
+      // other nodes' editors receive the event through Oort
+      ServerChannel channel = bayeux.createChannelIfAbsent(CHANNEL_NAME + docId).getReference();
       if (channel != null) {
         StringBuilder data = new StringBuilder();
         data.append('{');
@@ -749,7 +762,9 @@ public class CometdOnlyofficeService implements Startable {
      * @param docId the doc id
      */
     protected void publishDeletedEvent(String docId) {
-      ServerChannel channel = bayeux.getChannel(CHANNEL_NAME + docId);
+      // Created when no session of this node subscribed to it, so that the
+      // other nodes' editors receive the event through Oort
+      ServerChannel channel = bayeux.createChannelIfAbsent(CHANNEL_NAME + docId).getReference();
       if (channel != null) {
         StringBuilder data = new StringBuilder();
         data.append('{');
