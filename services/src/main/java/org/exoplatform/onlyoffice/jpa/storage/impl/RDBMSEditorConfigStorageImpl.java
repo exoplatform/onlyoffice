@@ -55,6 +55,12 @@ public class RDBMSEditorConfigStorageImpl implements EditorConfigStorage {
   }
 
   @Override
+  @ExoTransactional // as the class's other annotated methods
+  public List<Config> getAllActiveConfigsByDocId(String docId) {
+    return editorConfigDAO.getActiveConfigByDocId(docId).stream().map(this::buildFromEntity).toList();
+  }
+
+  @Override
   @ExoTransactional
   public List<Config> deleteClosedConfigsBefore(long expirationTime, int limit) {
     List<EditorConfigEntity> entities = editorConfigDAO.getClosedConfigBefore(expirationTime, limit);
@@ -72,9 +78,21 @@ public class RDBMSEditorConfigStorageImpl implements EditorConfigStorage {
       editorConfigDAO.create(entity);
       config.setDatabaseId(entity.getId());
     } else {
-      EditorConfigEntity entity = editorConfigDAO.find(config.getDatabaseId());
-      if (entity!=null) {
-        entity = buildFromDTO(config);
+      // a copy without the marker locks the row until its update commits: a
+      // content write closing the config meanwhile waits, then closes the row
+      // this save writes; a row the write closed already keeps its close
+      boolean marked = CONTENT_UPDATED_OUTSIDE_EDITOR.equals(config.getError());
+      boolean closedByOutsideWrite = !marked
+          && editorConfigDAO.lockConfigUnlessClosedWith(config.getDatabaseId(), CONTENT_UPDATED_OUTSIDE_EDITOR) == 0;
+      EditorConfigEntity stored = editorConfigDAO.find(config.getDatabaseId());
+      if (stored!=null) {
+        EditorConfigEntity entity = buildFromDTO(config);
+        if (closedByOutsideWrite) {
+          entity.setError(stored.getError());
+          entity.setOpen(false);
+          entity.setClosing(false);
+          entity.setClosedTime(stored.getClosedTime());
+        }
         editorConfigDAO.update(entity);
       } else {
         throw new RuntimeException("Unable to save OO Config");
@@ -98,6 +116,14 @@ public class RDBMSEditorConfigStorageImpl implements EditorConfigStorage {
   @Override
   public void deleteConfig(List<String> keys, Config config) {
     this.deleteConfig("",config);
+  }
+
+  @Override
+  @ExoTransactional // as the class's other annotated methods
+  public boolean reopenConfig(Config config) {
+    return editorConfigDAO.reopenConfig(config.getDatabaseId(),
+                                        config.getOpenedTime(),
+                                        CONTENT_UPDATED_OUTSIDE_EDITOR) > 0;
   }
 
   @Override

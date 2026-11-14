@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 
 import javax.jcr.AccessDeniedException;
 import javax.jcr.Node;
@@ -25,6 +26,8 @@ import org.exoplatform.component.test.ConfigurationUnit;
 import org.exoplatform.component.test.ConfiguredBy;
 import org.exoplatform.component.test.ContainerScope;
 import org.exoplatform.container.ExoContainerContext;
+import org.exoplatform.container.ExoContainer;
+import org.exoplatform.onlyoffice.jpa.EditorConfigDAO;
 import org.exoplatform.onlyoffice.jpa.storage.impl.RDBMSEditorConfigStorageImpl;
 import org.exoplatform.services.cms.documents.DocumentService;
 import org.exoplatform.services.cms.drives.DriveData;
@@ -1970,6 +1973,988 @@ public class OnlyofficeEditorServiceTest extends BaseCommonsTestCase {
 
     assertTrue(rdbmsStorage().getConfigsByKey(newestKey).isEmpty());
     node.remove();
+  }
+
+  /**
+   * A content write outside the editor (an upload of a new version) closes every
+   * active session of the document without deleting it: the next opening gets a
+   * new key, a late open callback of the stale key does not reactivate it, its
+   * callbacks still resolve, and the open editors are told.
+   */
+  @Test
+  public void testContentUpdatedOutsideEditorClosesSessionsAndNextOpenGetsNewKey() throws Exception {
+    startSessionAs(USER_USERNAME);
+    Node node = createDocument("Outside Write Test.docx", "nt:file", "testContent", true);
+    String docId = node.getUUID();
+    String staleKey = openEditor(node, USER_USERNAME).getDocument().getKey();
+    openInDocumentServer(USER_USERNAME, staleKey);
+    assertEquals(staleKey, openEditor(node, "root").getDocument().getKey());
+    AtomicReference<DocumentStatus> notified = new AtomicReference<>();
+    OnlyofficeEditorListener listener = outsideWriteListener(docId, notified);
+    editorService.addListener(listener);
+    try {
+      editorService.contentUpdatedOutsideEditor(docId, "mary");
+    } finally {
+      editorService.removeListener(listener);
+    }
+
+    assertTrue(onlyofficeEditorService.cachedEditorConfigStorage.getActiveConfigsByDocId(docId).isEmpty());
+    Map<String, Config> staleConfigs = rdbmsStorage().getConfigsByKey(staleKey);
+    assertEquals(Set.of(USER_USERNAME, "root"), staleConfigs.keySet());
+    staleConfigs.values().forEach(c -> {
+      assertTrue(c.isClosed());
+      assertEquals(OnlyofficeEditorServiceImpl.CONTENT_UPDATED_OUTSIDE_EDITOR, c.getError());
+    });
+    assertNotNull(notified.get());
+    assertEquals("mary", notified.get().getUserId());
+
+    openInDocumentServer(USER_USERNAME, staleKey);
+    assertTrue(editorService.getEditorByKey(USER_USERNAME, staleKey).isClosed());
+    editorService.updateDocument(new DocumentStatus.Builder().status(3L)
+                                                             .users(new String[] { USER_USERNAME, "root" })
+                                                             .userId(USER_USERNAME)
+                                                             .key(staleKey)
+                                                             .build());
+    assertTrue(onlyofficeEditorService.cachedEditorConfigStorage.getActiveConfigsByDocId(docId).isEmpty());
+    assertEquals(OnlyofficeEditorServiceImpl.CONTENT_UPDATED_OUTSIDE_EDITOR,
+                 rdbmsStorage().getConfigsByKey(staleKey).get(USER_USERNAME).getError());
+    openInDocumentServer(USER_USERNAME, staleKey);
+    assertTrue(onlyofficeEditorService.cachedEditorConfigStorage.getActiveConfigsByDocId(docId).isEmpty());
+
+    String newKey = openEditor(node, USER_USERNAME).getDocument().getKey();
+    org.junit.Assert.assertNotEquals(staleKey, newKey);
+    editorService.updateDocument(new DocumentStatus.Builder().status(4L)
+                                                             .users(new String[] {})
+                                                             .userId(USER_USERNAME)
+                                                             .key(staleKey)
+                                                             .build());
+    assertNotNull(editorService.getEditorByKey(USER_USERNAME, staleKey));
+    node.remove();
+  }
+
+  /**
+   * The editor's own save does not close the sessions of its own key, only the
+   * other active keys of the document, whose content it makes stale; once the
+   * save is over, a write closes every key again.
+   */
+  @Test
+  public void testEditorOwnSaveClosesOnlyTheOtherKeys() throws Exception {
+    startSessionAs(USER_USERNAME);
+    Node node = createResourceDocument("Own Save Test.docx");
+    String docId = node.getUUID();
+    String editingKey = openEditor(node, USER_USERNAME).getDocument().getKey();
+    openInDocumentServer(USER_USERNAME, editingKey);
+    String otherKey = storeUnopenedConversionConfig(node, "mary");
+    // the save stores its own config again once it is over: the state of its key
+    // is read right after the content write
+    AtomicReference<Boolean> editingKeyOpenDuringSave = new AtomicReference<>();
+    OnlyofficeEditorListener listener = new OnlyofficeEditorListener() {
+      @Override
+      public void onSaved(DocumentStatus status) {
+        if (docId.equals(status.getConfig().getDocId())) {
+          editingKeyOpenDuringSave.set(rdbmsStorage().getConfigsByKey(editingKey).get(USER_USERNAME).isOpen());
+        }
+      }
+
+      @Override
+      public void onCreate(DocumentStatus status) {
+        // Nothing
+      }
+
+      @Override
+      public void onGet(DocumentStatus status) {
+        // Nothing
+      }
+
+      @Override
+      public void onJoined(DocumentStatus status) {
+        // Nothing
+      }
+
+      @Override
+      public void onLeaved(DocumentStatus status) {
+        // Nothing
+      }
+
+      @Override
+      public void onError(DocumentStatus status) {
+        // Nothing
+      }
+    };
+    AtomicReference<DocumentStatus> notified = new AtomicReference<>();
+    OnlyofficeEditorListener notifiedListener = outsideWriteListener(docId, notified);
+    editorService.addListener(listener);
+    editorService.addListener(notifiedListener);
+    try {
+      editorService.downloadVersion(USER_USERNAME, editingKey, false, false, null, null);
+    } finally {
+      editorService.removeListener(listener);
+      editorService.removeListener(notifiedListener);
+    }
+    // the editors of the writing key hold the written content: the notification names it
+    assertEquals(editingKey, notified.get().getKey());
+
+    assertEquals(Boolean.TRUE, editingKeyOpenDuringSave.get());
+    assertTrue(rdbmsStorage().getConfigsByKey(editingKey).get(USER_USERNAME).isOpen());
+    Config otherConfig = rdbmsStorage().getConfigsByKey(otherKey).get("mary");
+    assertTrue(otherConfig.isClosed());
+    assertEquals(OnlyofficeEditorServiceImpl.CONTENT_UPDATED_OUTSIDE_EDITOR, otherConfig.getError());
+
+    editorService.contentUpdatedOutsideEditor(docId, "mary");
+    assertTrue(rdbmsStorage().getConfigsByKey(editingKey).get(USER_USERNAME).isClosed());
+    node.remove();
+  }
+
+  /**
+   * An editor session's write closes a hidden older config of the writing user
+   * under another key: it would become the user's active config, joined by the
+   * next opener, once the writing key closes.
+   */
+  @Test
+  @SuppressWarnings("unchecked")
+  public void testEditorWriteClosesAHiddenOlderConfigOfTheWritingUser() throws Exception {
+    startSessionAs(USER_USERNAME);
+    Node node = createDocument("Hidden Writer Config Test.docx", "nt:file", "testContent", true);
+    String docId = node.getUUID();
+    String olderKey = storeUnopenedConversionConfig(node, USER_USERNAME);
+    String writingKey = storeUnopenedConversionConfig(node, USER_USERNAME);
+    assertEquals(writingKey,
+                 onlyofficeEditorService.cachedEditorConfigStorage.getActiveConfigsByDocId(docId)
+                                                                  .get(USER_USERNAME)
+                                                                  .getDocument()
+                                                                  .getKey());
+    java.lang.reflect.Field writeKeyField = OnlyofficeEditorServiceImpl.class.getDeclaredField("EDITOR_WRITE_KEY");
+    writeKeyField.setAccessible(true);
+    ThreadLocal<String> writeKey = (ThreadLocal<String>) writeKeyField.get(null);
+    writeKey.set(writingKey);
+    try {
+      editorService.contentUpdatedOutsideEditor(docId, USER_USERNAME);
+    } finally {
+      writeKey.remove();
+    }
+
+    assertTrue(rdbmsStorage().getConfigsByKey(olderKey).get(USER_USERNAME).isClosed());
+    assertFalse(rdbmsStorage().getConfigsByKey(writingKey).get(USER_USERNAME).isClosed());
+    node.remove();
+  }
+
+  /**
+   * A session reopened after a first close keeps that close's time: closed by a
+   * content write, it stays resolvable for the whole retention, not purged by
+   * the next opening.
+   */
+  @Test
+  public void testReopenedSessionClosedByAContentWriteIsNotPurgedAtTheNextOpening() throws Exception {
+    startSessionAs(USER_USERNAME);
+    Node node = createDocument("Reopened Session Test.docx", "nt:file", "testContent", true);
+    String docId = node.getUUID();
+    String staleKey = openEditor(node, USER_USERNAME).getDocument().getKey();
+    openInDocumentServer(USER_USERNAME, staleKey);
+    Config reopened = rdbmsStorage().getConfigsByKey(staleKey).get(USER_USERNAME);
+    reopened.setClosedTime(System.currentTimeMillis() - 3 * 60 * 60 * 1000L);
+    onlyofficeEditorService.cachedEditorConfigStorage.saveConfig(List.of(staleKey, docId), reopened, false);
+    assertTrue(rdbmsStorage().getConfigsByKey(staleKey).get(USER_USERNAME).isOpen());
+
+    editorService.contentUpdatedOutsideEditor(docId, "mary");
+    openEditor(node, "root");
+
+    assertNotNull(rdbmsStorage().getConfigsByKey(staleKey).get(USER_USERNAME));
+    node.remove();
+  }
+
+  /**
+   * A new version written to the document outside the editor, as Documents
+   * uploads one, closes its editor sessions once the write is saved.
+   */
+  @Test
+  public void testSavedContentWriteClosesTheEditorSessions() throws Exception {
+    startSessionAs(USER_USERNAME);
+    Node node = createResourceDocument("Saved Write Test.docx");
+    String docId = node.getUUID();
+    String staleKey = openEditor(node, USER_USERNAME).getDocument().getKey();
+    openInDocumentServer(USER_USERNAME, staleKey);
+
+    Node content = node.getNode("jcr:content");
+    content.setProperty("jcr:data", new java.io.ByteArrayInputStream("uploadedContent".getBytes()));
+    assertTrue(rdbmsStorage().getConfigsByKey(staleKey).get(USER_USERNAME).isOpen());
+    node.save();
+
+    Config staleConfig = rdbmsStorage().getConfigsByKey(staleKey).get(USER_USERNAME);
+    assertTrue(staleConfig.isClosed());
+    assertEquals(OnlyofficeEditorServiceImpl.CONTENT_UPDATED_OUTSIDE_EDITOR, staleConfig.getError());
+    org.junit.Assert.assertNotEquals(staleKey, openEditor(node, USER_USERNAME).getDocument().getKey());
+    node.remove();
+  }
+
+  /**
+   * A save error reported with a content URL for a key that a content write
+   * closed keeps the key superseded: a later open notification does not reopen
+   * it.
+   */
+  @Test
+  public void testSaveErrorWithUrlKeepsASupersededKeyClosed() throws Exception {
+    startSessionAs(USER_USERNAME);
+    Node node = createDocument("Superseded Error Test.docx", "nt:file", "testContent", true);
+    String docId = node.getUUID();
+    String staleKey = openEditor(node, USER_USERNAME).getDocument().getKey();
+    openInDocumentServer(USER_USERNAME, staleKey);
+    editorService.contentUpdatedOutsideEditor(docId, "mary");
+
+    editorService.updateDocument(new DocumentStatus.Builder().status(3L)
+                                                             .users(new String[] { USER_USERNAME })
+                                                             .userId(USER_USERNAME)
+                                                             .url("http://127.0.0.1:8080/editor/")
+                                                             .key(staleKey)
+                                                             .build());
+
+    assertEquals(OnlyofficeEditorServiceImpl.CONTENT_UPDATED_OUTSIDE_EDITOR,
+                 rdbmsStorage().getConfigsByKey(staleKey).get(USER_USERNAME).getError());
+    openInDocumentServer(USER_USERNAME, staleKey);
+    assertTrue(onlyofficeEditorService.cachedEditorConfigStorage.getActiveConfigsByDocId(docId).isEmpty());
+    node.remove();
+  }
+
+  /**
+   * A not-found status for a key that a content write closed keeps the key
+   * superseded: a later open notification does not reopen it.
+   */
+  @Test
+  public void testNotFoundStatusKeepsASupersededKeyClosed() throws Exception {
+    startSessionAs(USER_USERNAME);
+    Node node = createDocument("Superseded Not Found Test.docx", "nt:file", "testContent", true);
+    String docId = node.getUUID();
+    String staleKey = openEditor(node, USER_USERNAME).getDocument().getKey();
+    openInDocumentServer(USER_USERNAME, staleKey);
+    editorService.contentUpdatedOutsideEditor(docId, "mary");
+
+    try {
+      editorService.updateDocument(new DocumentStatus.Builder().status(0L)
+                                                               .users(new String[] { USER_USERNAME })
+                                                               .userId(USER_USERNAME)
+                                                               .key(staleKey)
+                                                               .build());
+      org.junit.Assert.fail("A not-found status is reported as an error");
+    } catch (OnlyofficeEditorException e) {
+      // expected
+    }
+
+    assertEquals(OnlyofficeEditorServiceImpl.CONTENT_UPDATED_OUTSIDE_EDITOR,
+                 rdbmsStorage().getConfigsByKey(staleKey).get(USER_USERNAME).getError());
+    openInDocumentServer(USER_USERNAME, staleKey);
+    assertTrue(onlyofficeEditorService.cachedEditorConfigStorage.getActiveConfigsByDocId(docId).isEmpty());
+    node.remove();
+  }
+
+  /**
+   * An open notification whose configs were read before a content write closed
+   * the key does not reopen it: the next opening gets a new key.
+   */
+  @Test
+  public void testOpenNotificationReadBeforeAContentWriteDoesNotReopenTheKey() throws Exception {
+    startSessionAs(USER_USERNAME);
+    Node node = createDocument("Callback Race Test.docx", "nt:file", "testContent", true);
+    String docId = node.getUUID();
+    String staleKey = openEditor(node, USER_USERNAME).getDocument().getKey();
+    // the callback reads its key's configs, then the write closes them
+    Map<String, Config> readBeforeWrite = rdbmsStorage().getConfigsByKey(staleKey);
+    assertTrue(readBeforeWrite.get(USER_USERNAME).isCreated());
+    editorService.contentUpdatedOutsideEditor(docId, "mary");
+
+    assertFalse(onlyofficeEditorService.syncUsers(readBeforeWrite, new String[] { USER_USERNAME }));
+
+    Config stored = rdbmsStorage().getConfigsByKey(staleKey).get(USER_USERNAME);
+    assertTrue(stored.isClosed());
+    assertEquals(OnlyofficeEditorServiceImpl.CONTENT_UPDATED_OUTSIDE_EDITOR, stored.getError());
+    assertTrue(onlyofficeEditorService.cachedEditorConfigStorage.getActiveConfigsByDocId(docId).isEmpty());
+    org.junit.Assert.assertNotEquals(staleKey, openEditor(node, USER_USERNAME).getDocument().getKey());
+    node.remove();
+  }
+
+  /**
+   * A close notification whose configs were read before a content write closed
+   * the key keeps the write's marker: a later open notification does not
+   * reopen the key.
+   */
+  @Test
+  public void testCloseNotificationReadBeforeAContentWriteKeepsTheKeyClosed() throws Exception {
+    startSessionAs(USER_USERNAME);
+    Node node = createDocument("Close Race Test.docx", "nt:file", "testContent", true);
+    String docId = node.getUUID();
+    String staleKey = openEditor(node, USER_USERNAME).getDocument().getKey();
+    openInDocumentServer(USER_USERNAME, staleKey);
+    Map<String, Config> readBeforeWrite = rdbmsStorage().getConfigsByKey(staleKey);
+    assertTrue(readBeforeWrite.get(USER_USERNAME).isOpen());
+    editorService.contentUpdatedOutsideEditor(docId, "mary");
+
+    onlyofficeEditorService.syncUsers(readBeforeWrite, new String[0]);
+
+    assertEquals(OnlyofficeEditorServiceImpl.CONTENT_UPDATED_OUTSIDE_EDITOR,
+                 rdbmsStorage().getConfigsByKey(staleKey).get(USER_USERNAME).getError());
+    openInDocumentServer(USER_USERNAME, staleKey);
+    assertTrue(onlyofficeEditorService.cachedEditorConfigStorage.getActiveConfigsByDocId(docId).isEmpty());
+    node.remove();
+  }
+
+  /**
+   * A save of a copy read before a content write, whose transaction straddles
+   * the write's, keeps the write's close: the write waits for the save's row
+   * lock, then closes the row the save wrote.
+   */
+  @Test
+  public void testSaveStraddlingAContentWriteKeepsTheWritesClose() throws Exception {
+    startSessionAs(USER_USERNAME);
+    Node node = createDocument("Straddling Save Test.docx", "nt:file", "testContent", true);
+    String docId = node.getUUID();
+    String staleKey = openEditor(node, USER_USERNAME).getDocument().getKey();
+    openInDocumentServer(USER_USERNAME, staleKey);
+    Config readBeforeWrite = rdbmsStorage().getConfigsByKey(staleKey).get(USER_USERNAME);
+    readBeforeWrite.closed();
+
+    ExoContainer container = getContainer();
+    EditorConfigDAO dao = container.getComponentInstanceOfType(EditorConfigDAO.class);
+    java.util.concurrent.CountDownLatch saveRead = new java.util.concurrent.CountDownLatch(1);
+    java.util.concurrent.CountDownLatch writeDone = new java.util.concurrent.CountDownLatch(1);
+    EditorConfigDAO pausingDao = (EditorConfigDAO) java.lang.reflect.Proxy.newProxyInstance(
+        EditorConfigDAO.class.getClassLoader(), new Class<?>[] { EditorConfigDAO.class }, (proxy, method, args) -> {
+          Object result;
+          try {
+            result = method.invoke(dao, args);
+          } catch (java.lang.reflect.InvocationTargetException e) {
+            throw e.getCause();
+          }
+          if ("lockConfigUnlessClosedWith".equals(method.getName())) {
+            // the write runs now: done unless it waits for this save's lock
+            saveRead.countDown();
+            writeDone.await(2, java.util.concurrent.TimeUnit.SECONDS);
+          }
+          return result;
+        });
+    Thread writer = new Thread(() -> {
+      ExoContainerContext.setCurrentContainer(container);
+      try {
+        saveRead.await();
+        editorService.contentUpdatedOutsideEditor(docId, "mary");
+      } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
+      } finally {
+        writeDone.countDown();
+      }
+    });
+    writer.start();
+    new RDBMSEditorConfigStorageImpl(pausingDao).saveConfig(staleKey, readBeforeWrite, false);
+    writer.join(10000);
+
+    assertFalse(writer.isAlive());
+    // read the row as a later request does, not the entity this thread's save left
+    container.getComponentInstanceOfType(org.exoplatform.commons.persistence.impl.EntityManagerService.class)
+             .getEntityManager()
+             .clear();
+    assertEquals(OnlyofficeEditorServiceImpl.CONTENT_UPDATED_OUTSIDE_EDITOR,
+                 rdbmsStorage().getConfigsByKey(staleKey).get(USER_USERNAME).getError());
+    node.remove();
+  }
+
+  /**
+   * A save of a copy read before a content write that waits on the write's
+   * uncommitted close keeps it: once the write commits, the save finds the
+   * row closed by the write.
+   */
+  @Test
+  public void testSaveWaitingOnAContentWriteKeepsTheWritesClose() throws Exception {
+    startSessionAs(USER_USERNAME);
+    Node node = createDocument("Waiting Save Test.docx", "nt:file", "testContent", true);
+    String staleKey = openEditor(node, USER_USERNAME).getDocument().getKey();
+    openInDocumentServer(USER_USERNAME, staleKey);
+    Config readBeforeWrite = rdbmsStorage().getConfigsByKey(staleKey).get(USER_USERNAME);
+    readBeforeWrite.closed();
+    Config closedByWrite = rdbmsStorage().getConfigsByKey(staleKey).get(USER_USERNAME);
+    closedByWrite.setError(OnlyofficeEditorServiceImpl.CONTENT_UPDATED_OUTSIDE_EDITOR);
+    closedByWrite.setClosedTime(System.currentTimeMillis());
+    closedByWrite.closed();
+
+    ExoContainer container = getContainer();
+    EditorConfigDAO dao = container.getComponentInstanceOfType(EditorConfigDAO.class);
+    org.exoplatform.commons.persistence.impl.EntityManagerService entityManagerService =
+        container.getComponentInstanceOfType(org.exoplatform.commons.persistence.impl.EntityManagerService.class);
+    java.util.concurrent.CountDownLatch writeFlushed = new java.util.concurrent.CountDownLatch(1);
+    java.util.concurrent.CountDownLatch saveDone = new java.util.concurrent.CountDownLatch(1);
+    EditorConfigDAO pausingDao = (EditorConfigDAO) java.lang.reflect.Proxy.newProxyInstance(
+        EditorConfigDAO.class.getClassLoader(), new Class<?>[] { EditorConfigDAO.class }, (proxy, method, args) -> {
+          Object result;
+          try {
+            result = method.invoke(dao, args);
+          } catch (java.lang.reflect.InvocationTargetException e) {
+            throw e.getCause();
+          }
+          if ("update".equals(method.getName())) {
+            // the write's close is in the row, uncommitted: the save runs now
+            entityManagerService.getEntityManager().flush();
+            writeFlushed.countDown();
+            saveDone.await(2, java.util.concurrent.TimeUnit.SECONDS);
+          }
+          return result;
+        });
+    Thread saver = new Thread(() -> {
+      ExoContainerContext.setCurrentContainer(container);
+      try {
+        writeFlushed.await();
+        rdbmsStorage().saveConfig(staleKey, readBeforeWrite, false);
+      } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
+      } finally {
+        saveDone.countDown();
+      }
+    });
+    saver.start();
+    new RDBMSEditorConfigStorageImpl(pausingDao).saveConfig(staleKey, closedByWrite, false);
+    saver.join(10000);
+
+    assertFalse(saver.isAlive());
+    // read the row as a later request does, not the entity this thread's write left
+    entityManagerService.getEntityManager().clear();
+    assertEquals(OnlyofficeEditorServiceImpl.CONTENT_UPDATED_OUTSIDE_EDITOR,
+                 rdbmsStorage().getConfigsByKey(staleKey).get(USER_USERNAME).getError());
+    node.remove();
+  }
+
+  /**
+   * The Document Server's final save of a session that a content write
+   * superseded goes to the version history: the head stays the written
+   * content, and the session opened after the write stays open.
+   */
+  @Test
+  public void testSaveOfASupersededSessionGoesToTheHistoryAndKeepsTheWrittenHead() throws Exception {
+    startSessionAs(USER_USERNAME);
+    Node node = createResourceDocument("Superseded Save Test.docx");
+    String docId = node.getUUID();
+    String supersededKey = openEditor(node, USER_USERNAME).getDocument().getKey();
+    openInDocumentServer(USER_USERNAME, supersededKey);
+    Calendar uploadTime = Calendar.getInstance();
+    uploadTime.add(Calendar.MINUTE, 1);
+    node.getNode("jcr:content").setProperty("jcr:data", new java.io.ByteArrayInputStream("uploaded content".getBytes()));
+    node.getNode("jcr:content").setProperty("exo:dateModified", uploadTime);
+    node.setProperty("exo:lastModifier", "mary");
+    node.setProperty("exo:lastModifiedDate", uploadTime);
+    node.save();
+    assertEquals(OnlyofficeEditorServiceImpl.CONTENT_UPDATED_OUTSIDE_EDITOR,
+                 rdbmsStorage().getConfigsByKey(supersededKey).get(USER_USERNAME).getError());
+    String newerKey = openEditor(node, "root").getDocument().getKey();
+    openInDocumentServer("root", newerKey);
+    org.junit.Assert.assertNotEquals(supersededKey, newerKey);
+
+    AtomicReference<DocumentStatus> notified = new AtomicReference<>();
+    OnlyofficeEditorListener notifiedListener = outsideWriteListener(docId, notified);
+    editorService.addListener(notifiedListener);
+    try {
+      saveAsDocumentServer(editorService, supersededKey, "superseded session's edits");
+    } finally {
+      editorService.removeListener(notifiedListener);
+    }
+
+    node.refresh(false);
+    assertEquals("uploaded content",
+                 new String(node.getNode("jcr:content").getProperty("jcr:data").getStream().readAllBytes()));
+    Config newer = rdbmsStorage().getConfigsByKey(newerKey).get("root");
+    assertFalse(newer.isClosed());
+    assertNull(newer.getError());
+    assertNull(notified.get());
+    java.util.List<String> versionContents = new java.util.ArrayList<>();
+    javax.jcr.version.VersionIterator versions = node.getVersionHistory().getAllVersions();
+    while (versions.hasNext()) {
+      javax.jcr.version.Version version = versions.nextVersion();
+      if (version.hasNode("jcr:frozenNode/jcr:content")) {
+        versionContents.add(new String(version.getNode("jcr:frozenNode/jcr:content").getProperty("jcr:data").getStream().readAllBytes()));
+      }
+    }
+    assertTrue(versionContents.toString(), versionContents.contains("superseded session's edits"));
+    assertEquals("uploaded content", versionContents.get(versionContents.size() - 1));
+    // the written-back head keeps its author and date
+    assertEquals("mary", node.getProperty("exo:lastModifier").getString());
+    assertEquals(uploadTime.getTimeInMillis(), node.getProperty("exo:lastModifiedDate").getDate().getTimeInMillis());
+    node.remove();
+  }
+
+  /**
+   * A superseded session's final save on a document with no version history
+   * is a write as any other: it stays the head and closes the session opened
+   * after the first write, whose editors are told.
+   */
+  @Test
+  public void testSaveOfASupersededSessionOfANonVersionableDocumentStaysTheHead() throws Exception {
+    startSessionAs(USER_USERNAME);
+    Node node = createResourceDocument("Superseded Unversioned Test.docx", false);
+    assertFalse(node.isNodeType("mix:versionable"));
+    assertSupersededSaveClosesTheNewerSession(node, editorService, "superseded session's edits");
+  }
+
+  /**
+   * A superseded session's final save whose version fails after its content
+   * is saved stays the head: the session opened after the first write is
+   * closed, whose editors are told.
+   */
+  @Test
+  public void testSaveOfASupersededSessionFailingAfterItsContentIsSavedClosesTheNewerSession() throws Exception {
+    startSessionAs(USER_USERNAME);
+    Node node = createResourceDocument("Superseded Version Failure Test.docx");
+    OnlyofficeEditorServiceImpl failingVersion = org.mockito.Mockito.spy(onlyofficeEditorService);
+    org.mockito.Mockito.doThrow(new javax.jcr.RepositoryException("version failed")).when(failingVersion).checkout(any());
+    assertSupersededSaveClosesTheNewerSession(node, failingVersion, "superseded session's edits");
+  }
+
+  /**
+   * A superseded session's final save that fails after the head is written
+   * back, before its version is made: the session opened after the first write
+   * is closed, whose editors reload the head.
+   */
+  @Test
+  public void testSaveOfASupersededSessionFailingAfterTheHeadIsWrittenBackClosesTheNewerSession() throws Exception {
+    startSessionAs(USER_USERNAME);
+    Node node = createResourceDocument("Superseded Write Back Failure Test.docx");
+    OnlyofficeEditorServiceImpl failingWriteBack = org.mockito.Mockito.spy(onlyofficeEditorService);
+    // the save's own version passes; the written-back head's fails
+    org.mockito.Mockito.doCallRealMethod()
+                       .doThrow(new javax.jcr.RepositoryException("version failed"))
+                       .when(failingWriteBack)
+                       .checkout(any());
+    assertSupersededSaveClosesTheNewerSession(node, failingWriteBack, "uploaded content");
+  }
+
+  /**
+   * A superseded session's save whose content save fails changes no content:
+   * the session opened after the first write stays open.
+   */
+  @Test
+  public void testSupersededSaveFailingBeforeItsContentIsSavedKeepsTheNewerSessionOpen() throws Exception {
+    OnlyofficeEditorServiceImpl failingSave = org.mockito.Mockito.spy(onlyofficeEditorService);
+    org.mockito.Mockito.doThrow(new javax.jcr.RepositoryException("save failed"))
+                       .when(failingSave)
+                       .saveContent(any(), any(), any(), any());
+    assertFailedSupersededSaveKeepsTheNewerSessionOpen("Superseded Early Failure Test.docx", failingSave);
+  }
+
+  /**
+   * A superseded session's save failing on an unexpected error before its
+   * content is saved changes no content: the newer session stays open.
+   */
+  @Test
+  public void testSupersededSaveFailingUnexpectedlyBeforeItsContentIsSavedKeepsTheNewerSessionOpen() throws Exception {
+    OnlyofficeEditorServiceImpl failingSave = org.mockito.Mockito.spy(onlyofficeEditorService);
+    org.mockito.Mockito.doThrow(new IllegalStateException("unexpected"))
+                       .when(failingSave)
+                       .saveContent(any(), any(), any(), any());
+    assertFailedSupersededSaveKeepsTheNewerSessionOpen("Superseded Unexpected Failure Test.docx", failingSave);
+  }
+
+  private void assertFailedSupersededSaveKeepsTheNewerSessionOpen(String title, OnlyofficeEditorService saving) throws Exception {
+    startSessionAs(USER_USERNAME);
+    Node node = createResourceDocument(title);
+    String supersededKey = openEditor(node, USER_USERNAME).getDocument().getKey();
+    openInDocumentServer(USER_USERNAME, supersededKey);
+    node.getNode("jcr:content").setProperty("jcr:data", new java.io.ByteArrayInputStream("uploaded content".getBytes()));
+    node.save();
+    String newerKey = openEditor(node, "root").getDocument().getKey();
+    openInDocumentServer("root", newerKey);
+
+    saveAsDocumentServer(saving, supersededKey, "superseded session's edits");
+
+    node.refresh(false);
+    assertEquals("uploaded content", new String(node.getNode("jcr:content").getProperty("jcr:data").getStream().readAllBytes()));
+    Config newer = rdbmsStorage().getConfigsByKey(newerKey).get("root");
+    assertFalse(newer.isClosed());
+    assertNull(newer.getError());
+    node.remove();
+  }
+
+  /**
+   * A superseded session's save that names a co-editor who left before the
+   * write goes to the history: the key, not the co-editor's row, is superseded.
+   */
+  @Test
+  public void testSaveOfASupersededSessionNamingACoEditorWhoLeftGoesToTheHistory() throws Exception {
+    startSessionAs(USER_USERNAME);
+    Node node = createResourceDocument("Superseded Co-Editor Test.docx");
+    // mary co-edits: she may write the document
+    ((NodeImpl) node).setPermission("mary", PermissionType.ALL);
+    node.save();
+    String supersededKey = openEditor(node, USER_USERNAME).getDocument().getKey();
+    assertEquals(supersededKey, openEditor(node, "mary").getDocument().getKey());
+    editorService.updateDocument(new DocumentStatus.Builder().status(1L)
+                                                             .users(new String[] { USER_USERNAME, "mary" })
+                                                             .userId(USER_USERNAME)
+                                                             .key(supersededKey)
+                                                             .build());
+    // mary leaves before the write
+    openInDocumentServer(USER_USERNAME, supersededKey);
+    assertTrue(rdbmsStorage().getConfigsByKey(supersededKey).get("mary").isClosed());
+    node.getNode("jcr:content").setProperty("jcr:data", new java.io.ByteArrayInputStream("uploaded content".getBytes()));
+    node.save();
+    assertNull(rdbmsStorage().getConfigsByKey(supersededKey).get("mary").getError());
+    String newerKey = openEditor(node, "root").getDocument().getKey();
+    openInDocumentServer("root", newerKey);
+
+    saveAsDocumentServer(editorService, supersededKey, "superseded session's edits", 2L, "mary");
+
+    node.refresh(false);
+    assertEquals("uploaded content", new String(node.getNode("jcr:content").getProperty("jcr:data").getStream().readAllBytes()));
+    Config newer = rdbmsStorage().getConfigsByKey(newerKey).get("root");
+    assertFalse(newer.isClosed());
+    assertNull(newer.getError());
+    java.util.List<String> versionContents = new java.util.ArrayList<>();
+    javax.jcr.version.VersionIterator versions = node.getVersionHistory().getAllVersions();
+    while (versions.hasNext()) {
+      javax.jcr.version.Version version = versions.nextVersion();
+      if (version.hasNode("jcr:frozenNode/jcr:content")) {
+        versionContents.add(new String(version.getNode("jcr:frozenNode/jcr:content").getProperty("jcr:data").getStream().readAllBytes()));
+      }
+    }
+    assertTrue(versionContents.toString(), versionContents.contains("superseded session's edits"));
+    node.remove();
+  }
+
+  /**
+   * A session opened while a superseded session's save holds the head may
+   * have loaded the save's content: the written-back head closes it.
+   */
+  @Test
+  public void testSessionOpenedDuringASupersededSaveIsClosedByTheWriteBack() throws Exception {
+    startSessionAs(USER_USERNAME);
+    Node node = createResourceDocument("Superseded Window Test.docx");
+    String supersededKey = openEditor(node, USER_USERNAME).getDocument().getKey();
+    openInDocumentServer(USER_USERNAME, supersededKey);
+    node.getNode("jcr:content").setProperty("jcr:data", new java.io.ByteArrayInputStream("uploaded content".getBytes()));
+    node.save();
+    String keptKey = openEditor(node, "root").getDocument().getKey();
+    openInDocumentServer("root", keptKey);
+    AtomicReference<String> windowKey = new AtomicReference<>();
+    OnlyofficeEditorServiceImpl openingMeanwhile = org.mockito.Mockito.spy(onlyofficeEditorService);
+    org.mockito.Mockito.doAnswer(invocation -> {
+      invocation.callRealMethod();
+      windowKey.set(storeUnopenedConversionConfig(node, "mary"));
+      return null;
+    }).when(openingMeanwhile).saveContent(any(), any(), any(), any());
+
+    saveAsDocumentServer(openingMeanwhile, supersededKey, "superseded session's edits");
+
+    Config windowConfig = rdbmsStorage().getConfigsByKey(windowKey.get()).get("mary");
+    assertTrue(windowConfig.isClosed());
+    assertEquals(OnlyofficeEditorServiceImpl.CONTENT_UPDATED_OUTSIDE_EDITOR, windowConfig.getError());
+    assertFalse(rdbmsStorage().getConfigsByKey(keptKey).get("root").isClosed());
+    node.remove();
+  }
+
+  /**
+   * A superseded session's final save with no content to download changes
+   * nothing: the head keeps its author and versions, and the session opened
+   * after the write stays open.
+   */
+  @Test
+  public void testSaveWithoutContentOfASupersededSessionKeepsTheNewerSessionOpen() throws Exception {
+    startSessionAs(USER_USERNAME);
+    Node node = createResourceDocument("Superseded No Content Test.docx");
+    String supersededKey = openEditor(node, USER_USERNAME).getDocument().getKey();
+    openInDocumentServer(USER_USERNAME, supersededKey);
+    // the session has unsaved changes: its final save downloads with no URL
+    editorService.setLastModifier(supersededKey, USER_USERNAME);
+    node.getNode("jcr:content").setProperty("jcr:data", new java.io.ByteArrayInputStream("uploaded content".getBytes()));
+    node.save();
+    node.setProperty("exo:lastModifier", "mary");
+    node.save();
+    String newerKey = openEditor(node, "root").getDocument().getKey();
+    openInDocumentServer("root", newerKey);
+    long versionsBefore = node.getVersionHistory().getAllVersions().getSize();
+
+    editorService.updateDocument(new DocumentStatus.Builder().status(2L)
+                                                             .users(new String[] { USER_USERNAME })
+                                                             .userId(USER_USERNAME)
+                                                             .key(supersededKey)
+                                                             .build());
+
+    node.refresh(false);
+    assertEquals("uploaded content", new String(node.getNode("jcr:content").getProperty("jcr:data").getStream().readAllBytes()));
+    assertEquals("mary", node.getProperty("exo:lastModifier").getString());
+    assertEquals(versionsBefore, node.getVersionHistory().getAllVersions().getSize());
+    Config newer = rdbmsStorage().getConfigsByKey(newerKey).get("root");
+    assertFalse(newer.isClosed());
+    assertNull(newer.getError());
+    assertTrue(rdbmsStorage().getConfigsByKey(supersededKey).get(USER_USERNAME).isClosed());
+    node.remove();
+  }
+
+  /**
+   * A superseded session's forced save goes to the history as its final save
+   * does: the head stays the written content and the newer session stays open.
+   */
+  @Test
+  public void testForcedSaveOfASupersededSessionGoesToTheHistory() throws Exception {
+    startSessionAs(USER_USERNAME);
+    Node node = createResourceDocument("Superseded Forced Save Test.docx");
+    String supersededKey = openEditor(node, USER_USERNAME).getDocument().getKey();
+    openInDocumentServer(USER_USERNAME, supersededKey);
+    node.getNode("jcr:content").setProperty("jcr:data", new java.io.ByteArrayInputStream("uploaded content".getBytes()));
+    node.save();
+    String newerKey = openEditor(node, "root").getDocument().getKey();
+    openInDocumentServer("root", newerKey);
+
+    saveAsDocumentServer(editorService, supersededKey, "superseded session's edits", 6L);
+
+    node.refresh(false);
+    assertEquals("uploaded content", new String(node.getNode("jcr:content").getProperty("jcr:data").getStream().readAllBytes()));
+    assertFalse(rdbmsStorage().getConfigsByKey(newerKey).get("root").isClosed());
+    java.util.List<String> versionContents = new java.util.ArrayList<>();
+    javax.jcr.version.VersionIterator versions = node.getVersionHistory().getAllVersions();
+    while (versions.hasNext()) {
+      javax.jcr.version.Version version = versions.nextVersion();
+      if (version.hasNode("jcr:frozenNode/jcr:content")) {
+        versionContents.add(new String(version.getNode("jcr:frozenNode/jcr:content").getProperty("jcr:data").getStream().readAllBytes()));
+      }
+    }
+    assertTrue(versionContents.toString(), versionContents.contains("superseded session's edits"));
+    node.remove();
+  }
+
+  /**
+   * A failure after a superseded session's save has written the head back
+   * leaves the session opened after the first write open: it holds the head.
+   */
+  @Test
+  public void testFailureAfterTheHeadIsWrittenBackKeepsTheNewerSessionOpen() throws Exception {
+    startSessionAs(USER_USERNAME);
+    Node node = createResourceDocument("Superseded Late Failure Test.docx");
+    String supersededKey = openEditor(node, USER_USERNAME).getDocument().getKey();
+    openInDocumentServer(USER_USERNAME, supersededKey);
+    node.getNode("jcr:content").setProperty("jcr:data", new java.io.ByteArrayInputStream("uploaded content".getBytes()));
+    node.save();
+    String newerKey = openEditor(node, "root").getDocument().getKey();
+    openInDocumentServer("root", newerKey);
+    OnlyofficeEditorServiceImpl failingAfterSave = org.mockito.Mockito.spy(onlyofficeEditorService);
+    org.mockito.Mockito.doThrow(new IllegalStateException("listener failed")).when(failingAfterSave).fireSaved(any());
+
+    saveAsDocumentServer(failingAfterSave, supersededKey, "superseded session's edits");
+
+    node.refresh(false);
+    assertEquals("uploaded content", new String(node.getNode("jcr:content").getProperty("jcr:data").getStream().readAllBytes()));
+    Config newer = rdbmsStorage().getConfigsByKey(newerKey).get("root");
+    assertFalse(newer.isClosed());
+    assertNull(newer.getError());
+    node.remove();
+  }
+
+  /**
+   * A superseded session's final save whose head cannot be copied is a write
+   * as any other: it stays the head and closes the session opened after the
+   * first write.
+   */
+  @Test
+  public void testSaveOfASupersededSessionWhoseHeadCannotBeCopiedStaysTheHead() throws Exception {
+    startSessionAs(USER_USERNAME);
+    Node node = createResourceDocument("Superseded Copy Test.docx");
+    OnlyofficeEditorServiceImpl failingCopy = org.mockito.Mockito.spy(onlyofficeEditorService);
+    org.mockito.Mockito.doThrow(new javax.jcr.RepositoryException("copy failed")).when(failingCopy).copyContent(any());
+    assertSupersededSaveClosesTheNewerSession(node, failingCopy, "superseded session's edits");
+  }
+
+  private void assertSupersededSaveClosesTheNewerSession(Node node,
+                                                         OnlyofficeEditorService saving,
+                                                         String expectedHead) throws Exception {
+    String docId = node.getUUID();
+    String supersededKey = openEditor(node, USER_USERNAME).getDocument().getKey();
+    openInDocumentServer(USER_USERNAME, supersededKey);
+    node.getNode("jcr:content").setProperty("jcr:data", new java.io.ByteArrayInputStream("uploaded content".getBytes()));
+    node.save();
+    String newerKey = openEditor(node, "root").getDocument().getKey();
+    openInDocumentServer("root", newerKey);
+
+    AtomicReference<DocumentStatus> notified = new AtomicReference<>();
+    OnlyofficeEditorListener notifiedListener = outsideWriteListener(docId, notified);
+    editorService.addListener(notifiedListener);
+    try {
+      saveAsDocumentServer(saving, supersededKey, "superseded session's edits");
+    } finally {
+      editorService.removeListener(notifiedListener);
+    }
+
+    node.refresh(false);
+    assertEquals(expectedHead, new String(node.getNode("jcr:content").getProperty("jcr:data").getStream().readAllBytes()));
+    Config newer = rdbmsStorage().getConfigsByKey(newerKey).get("root");
+    assertTrue(newer.isClosed());
+    assertEquals(OnlyofficeEditorServiceImpl.CONTENT_UPDATED_OUTSIDE_EDITOR, newer.getError());
+    assertEquals(supersededKey, notified.get().getKey());
+    node.remove();
+  }
+
+  /**
+   * Sends the Document Server's final save of a key, its content served by a
+   * local HTTP server.
+   */
+  private void saveAsDocumentServer(OnlyofficeEditorService saving, String key, String content) throws Exception {
+    saveAsDocumentServer(saving, key, content, 2L);
+  }
+
+  /**
+   * Sends a Document Server save of a key with a status code, its content
+   * served by a local HTTP server.
+   */
+  private void saveAsDocumentServer(OnlyofficeEditorService saving, String key, String content, long statusCode) throws Exception {
+    saveAsDocumentServer(saving, key, content, statusCode, USER_USERNAME);
+  }
+
+  /**
+   * Sends a Document Server save of a key with a status code, naming a user,
+   * its content served by a local HTTP server.
+   */
+  private void saveAsDocumentServer(OnlyofficeEditorService saving,
+                                    String key,
+                                    String content,
+                                    long statusCode,
+                                    String userId) throws Exception {
+    com.sun.net.httpserver.HttpServer contentServer = com.sun.net.httpserver.HttpServer.create(new java.net.InetSocketAddress("127.0.0.1", 0), 0);
+    byte[] savedContent = content.getBytes();
+    contentServer.createContext("/saved", exchange -> {
+      exchange.sendResponseHeaders(200, savedContent.length);
+      exchange.getResponseBody().write(savedContent);
+      exchange.close();
+    });
+    contentServer.start();
+    try {
+      saving.updateDocument(new DocumentStatus.Builder().status(statusCode)
+                                                        .users(new String[] { userId })
+                                                        .userId(userId)
+                                                        .url("http://127.0.0.1:" + contentServer.getAddress().getPort() + "/saved")
+                                                        .key(key)
+                                                        .build());
+    } finally {
+      contentServer.stop(0);
+    }
+  }
+
+  /**
+   * A version restore re-creates the content rather than setting it: it closes
+   * the editor sessions of the document as a write does.
+   */
+  @Test
+  public void testRestoredVersionClosesTheEditorSessions() throws Exception {
+    startSessionAs(USER_USERNAME);
+    Node node = createResourceDocument("Restore Test.docx");
+    javax.jcr.version.Version firstVersion = node.checkin();
+    node.checkout();
+    node.getNode("jcr:content").setProperty("jcr:data", new java.io.ByteArrayInputStream("secondContent".getBytes()));
+    node.save();
+    String staleKey = openEditor(node, USER_USERNAME).getDocument().getKey();
+    openInDocumentServer(USER_USERNAME, staleKey);
+
+    node.restore(firstVersion, true);
+
+    Config staleConfig = rdbmsStorage().getConfigsByKey(staleKey).get(USER_USERNAME);
+    assertTrue(staleConfig.isClosed());
+    assertEquals(OnlyofficeEditorServiceImpl.CONTENT_UPDATED_OUTSIDE_EDITOR, staleConfig.getError());
+    node.checkout();
+    org.junit.Assert.assertNotEquals(staleKey, openEditor(node, USER_USERNAME).getDocument().getKey());
+    node.remove();
+  }
+
+  /**
+   * The active configs are read one per user: a user's older active config,
+   * hidden by a newer one, is closed too.
+   */
+  @Test
+  public void testContentUpdatedOutsideEditorClosesHiddenConfigsOfAUser() throws Exception {
+    startSessionAs(USER_USERNAME);
+    Node node = createDocument("Hidden Config Test.docx", "nt:file", "testContent", true);
+    String docId = node.getUUID();
+    String editingKey = openEditor(node, USER_USERNAME).getDocument().getKey();
+    openInDocumentServer(USER_USERNAME, editingKey);
+    String newerKey = storeUnopenedConversionConfig(node, USER_USERNAME);
+    assertEquals(newerKey,
+                 onlyofficeEditorService.cachedEditorConfigStorage.getActiveConfigsByDocId(docId)
+                                                                  .get(USER_USERNAME)
+                                                                  .getDocument()
+                                                                  .getKey());
+
+    editorService.contentUpdatedOutsideEditor(docId, "mary");
+
+    assertTrue(onlyofficeEditorService.cachedEditorConfigStorage.getActiveConfigsByDocId(docId).isEmpty());
+    assertTrue(rdbmsStorage().getConfigsByKey(editingKey).get(USER_USERNAME).isClosed());
+    assertTrue(rdbmsStorage().getConfigsByKey(newerKey).get(USER_USERNAME).isClosed());
+    node.remove();
+  }
+
+  /**
+   * Creates a document whose content node is an nt:resource, as Documents
+   * stores it: the content writes the service observes are on nt:resource.
+   */
+  private Node createResourceDocument(String title) throws Exception {
+    return createResourceDocument(title, true);
+  }
+
+  private Node createResourceDocument(String title, boolean versionable) throws Exception {
+    startSessionAs("root");
+    NodeImpl rootNode = (NodeImpl) session.getRootNode();
+    rootNode.setPermission(USER_USERNAME, new String[] { PermissionType.ADD_NODE, PermissionType.SET_PROPERTY });
+    NodeImpl node = (NodeImpl) rootNode.addNode(title, "nt:file");
+    node.addMixin("exo:privilegeable");
+    node.addMixin("exo:activityInfo");
+    node.addMixin("exo:datetime");
+    node.addMixin("exo:modify");
+    node.addMixin("exo:sortable");
+    node.setProperty("exo:activityId", Calendar.getInstance());
+    node.setProperty("exo:dateModified", Calendar.getInstance());
+    node.setProperty("exo:lastModifier", USER_USERNAME);
+    node.setProperty("exo:lastModifiedDate", Calendar.getInstance());
+    Node contentNode = node.addNode("jcr:content", "nt:resource");
+    contentNode.addMixin("exo:datetime");
+    contentNode.setProperty("jcr:mimeType", "application/vnd.oasis.opendocument.text");
+    contentNode.setProperty("jcr:lastModified", Calendar.getInstance());
+    contentNode.setProperty("jcr:data", "testContent");
+    contentNode.setProperty("exo:dateCreated", Calendar.getInstance());
+    contentNode.setProperty("exo:dateModified", Calendar.getInstance());
+    node.addMixin("mix:referenceable");
+    if (versionable) {
+      node.addMixin("mix:versionable");
+    }
+    rootNode.getSession().save();
+    startSessionAs(USER_USERNAME);
+    return node;
+  }
+
+  private OnlyofficeEditorListener outsideWriteListener(String docId, AtomicReference<DocumentStatus> notified) {
+    return new OnlyofficeEditorListener() {
+      @Override
+      public void onContentUpdatedOutsideEditor(DocumentStatus status) {
+        if (docId.equals(status.getConfig().getDocId())) {
+          notified.set(status);
+        }
+      }
+
+      @Override
+      public void onCreate(DocumentStatus status) {
+        // Nothing
+      }
+
+      @Override
+      public void onGet(DocumentStatus status) {
+        // Nothing
+      }
+
+      @Override
+      public void onJoined(DocumentStatus status) {
+        // Nothing
+      }
+
+      @Override
+      public void onLeaved(DocumentStatus status) {
+        // Nothing
+      }
+
+      @Override
+      public void onSaved(DocumentStatus status) {
+        // Nothing
+      }
+
+      @Override
+      public void onError(DocumentStatus status) {
+        // Nothing
+      }
+    };
   }
 
   private Config openEditor(Node node, String userId) throws Exception {

@@ -30,6 +30,9 @@ import java.net.URI;
 import java.net.URL;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.security.DigestInputStream;
 import java.security.MessageDigest;
 import java.text.SimpleDateFormat;
@@ -67,6 +70,9 @@ import javax.jcr.Session;
 import javax.jcr.Value;
 import javax.jcr.ValueFormatException;
 import javax.jcr.lock.Lock;
+import javax.jcr.observation.Event;
+import javax.jcr.observation.EventIterator;
+import javax.jcr.observation.ObservationManager;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.io.input.AutoCloseInputStream;
@@ -94,6 +100,7 @@ import org.exoplatform.ecm.utils.permission.PermissionUtil;
 import org.exoplatform.services.wcm.utils.Utils;
 import org.exoplatform.onlyoffice.Config.Editor;
 import org.exoplatform.onlyoffice.jcr.NodeFinder;
+import org.exoplatform.onlyoffice.jpa.EditorConfigStorage;
 import org.exoplatform.onlyoffice.jpa.storage.cache.CachedEditorConfigStorage;
 import org.exoplatform.onlyoffice.model.VersionNode;
 import org.exoplatform.portal.application.PortalRequestContext;
@@ -197,6 +204,33 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
    * several openings rather than in one user request.
    */
   protected static final int     CLOSED_CONFIGS_PURGE_BATCH = 100;
+
+  /**
+   * The error recorded on a config closed because its document's content was
+   * written outside its editor session: a late open callback of its key does
+   * not reactivate it.
+   */
+  protected static final String  CONTENT_UPDATED_OUTSIDE_EDITOR = EditorConfigStorage.CONTENT_UPDATED_OUTSIDE_EDITOR;
+
+  /**
+   * The document key of the editor session whose content this thread is writing
+   * to the document ({@link #download(DocumentStatus)}), so that the write does
+   * not close that session's configs.
+   */
+  private static final ThreadLocal<String> EDITOR_WRITE_KEY = new ThreadLocal<>();
+
+  /**
+   * The write key of a save, final or forced, of a session that a content write outside
+   * the editor superseded: its content goes to the version history and the
+   * head is written back, so the sessions opened since keep their content.
+   */
+  private static final String              SUPERSEDED_SESSION_WRITE_KEY = "superseded-session-save";
+
+  /**
+   * The keys a superseded session's save leaves open: the sessions active when
+   * it starts, which hold the written content.
+   */
+  private static final ThreadLocal<Set<String>> SUPERSEDED_SAVE_KEPT_KEYS = new ThreadLocal<>();
 
   /**
    * Configuration key for Document Server's allowed hosts in requests from a DS
@@ -1096,6 +1130,130 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
     });
   }
 
+  /**
+   * {@inheritDoc}
+   */
+  @Override
+  public void contentUpdatedOutsideEditor(String docId, String userId) {
+    if (docId == null) {
+      return;
+    }
+    String writingKey = EDITOR_WRITE_KEY.get();
+    // during a superseded session's save, the sessions active when it started
+    // hold the written content, which download() writes back right after: a
+    // session opened meanwhile may hold the save's content, and is closed
+    Set<String> keptKeys = SUPERSEDED_SESSION_WRITE_KEY.equals(writingKey) ? SUPERSEDED_SAVE_KEPT_KEYS.get() : null;
+    Config closedConfig = null;
+    // every active row, a user's older ones included: one hidden behind a row of
+    // the writing key would be joined once that key closes
+    for (Config config : cachedEditorConfigStorage.getAllActiveConfigsByDocId(docId)) {
+      String configKey = config.getDocument().getKey();
+      if (!configKey.equals(writingKey) && (keptKeys == null || !keptKeys.contains(configKey))) {
+        config.setError(CONTENT_UPDATED_OUTSIDE_EDITOR);
+        // a session reopened after a first close keeps that close's time: the
+        // retention counts from this close, or the next opening purges a live session
+        config.setClosedTime(System.currentTimeMillis());
+        closeConfigs(config.getDocument().getKey(), Map.of(config.getDocId(), config));
+        closedConfig = config;
+      }
+    }
+    if (closedConfig != null) {
+      LOG.info("Closed the editor configs of document {} after a content write outside the editor by {}", docId, userId);
+      // the status key is the writing session's (null for a write outside any
+      // editor): its editors hold the written content
+      fireContentUpdatedOutsideEditor(new DocumentStatus.Builder().config(closedConfig)
+                                                                  .key(writingKey)
+                                                                  .userId(userId)
+                                                                  .build());
+    }
+  }
+
+  /**
+   * Tells whether a config was closed because the document's content was
+   * written outside its editor session: no callback of its key reopens it.
+   *
+   * @param config the config
+   * @return true when its key is superseded by such a write
+   */
+  protected boolean isClosedByOutsideWrite(Config config) {
+    return config.isClosed() && CONTENT_UPDATED_OUTSIDE_EDITOR.equals(config.getError());
+  }
+
+  /**
+   * Records an editor error on a config, unless a content write outside the
+   * editor closed it: its error is the marker that keeps its key from being
+   * reopened ({@link #isClosedByOutsideWrite(Config)}).
+   *
+   * @param config the config
+   * @param error the error
+   */
+  protected void setEditorError(Config config, String error) {
+    if (!isClosedByOutsideWrite(config)) {
+      config.setError(error);
+    }
+  }
+
+  /**
+   * Observes the content writes of the documents of the default workspace,
+   * once they are saved, to close the editor sessions they leave stale
+   * ({@link #contentUpdatedOutsideEditor(String, String)}). A write sets the
+   * content ({@code PROPERTY_CHANGED}); a version restore re-creates it
+   * ({@code PROPERTY_ADDED}), as does the creation of a document, which has no
+   * editor session to close. The listener is
+   * called on the saving thread, after the storage commit: a write by
+   * {@link #download(DocumentStatus)} is told apart by its key.
+   */
+  protected void observeContentWrites() {
+    Session session = null;
+    try {
+      String workspace = jcrService.getCurrentRepository().getConfiguration().getDefaultWorkspaceName();
+      session = jcrService.getCurrentRepository().getSystemSession(workspace);
+      ObservationManager observation = session.getWorkspace().getObservationManager();
+      observation.addEventListener(events -> onContentWrites(workspace, events),
+                                   Event.PROPERTY_ADDED | Event.PROPERTY_CHANGED,
+                                   "/",
+                                   true,
+                                   null,
+                                   new String[] { NodetypeConstant.NT_RESOURCE },
+                                   false);
+    } catch (RepositoryException e) {
+      LOG.error("Cannot observe the documents content writes: the editors will not see a content written outside them", e);
+    } finally {
+      if (session != null) {
+        session.logout();
+      }
+    }
+  }
+
+  /**
+   * Closes the editor sessions a saved content write leaves stale.
+   *
+   * @param workspace the workspace of the events
+   * @param events the property changes saved
+   */
+  protected void onContentWrites(String workspace, EventIterator events) {
+    while (events.hasNext()) {
+      Event event = events.nextEvent();
+      Session session = null;
+      try {
+        if (event.getPath().endsWith("/" + NodetypeConstant.JCR_DATA)) {
+          session = jcrService.getCurrentRepository().getSystemSession(workspace);
+          Node file = ((Property) session.getItem(event.getPath())).getParent().getParent();
+          if (file.isNodeType(NodetypeConstant.NT_FILE) && file.isNodeType(NodetypeConstant.MIX_REFERENCEABLE)
+              && isDocumentMimeSupported(file)) {
+            contentUpdatedOutsideEditor(file.getUUID(), event.getUserID());
+          }
+        }
+      } catch (RepositoryException | RuntimeException e) {
+        LOG.warn("Cannot close the editor sessions left stale by a content write", e);
+      } finally {
+        if (session != null) {
+          session.logout();
+        }
+      }
+    }
+  }
+
   protected boolean hasActiveConfigForDifferentKey(String docId, String key) {
     Map<String, Config> activeConfigs = cachedEditorConfigStorage.getActiveConfigsByDocId(docId);
     return activeConfigs != null
@@ -1164,7 +1322,7 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
     if (statusCode == 0) {
       // Onlyoffice doesn't know about such document. Keep a closed record for a grace period
       // instead of hard deleting immediately, so concurrent platform flows can still resolve it.
-      config.setError("Error editing document: document ID not found");
+      setEditorError(config, "Error editing document: document ID not found");
       closeConfigs(key, configs);
       LOG.warn("Received Onlyoffice status: no document with the key identifier could be found. Key: " + key + ". Document: "
           + nodePath);
@@ -1206,7 +1364,7 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
         if (StringUtils.isNotBlank(url)) {
           // if URL available then we can download it assuming it's last successful modification
           downloadClosed(status);
-          config.setError("Error in editor (" + status.getError() + "). Last change was successfully saved");
+          setEditorError(config, "Error in editor (" + status.getError() + "). Last change was successfully saved");
           cachedEditorConfigStorage.saveConfig(List.of(key, config.getDocId()), config, false);
           fireError(status);
           broadcastEvent(status, OnlyofficeEditorService.EDITOR_ERROR_EVENT);
@@ -1216,7 +1374,7 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
         } else {
           LOG.warn("Received Onlyoffice error of saving document without changes URL. Key: " + key + ". Users: "
               + Arrays.toString(status.getUsers()) + ". Document: " + nodePath + ". Error: " + status.getError());
-          config.setError("Error in editor (" + status.getError() + "). No changes saved");
+          setEditorError(config, "Error in editor (" + status.getError() + "). No changes saved");
           cachedEditorConfigStorage.saveConfig(List.of(key, config.getDocId()), config,false);
           fireError(status);
           broadcastEvent(status, OnlyofficeEditorService.EDITOR_ERROR_EVENT);
@@ -1224,7 +1382,7 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
       } else {
         LOG.warn("Received Onlyoffice error of saving document with several editors. Key: " + key + ". Users: "
             + Arrays.toString(status.getUsers()) + ". Document: " + nodePath);
-        config.setError("Error in editor. Document still in editing state");
+        setEditorError(config, "Error in editor. Document still in editing state");
         cachedEditorConfigStorage.saveConfig(List.of(key, config.getDocId()), config,false);
         fireError(status);
         broadcastEvent(status, OnlyofficeEditorService.EDITOR_ERROR_EVENT);
@@ -1495,6 +1653,7 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
         }
       }
     }
+    observeContentWrites();
     LOG.info("Onlyoffice Editor service successfuly started");
   }
 
@@ -2084,13 +2243,19 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
                                                           .build();
 
       if (editors.contains(user)) {
-        if (config.isCreated() || config.isClosed()) {
+        if ((config.isCreated() || config.isClosed()) && !isClosedByOutsideWrite(config)) {
           // editor was (re)opened by user
           config.open();
-          fireJoined(status);
-          broadcastEvent(status, OnlyofficeEditorService.EDITOR_OPENED_EVENT);
-          updated = true;
-          updateCache(config);
+          // opened in the storage only if no content write closed it since this
+          // copy was read: a callback read before the write would reopen the key
+          if (cachedEditorConfigStorage.reopenConfig(config)) {
+            fireJoined(status);
+            broadcastEvent(status, OnlyofficeEditorService.EDITOR_OPENED_EVENT);
+            updated = true;
+          } else {
+            config.setError(CONTENT_UPDATED_OUTSIDE_EDITOR);
+            config.closed();
+          }
         }
       } else {
         // editor was closed by user: it will be closing if closed via WebUI of
@@ -2208,9 +2373,18 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
       }
     }
 
+    if (data == null && isSupersededKey(config)) {
+      // a superseded session's save with no content has nothing to keep: the
+      // head, its author and its sessions stay as the content write left them
+      LOG.info("Skipped the save with no content of a superseded session of document {} by {}", config.getDocId(), userId);
+      return;
+    }
     // remember real context state and session provider to restore them at the end
     ConversationState contextState = ConversationState.getCurrent();
     SessionProvider contextProvider = sessionProviders.getSessionProvider(null);
+    String previousWriteKey = EDITOR_WRITE_KEY.get();
+    boolean superseded = data != null && isSupersededKey(config);
+    EDITOR_WRITE_KEY.set(config.getDocument().getKey());
     try {
       // We want do all the job under actual (last editor) user here
       // Notable that some WCM actions (FileUpdateActivityListener) will fail if
@@ -2280,6 +2454,8 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
                     node.getUUID(), node.getPath(), userId);
         }
         // This modifierConfig can be different from 'config'
+        Path supersededHead = null;
+        boolean supersededContentSaved = false;
         Config modifierConfig = getEditor(userId, config.getDocId(), false);
         if (modifierConfig == null) {
           modifierConfig = config;
@@ -2294,6 +2470,13 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
             }
           }
           boolean versionable = node.isNodeType("mix:versionable");
+          // the head's author and date, which the written-back head keeps
+          String headModifier = null;
+          Calendar headModified = null;
+          if (superseded && versionable) {
+            headModifier = node.hasProperty("exo:lastModifier") ? node.getProperty("exo:lastModifier").getString() : null;
+            headModified = node.hasProperty("exo:lastModifiedDate") ? node.getProperty("exo:lastModifiedDate").getDate() : null;
+          }
 
           if(LOG.isDebugEnabled()) {
             LOG.debug("Node is versionable={} (Node (id={},path={}), userId={})",
@@ -2349,18 +2532,19 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
 
           updateCache(config);
 
+          // a session a content write superseded saves to the history, when
+          // the document has one; otherwise its save is a write as any other
+          if (superseded && versionable) {
+            try {
+              supersededHead = copyContent(content);
+              keepActiveSessions(config);
+            } catch (RepositoryException e) {
+              logError(userId, nodePath, config.getDocId(), config.getDocument().getKey(), "Error copying the head: the save replaces it", e);
+            }
+          }
           // update document
-          if (data != null) {
-            content.setProperty("jcr:data", data);
-          } else {
-            // Set the same data to call listeners
-            content.setProperty("jcr:data", content.getProperty("jcr:data").getStream());
-          }
-          if(LOG.isDebugEnabled()) {
-            LOG.debug("jcr:data updated for (Node (id={},path={}), userId={})",
-                      node.getUUID(), node.getPath(), userId);
-          }
-          node.save();
+          saveContent(node, content, data, userId);
+          supersededContentSaved = supersededHead != null;
           if(LOG.isDebugEnabled()) {
             LOG.debug("Node saved after jcr:data updated for (Node (id={},path={}), userId={})",
                       node.getUUID(), node.getPath(), userId);
@@ -2456,6 +2640,10 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
             }
           }
 
+          if (supersededHead != null) {
+            writeBackHead(node, content, supersededHead, headModifier, headModified, userId);
+            EDITOR_WRITE_KEY.set(config.getDocument().getKey());
+          }
           fireSaved(status);
           if (statusCode == 2) {
             if(LOG.isDebugEnabled()) {
@@ -2474,6 +2662,9 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
           } catch (Throwable re) {
             logError(userId, nodePath, config.getDocId(), config.getDocument().getKey(), "Error rolling back failed change", e);
           }
+          if (supersededContentSaved) {
+            closeSessionsAfterFailedSupersededSave(config, userId);
+          }
           throw e; // let the caller handle it further
         } catch(Exception e) {
           if(LOG.isDebugEnabled()) {
@@ -2481,9 +2672,20 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
                       node.getUUID(), node.getPath(), userId, e);
           }
           logError(userId, nodePath, config.getDocId(), config.getDocument().getKey(), "Failed to comment activity", e);
+          if (supersededContentSaved) {
+            closeSessionsAfterFailedSupersededSave(config, userId);
+          }
         } finally {
           // Remove values after usage in DocumentUdateActivityListener
           modifierConfig.setPreviousModified(null);
+          SUPERSEDED_SAVE_KEPT_KEYS.remove();
+          if (supersededHead != null) {
+            try {
+              Files.deleteIfExists(supersededHead);
+            } catch (IOException e) {
+              logError(userId, nodePath, config.getDocId(), config.getDocument().getKey(), "Error deleting the head's copy", e);
+            }
+          }
           modifierConfig.setSameModifier(null);
           if (data != null) {
             try {
@@ -2534,6 +2736,11 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
         throw new OnlyofficeEditorException("Document locked " + nodePath);
       }
     } finally {
+      if (previousWriteKey == null) {
+        EDITOR_WRITE_KEY.remove();
+      } else {
+        EDITOR_WRITE_KEY.set(previousWriteKey);
+      }
       restoreConvoState(contextState, contextProvider);
     }
   }
@@ -2665,6 +2872,152 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
     SessionProvider sp = sessionProviders.getSessionProvider(null);
     ExtendedSession userSession = (ExtendedSession) sp.getSession(workspace, jcrService.getCurrentRepository());
     return userSession.getNodeByIdentifier(uuid);
+  }
+
+  /**
+   * Tells whether a content write outside the editor superseded a config's
+   * session: any row of its key carries the marker, its user's included or a
+   * co-editor's, closed before or by the write.
+   *
+   * @param config the config a save resolves to
+   * @return true when its key is superseded
+   */
+  protected boolean isSupersededKey(Config config) {
+    if (CONTENT_UPDATED_OUTSIDE_EDITOR.equals(config.getError())) {
+      return true;
+    }
+    Map<String, Config> keyConfigs = cachedEditorConfigStorage.getConfigsByKey(config.getDocument().getKey());
+    return keyConfigs != null && keyConfigs.values().stream().anyMatch(c -> CONTENT_UPDATED_OUTSIDE_EDITOR.equals(c.getError()));
+  }
+
+  /**
+   * Leaves open, during a superseded session's save, the sessions of the
+   * document active when it starts: they hold the head.
+   *
+   * @param config the superseded session's config
+   */
+  protected void keepActiveSessions(Config config) {
+    Set<String> keptKeys = new HashSet<>();
+    for (Config active : cachedEditorConfigStorage.getAllActiveConfigsByDocId(config.getDocId())) {
+      keptKeys.add(active.getDocument().getKey());
+    }
+    SUPERSEDED_SAVE_KEPT_KEYS.set(keptKeys);
+    EDITOR_WRITE_KEY.set(SUPERSEDED_SESSION_WRITE_KEY);
+  }
+
+  /**
+   * Closes the sessions of a document as a content write does, when the save
+   * of a session a content write superseded failed after its content was saved
+   * and before the head was written back: whichever content the head holds,
+   * the sessions reload it.
+   *
+   * @param config the superseded session's config
+   * @param userId the user the save runs as
+   */
+  protected void closeSessionsAfterFailedSupersededSave(Config config, String userId) {
+    if (SUPERSEDED_SESSION_WRITE_KEY.equals(EDITOR_WRITE_KEY.get())) {
+      EDITOR_WRITE_KEY.set(config.getDocument().getKey());
+      contentUpdatedOutsideEditor(config.getDocId(), userId);
+    }
+  }
+
+  /**
+   * Saves a document's new content, or its same content to call the
+   * listeners when there is none.
+   *
+   * @param node the document node
+   * @param content the document's jcr:content node
+   * @param data the new content, or null
+   * @param userId the user the save runs as
+   * @throws RepositoryException if the content cannot be saved
+   */
+  protected void saveContent(Node node, Node content, InputStream data, String userId) throws RepositoryException {
+    if (data != null) {
+      content.setProperty("jcr:data", data);
+    } else {
+      // Set the same data to call listeners
+      content.setProperty("jcr:data", content.getProperty("jcr:data").getStream());
+    }
+    if(LOG.isDebugEnabled()) {
+      LOG.debug("jcr:data updated for (Node (id={},path={}), userId={})",
+                node.getUUID(), node.getPath(), userId);
+    }
+    node.save();
+  }
+
+  /**
+   * Copies a document's content to a temporary file.
+   *
+   * @param content the document's jcr:content node
+   * @return the copy's path
+   * @throws RepositoryException if the content cannot be read
+   */
+  protected Path copyContent(Node content) throws RepositoryException {
+    Path copy = null;
+    try (InputStream stream = content.getProperty("jcr:data").getStream()) {
+      copy = Files.createTempFile("onlyoffice-head-", null);
+      Files.copy(stream, copy, StandardCopyOption.REPLACE_EXISTING);
+      return copy;
+    } catch (IOException e) {
+      if (copy != null) {
+        try {
+          Files.deleteIfExists(copy);
+        } catch (IOException deleteError) {
+          e.addSuppressed(deleteError);
+        }
+      }
+      throw new RepositoryException("Cannot copy the document's content", e);
+    }
+  }
+
+  /**
+   * Writes a document's former head back as a new version, after a save,
+   * final or forced, of a session that a content write superseded went to the
+   * history.
+   *
+   * @param node the document node
+   * @param content the document's jcr:content node
+   * @param head the former head's copy
+   * @param headModifier the former head's last modifier, or null
+   * @param headModified the former head's last modified date, or null
+   * @param userId the user the save runs as
+   * @throws RepositoryException if the content cannot be written
+   */
+  protected void writeBackHead(Node node,
+                               Node content,
+                               Path head,
+                               String headModifier,
+                               Calendar headModified,
+                               String userId) throws RepositoryException {
+    try (InputStream stream = Files.newInputStream(head)) {
+      Calendar writtenTime = Calendar.getInstance();
+      content.setProperty("jcr:data", stream);
+      content.setProperty("jcr:lastModified", writtenTime);
+      if (content.hasProperty("exo:dateModified")) {
+        content.setProperty("exo:dateModified", writtenTime);
+      }
+      if (headModifier != null) {
+        node.setProperty("exo:lastModifier", headModifier);
+      }
+      if (headModified != null) {
+        node.setProperty("exo:lastModifiedDate", headModified);
+        if (node.hasProperty("exo:dateModified")) {
+          node.setProperty("exo:dateModified", headModified);
+        }
+      }
+      node.setProperty("eoo:versionOwner", "");
+      node.setProperty("eoo:onlyofficeVersion", false);
+      node.save();
+      if (checkout(node)) {
+        VersionHistoryUtils.createVersion(node);
+        node.save();
+      }
+      LOG.info("Wrote the head of document {} back after a save of a superseded session by {}", node.getUUID(), userId);
+    } catch (RepositoryException e) {
+      throw e;
+    } catch (Exception e) {
+      throw new RepositoryException("Cannot write the document's head back", e);
+    }
   }
 
   /**
@@ -3033,6 +3386,21 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
         l.onSaved(status);
       } catch (Throwable t) {
         LOG.warn("Saving listener error", t);
+      }
+    }
+  }
+
+  /**
+   * Fire content updated outside the editor.
+   *
+   * @param status the status
+   */
+  protected void fireContentUpdatedOutsideEditor(DocumentStatus status) {
+    for (OnlyofficeEditorListener l : listeners) {
+      try {
+        l.onContentUpdatedOutsideEditor(status);
+      } catch (Throwable t) {
+        LOG.warn("Content updated outside the editor listener error", t);
       }
     }
   }
@@ -3892,6 +4260,8 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
       // the DS while JCR + version history already have the new content. Drop the cached
       // configs (same eviction used in getEditor when a stale key is detected) to force a
       // new key -> DS re-fetch -> the editor shows the just-written content.
+      // node.save() above already closed them (observeContentWrites runs on this thread
+      // after the commit): this eviction finds active configs only when that listener failed.
       try {
         String docId = node.getUUID();
         Map<String, Config> activeConfigs = cachedEditorConfigStorage.getActiveConfigsByDocId(docId);

@@ -223,6 +223,9 @@ public class CometdOnlyofficeService implements Startable {
   /** The Constant DOCUMENT_CONTENT_UPDATED_EVENT. */
   public static final String              DOCUMENT_CONTENT_UPDATED_EVENT = "DOCUMENT_CONTENT_UPDATED";
 
+  /** The content was written outside the editor: the open editors show stale content. */
+  public static final String              DOCUMENT_UPDATED_OUTSIDE_EVENT = "DOCUMENT_UPDATED_OUTSIDE";
+
   /**
    * Base minimum number of threads for document updates thread executors.
    */
@@ -402,6 +405,11 @@ public class CometdOnlyofficeService implements Startable {
         @Override
         public void onCreate(DocumentStatus status) {
           // Nothing
+        }
+
+        @Override
+        public void onContentUpdatedOutsideEditor(DocumentStatus status) {
+          publishUpdatedOutsideEvent(status.getConfig().getDocId(), status.getKey());
         }
 
       });
@@ -739,6 +747,32 @@ public class CometdOnlyofficeService implements Startable {
         data.append("\"userId\": \"");
         data.append(userId);
         data.append("\"}");
+        channel.publish(localSession, data.toString(), Promise.noop());
+      }
+    }
+
+    /**
+     * Publish the event that tells the open editors of a document that its
+     * content was written outside them.
+     *
+     * @param docId the doc id
+     * @param writingKey the key of the editor session that wrote the content,
+     *          whose editors hold it, null for a write outside any editor
+     */
+    protected void publishUpdatedOutsideEvent(String docId, String writingKey) {
+      ServerChannel channel = bayeux.getChannel(CHANNEL_NAME + docId);
+      if (channel != null) {
+        StringBuilder data = new StringBuilder();
+        data.append('{');
+        data.append("\"type\": \"");
+        data.append(DOCUMENT_UPDATED_OUTSIDE_EVENT);
+        data.append("\", ");
+        data.append("\"docId\": \"");
+        data.append(docId);
+        data.append("\", ");
+        data.append("\"writingKey\": ");
+        data.append(writingKey == null ? "null" : "\"" + writingKey + "\"");
+        data.append('}');
         channel.publish(localSession, data.toString(), Promise.noop());
       }
     }

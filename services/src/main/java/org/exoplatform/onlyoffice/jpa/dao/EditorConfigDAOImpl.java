@@ -53,4 +53,29 @@ public class EditorConfigDAOImpl extends GenericDAOJPAImpl<EditorConfigEntity, L
     return closed;
   }
 
+  @Override
+  public int reopenConfig(long id, long openedTime, String closedError) {
+    Query query = getEntityManager().createNamedQuery("EditorConfigEntity.reopenConfig");
+    query.setParameter("id", id);
+    query.setParameter("openedTime", openedTime);
+    query.setParameter("closedError", closedError);
+    int opened = query.executeUpdate();
+    // the update bypasses the persistence context: an entity it already holds
+    // would keep the state it was loaded with
+    getEntityManager().clear();
+    return opened;
+  }
+
+  @Override
+  public int lockConfigUnlessClosedWith(long id, String closedError) {
+    Query query = getEntityManager().createNamedQuery("EditorConfigEntity.lockConfigUnlessClosedWith");
+    query.setParameter("id", id);
+    query.setParameter("closedError", closedError);
+    int locked = query.executeUpdate();
+    // the update bypasses the persistence context: an entity it already holds
+    // would keep the state it was loaded with
+    getEntityManager().clear();
+    return locked;
+  }
+
 }
