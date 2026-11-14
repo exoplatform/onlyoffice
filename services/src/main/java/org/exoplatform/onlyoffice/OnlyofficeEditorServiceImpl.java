@@ -1745,20 +1745,14 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
         return;
       }
       NodeImpl node = (NodeImpl) getDocumentById(workspace, docId);
+      if (!canRenameDocument(node)) {
+        LOG.debug("User {} is not allowed to rename document docId: {}", userId, docId);
+        return;
+      }
       Node parentNode = node.getParent();
       if (parentNode.canAddMixin(NodetypeConstant.MIX_REFERENCEABLE)) {
         parentNode.addMixin(NodetypeConstant.MIX_REFERENCEABLE);
         parentNode.save();
-      }
-
-      if (!node.hasPermission(PermissionType.REMOVE)) {
-        Session systemSession = jcrService.getCurrentRepository().getSystemSession(workspace);
-        NodeImpl systemNode = (NodeImpl) systemSession.getNodeByUUID(docId);
-        systemNode.addMixin("exo:privilegeable");
-        systemNode.setPermission(userId,
-                                 new String[] { PermissionType.REMOVE, PermissionType.READ, PermissionType.ADD_NODE,
-                                     PermissionType.SET_PROPERTY });
-        systemNode.save();
       }
 
       String destPath =
@@ -3397,16 +3391,20 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
   }
 
   /**
-   * Checks if current user can rename the document.
+   * Checks if current user can rename the document: the rename moves the
+   * document within its folder and sets its name properties with the user's
+   * own session, so the user needs to add nodes to and set properties on the
+   * folder, and to remove and set properties on the document.
    *
    * @param node the node
-   * @return true if user can rename 
+   * @return true if user can rename
    */
   protected boolean canRenameDocument(Node node) {
     try {
       NodeImpl parent = (NodeImpl) node.getParent();
       return parent.hasPermission(PermissionType.READ) && parent.hasPermission(PermissionType.ADD_NODE)
-          && parent.hasPermission(PermissionType.SET_PROPERTY);
+          && parent.hasPermission(PermissionType.SET_PROPERTY) && ((NodeImpl) node).hasPermission(PermissionType.REMOVE)
+          && ((NodeImpl) node).hasPermission(PermissionType.SET_PROPERTY);
     } catch (Exception e) {
       return false;
     }
