@@ -72,5 +72,16 @@ public interface OnlyofficeEditorListener {
    */
   void onError(DocumentStatus status);
 
+  /**
+   * The document content was written outside the editor session of
+   * {@link DocumentStatus#getConfig()}: that session's key, and every other
+   * active key of the document, no longer matches the stored content.
+   *
+   * @param status the status, its user is the one who wrote the content
+   */
+  default void onContentUpdatedOutsideEditor(DocumentStatus status) {
+    // Nothing by default
+  }
+
 
 }
