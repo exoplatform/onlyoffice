@@ -2834,6 +2834,32 @@ public class OnlyofficeEditorServiceTest extends BaseCommonsTestCase {
     }
   }
 
+  /**
+   * A head's content whose stream fails to close, after it was read whole,
+   * leaves no copy behind.
+   */
+  @Test
+  public void testHeadCopyFailingToCloseIsDeleted() throws Exception {
+    java.io.InputStream failingClose = new java.io.ByteArrayInputStream("content".getBytes()) {
+      @Override
+      public void close() throws java.io.IOException {
+        throw new java.io.IOException("cannot close");
+      }
+    };
+    javax.jcr.Property data = org.mockito.Mockito.mock(javax.jcr.Property.class);
+    org.mockito.Mockito.when(data.getStream()).thenReturn(failingClose);
+    Node content = org.mockito.Mockito.mock(Node.class);
+    org.mockito.Mockito.when(content.getProperty("jcr:data")).thenReturn(data);
+    java.nio.file.Path tmp = java.nio.file.Paths.get(System.getProperty("java.io.tmpdir"));
+    java.util.Set<java.nio.file.Path> before = headCopies(tmp);
+    try {
+      onlyofficeEditorService.copyContent(content);
+      fail("the copy must fail");
+    } catch (javax.jcr.RepositoryException expected) {
+      assertEquals(before, headCopies(tmp));
+    }
+  }
+
   private java.util.Set<java.nio.file.Path> headCopies(java.nio.file.Path dir) throws java.io.IOException {
     try (java.util.stream.Stream<java.nio.file.Path> files = java.nio.file.Files.list(dir)) {
       return files.filter(f -> f.getFileName().toString().startsWith("onlyoffice-head-"))

@@ -2991,8 +2991,11 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
     }
     boolean written = false;
     // written into the created file: a copy that replaces it would not keep its permissions
-    try (InputStream stream = content.getProperty("jcr:data").getStream(); OutputStream out = Files.newOutputStream(copy)) {
-      stream.transferTo(out);
+    try {
+      try (InputStream stream = content.getProperty("jcr:data").getStream(); OutputStream out = Files.newOutputStream(copy)) {
+        stream.transferTo(out);
+      }
+      // complete once both streams are closed: a close that fails leaves an incomplete copy
       written = true;
       return copy;
     } catch (IOException e) {
