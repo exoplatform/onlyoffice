@@ -92,6 +92,11 @@ public class RDBMSEditorConfigStorageImpl implements EditorConfigStorage {
           entity.setOpen(false);
           entity.setClosing(false);
           entity.setClosedTime(stored.getClosedTime());
+        } else if (marked && CONTENT_UPDATED_OUTSIDE_EDITOR.equals(stored.getError()) && stored.getClosedTime() != null
+            && (entity.getClosedTime() == null || stored.getClosedTime() > entity.getClosedTime())) {
+          // a marked copy read before the write that closed the row keeps that
+          // close's time: the retention counts from the write
+          entity.setClosedTime(stored.getClosedTime());
         }
         editorConfigDAO.update(entity);
       } else {

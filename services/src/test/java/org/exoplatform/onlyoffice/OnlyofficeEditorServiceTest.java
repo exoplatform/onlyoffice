@@ -2822,6 +2822,36 @@ public class OnlyofficeEditorServiceTest extends BaseCommonsTestCase {
   }
 
   /**
+   * A marked copy read before the content write that closed its row, saved
+   * after it, keeps the write's close time: the retention counts from the
+   * write.
+   */
+  @Test
+  public void testMarkedCopySavedAfterTheWriteKeepsTheWritesCloseTime() throws Exception {
+    startSessionAs(USER_USERNAME);
+    Node node = createResourceDocument("Marked Copy Close Time Test.docx");
+    String key = openEditor(node, USER_USERNAME).getDocument().getKey();
+    openInDocumentServer(USER_USERNAME, key);
+    node.getNode("jcr:content").setProperty("jcr:data", new java.io.ByteArrayInputStream("uploaded content".getBytes()));
+    node.save();
+    org.exoplatform.commons.persistence.impl.EntityManagerService entityManagerService =
+        getContainer().getComponentInstanceOfType(org.exoplatform.commons.persistence.impl.EntityManagerService.class);
+    entityManagerService.getEntityManager().clear();
+    Config written = rdbmsStorage().getConfigsByKey(key).get(USER_USERNAME);
+    assertEquals(OnlyofficeEditorServiceImpl.CONTENT_UPDATED_OUTSIDE_EDITOR, written.getError());
+    Long writeCloseTime = written.getClosedTime();
+    // a copy closed before the write, refused its reopen and marked since
+    Config staleCopy = rdbmsStorage().getConfigsByKey(key).get(USER_USERNAME);
+    staleCopy.setClosedTime(writeCloseTime - 60000);
+
+    rdbmsStorage().saveConfig(key, staleCopy, false);
+
+    entityManagerService.getEntityManager().clear();
+    assertEquals(writeCloseTime, rdbmsStorage().getConfigsByKey(key).get(USER_USERNAME).getClosedTime());
+    node.remove();
+  }
+
+  /**
    * A superseded session's forced save goes to the history as its final save
    * does: the head stays the written content and the newer session stays open.
    */
