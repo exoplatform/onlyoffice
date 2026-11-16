@@ -30,6 +30,7 @@ import java.lang.reflect.Field;
 
 import javax.jcr.RepositoryException;
 
+import org.cometd.bayeux.MarkedReference;
 import org.cometd.bayeux.server.BayeuxServer;
 import org.cometd.bayeux.server.LocalSession;
 import org.cometd.bayeux.server.ServerChannel;
@@ -73,7 +74,10 @@ class CometdUpdatedOutsideEventTest {
     cometdService = service.service;
     BayeuxServer bayeux = mock(BayeuxServer.class);
     channel = mock(ServerChannel.class);
-    when(bayeux.getChannel(CometdOnlyofficeService.CHANNEL_NAME + DOC_ID)).thenReturn(channel);
+    // no session of this node subscribed: the channel exists only once created,
+    // and a remote node's editors subscribe through the wildcard channel
+    when(bayeux.getChannel(CometdOnlyofficeService.CHANNEL_NAME + DOC_ID)).thenReturn(null);
+    when(bayeux.createChannelIfAbsent(CometdOnlyofficeService.CHANNEL_NAME + DOC_ID)).thenReturn(new MarkedReference<>(channel, true));
     localSession = mock(LocalSession.class);
     inject("bayeux", bayeux);
     inject("localSession", localSession);

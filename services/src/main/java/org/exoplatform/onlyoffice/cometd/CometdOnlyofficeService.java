@@ -793,7 +793,7 @@ public class CometdOnlyofficeService implements Startable {
      *          whose editors hold it, null for a write outside any editor
      */
     protected void publishUpdatedOutsideEvent(String docId, String writingKey) {
-      ServerChannel channel = bayeux.getChannel(CHANNEL_NAME + docId);
+      ServerChannel channel = bayeux.createChannelIfAbsent(CHANNEL_NAME + docId).getReference();
       if (channel != null) {
         StringBuilder data = new StringBuilder();
         data.append('{');
