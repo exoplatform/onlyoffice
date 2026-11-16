@@ -41,11 +41,12 @@ import javax.jcr.observation.EventIterator;
 import javax.jcr.observation.EventListener;
 import javax.jcr.observation.ObservationManager;
 
+import org.apache.commons.lang3.StringUtils;
+import org.cometd.annotation.Listener;
 import org.cometd.annotation.Param;
 import org.cometd.annotation.server.ServerAnnotationProcessor;
 import org.cometd.annotation.Service;
 import org.cometd.annotation.Session;
-import org.cometd.annotation.Listener;
 import org.cometd.bayeux.Promise;
 import org.cometd.bayeux.server.BayeuxServer;
 import org.cometd.bayeux.server.LocalSession;
@@ -449,8 +450,11 @@ public class CometdOnlyofficeService implements Startable {
     }
 
     /**
-     * Subscribe document events.
+     * Handles the document events a client publishes. The event is handled only
+     * when its user is the one the sender's session was handshaken with; the
+     * message is still delivered to the channel's subscribers.
      *
+     * @param sender the sender's session.
      * @param message the message.
      * @param docId the docId.
      * @throws OnlyofficeEditorException the onlyoffice editor exception
@@ -474,6 +478,11 @@ public class CometdOnlyofficeService implements Startable {
       }
 
       Map<String, Object> data = message.getDataAsMap();
+      String userId = (String) data.get("userId");
+      if (!isSessionUser(sender, userId)) {
+        LOG.debug("Ignoring document event for docId {}: user {} is not the user of the sender's session", docId, userId);
+        return;
+      }
       String type = (String) data.get("type");
       eventsHandlers.submit(new ContainerCommand(PortalContainer.getCurrentPortalContainerName()) {
         @Override
@@ -508,6 +517,17 @@ public class CometdOnlyofficeService implements Startable {
       if (LOG.isDebugEnabled()) {
         LOG.debug("Event published in " + message.getChannel() + ", docId: " + docId + ", data: " + data);
       }
+    }
+
+    /**
+     * Tells whether the user is the one the session was handshaken with.
+     *
+     * @param session the sender's session
+     * @param userId the user id
+     * @return true if the session belongs to that user
+     */
+    boolean isSessionUser(ServerSession session, String userId) {
+      return session != null && StringUtils.isNotBlank(userId) && exoBayeux.isSubscribed(userId, session.getId());
     }
 
     /**
