@@ -23,4 +23,29 @@ public interface EditorConfigDAO extends GenericDAO<EditorConfigEntity,Long> {
    */
   int closeUnopenedConversionConfigs(long closedTime);
 
+  /**
+   * Opens a config at the given time, unless its stored error is the given
+   * one: a single conditional update, so a close written meanwhile by another
+   * transaction is never overwritten.
+   *
+   * @param id the config's database id
+   * @param openedTime the opened time to set
+   * @param closedError the error that keeps the config closed
+   * @return the number of opened configs, 0 or 1
+   */
+  int reopenConfig(long id, long openedTime, String closedError);
+
+  /**
+   * Takes a config row's write lock until the transaction ends, by an update
+   * that changes nothing, unless its stored error is the given one: a save
+   * that writes the row back after it does not interleave with another write
+   * of the row, whatever the database's locking of reads.
+   *
+   * @param id the config's database id
+   * @param closedError the error that keeps the config closed
+   * @return the number of locked configs, 0 if none is stored without that
+   *         error
+   */
+  int lockConfigUnlessClosedWith(long id, String closedError);
+
 }

@@ -171,6 +171,7 @@
     // Constants:
     const DOCUMENT_SAVED = "DOCUMENT_SAVED";
     const DOCUMENT_CONTENT_UPDATED = "DOCUMENT_CONTENT_UPDATED";
+    const DOCUMENT_UPDATED_OUTSIDE = "DOCUMENT_UPDATED_OUTSIDE";
     const DOCUMENT_CHANGED = "DOCUMENT_CHANGED";
     const DOCUMENT_DELETED = "DOCUMENT_DELETED";
     const DOCUMENT_VERSION = "DOCUMENT_VERSION";
@@ -180,7 +181,7 @@
     const EDITOR_CLOSED = "EDITOR_CLOSED";
     const ONLYOFFICE = "onlyoffice";
     // Events that are dispatched to redux as actions
-    var dispatchableEvents = [DOCUMENT_SAVED, DOCUMENT_CONTENT_UPDATED,  DOCUMENT_CHANGED, DOCUMENT_DELETED, DOCUMENT_VERSION, DOCUMENT_TITLE_UPDATED];
+    var dispatchableEvents = [DOCUMENT_SAVED, DOCUMENT_CONTENT_UPDATED, DOCUMENT_UPDATED_OUTSIDE, DOCUMENT_CHANGED, DOCUMENT_DELETED, DOCUMENT_VERSION, DOCUMENT_TITLE_UPDATED];
 
     // CometD transport bus
     var cometd, cometdContext;
@@ -665,6 +666,11 @@
               var state = store.getState();
               if (state.type === DOCUMENT_DELETED) {
                 UI.showError(message("ErrorTitle"), message("ErrorFileDeletedEditor"));
+              }
+              if (state.type === DOCUMENT_UPDATED_OUTSIDE && state.docId === currentConfig.docId
+                  && state.writingKey !== currentConfig.document.key) {
+                // The content was written outside this editor: reloading opens it with a new key
+                UI.addRefreshBanner(currentConfig, DESKTOP_MODE);
               }
               if (state.type === DOCUMENT_SAVED) {
                 UI.updateBar(state.displayName, state.comment, currentConfig.workspace, currentConfig.docId);
