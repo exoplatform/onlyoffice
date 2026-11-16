@@ -2983,25 +2983,31 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
    * @throws RepositoryException if the content cannot be read
    */
   protected Path copyContent(Node content) throws RepositoryException {
-    Path copy = null;
-    try (InputStream stream = content.getProperty("jcr:data").getStream()) {
+    Path copy;
+    try {
       copy = createOwnerOnlyTempFile();
-      // written into the created file: a copy that replaces it would not keep its permissions
-      try (OutputStream out = Files.newOutputStream(copy)) {
-        stream.transferTo(out);
-      }
+    } catch (IOException e) {
+      throw new RepositoryException("Cannot create a copy of the document's content", e);
+    }
+    boolean written = false;
+    // written into the created file: a copy that replaces it would not keep its permissions
+    try (InputStream stream = content.getProperty("jcr:data").getStream(); OutputStream out = Files.newOutputStream(copy)) {
+      stream.transferTo(out);
+      written = true;
       return copy;
     } catch (IOException e) {
-      if (copy != null) {
+      throw new RepositoryException("Cannot copy the document's content", e);
+    } finally {
+      if (!written) {
         try {
           Files.deleteIfExists(copy);
         } catch (IOException deleteError) {
-          e.addSuppressed(deleteError);
+          LOG.warn("Cannot delete the incomplete copy {} of a document's content", copy, deleteError);
         }
       }
-      throw new RepositoryException("Cannot copy the document's content", e);
     }
   }
+
 
   /**
    * Writes a document's former head back as a new version, after a save,

@@ -2311,7 +2311,6 @@ public class OnlyofficeEditorServiceTest extends BaseCommonsTestCase {
   public void testSavedContentWriteClosesTheEditorSessions() throws Exception {
     startSessionAs(USER_USERNAME);
     Node node = createResourceDocument("Saved Write Test.docx");
-    String docId = node.getUUID();
     String staleKey = openEditor(node, USER_USERNAME).getDocument().getKey();
     openInDocumentServer(USER_USERNAME, staleKey);
 
@@ -2802,6 +2801,43 @@ public class OnlyofficeEditorServiceTest extends BaseCommonsTestCase {
       }
     } finally {
       java.nio.file.Files.deleteIfExists(copy);
+    }
+  }
+
+  /**
+   * A head's content that fails to read midway leaves no copy behind.
+   */
+  @Test
+  public void testHeadCopyFailingMidwayIsDeleted() throws Exception {
+    java.io.InputStream failing = new java.io.InputStream() {
+      private int read;
+
+      @Override
+      public int read() throws java.io.IOException {
+        if (read++ < 10) {
+          return 'x';
+        }
+        throw new java.io.IOException("cut short");
+      }
+    };
+    javax.jcr.Property data = org.mockito.Mockito.mock(javax.jcr.Property.class);
+    org.mockito.Mockito.when(data.getStream()).thenReturn(failing);
+    Node content = org.mockito.Mockito.mock(Node.class);
+    org.mockito.Mockito.when(content.getProperty("jcr:data")).thenReturn(data);
+    java.nio.file.Path tmp = java.nio.file.Paths.get(System.getProperty("java.io.tmpdir"));
+    java.util.Set<java.nio.file.Path> before = headCopies(tmp);
+    try {
+      onlyofficeEditorService.copyContent(content);
+      fail("the copy must fail");
+    } catch (javax.jcr.RepositoryException expected) {
+      assertEquals(before, headCopies(tmp));
+    }
+  }
+
+  private java.util.Set<java.nio.file.Path> headCopies(java.nio.file.Path dir) throws java.io.IOException {
+    try (java.util.stream.Stream<java.nio.file.Path> files = java.nio.file.Files.list(dir)) {
+      return files.filter(f -> f.getFileName().toString().startsWith("onlyoffice-head-"))
+                  .collect(java.util.stream.Collectors.toSet());
     }
   }
 
