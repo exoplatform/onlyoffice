@@ -30,9 +30,10 @@ import java.net.URI;
 import java.net.URL;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.StandardCopyOption;
+import java.nio.file.attribute.PosixFilePermissions;
 import java.security.DigestInputStream;
 import java.security.MessageDigest;
 import java.text.SimpleDateFormat;
@@ -226,6 +227,12 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
    * head is written back, so the sessions opened since keep their content.
    */
   private static final String              SUPERSEDED_SESSION_WRITE_KEY = "superseded-session-save";
+
+  /** The document property holding its last modification date. */
+  private static final String              EXO_LAST_MODIFIED_DATE       = "exo:lastModifiedDate";
+
+  /** The document property marking a version saved by the editor. */
+  private static final String              EOO_ONLYOFFICE_VERSION       = "eoo:onlyofficeVersion";
 
   /**
    * The keys a superseded session's save leaves open: the sessions active when
@@ -1155,15 +1162,15 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
     Config closedConfig = null;
     // every active row, a user's older ones included: one hidden behind a row of
     // the writing key would be joined once that key closes
-    for (Config config : cachedEditorConfigStorage.getAllActiveConfigsByDocId(docId)) {
-      String configKey = config.getDocument().getKey();
+    for (Config activeConfig : cachedEditorConfigStorage.getAllActiveConfigsByDocId(docId)) {
+      String configKey = activeConfig.getDocument().getKey();
       if (!configKey.equals(writingKey) && (keptKeys == null || !keptKeys.contains(configKey))) {
-        config.setError(CONTENT_UPDATED_OUTSIDE_EDITOR);
+        activeConfig.setError(CONTENT_UPDATED_OUTSIDE_EDITOR);
         // a session reopened after a first close keeps that close's time: the
         // retention counts from this close, or the next opening purges a live session
-        config.setClosedTime(System.currentTimeMillis());
-        closeConfigs(config.getDocument().getKey(), Map.of(config.getDocId(), config));
-        closedConfig = config;
+        activeConfig.setClosedTime(System.currentTimeMillis());
+        closeConfigs(activeConfig.getDocument().getKey(), Map.of(activeConfig.getDocId(), activeConfig));
+        closedConfig = activeConfig;
       }
     }
     if (closedConfig != null) {
@@ -1247,7 +1254,7 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
       try {
         if (event.getPath().endsWith("/" + NodetypeConstant.JCR_DATA)) {
           session = jcrService.getCurrentRepository().getSystemSession(workspace);
-          Node file = ((Property) session.getItem(event.getPath())).getParent().getParent();
+          Node file = session.getItem(event.getPath()).getParent().getParent();
           if (file.isNodeType(NodetypeConstant.NT_FILE) && file.isNodeType(NodetypeConstant.MIX_REFERENCEABLE)
               && isDocumentMimeSupported(file)) {
             contentUpdatedOutsideEditor(file.getUUID(), event.getUserID());
@@ -2482,7 +2489,7 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
           Calendar headModified = null;
           if (superseded && versionable) {
             headModifier = node.hasProperty("exo:lastModifier") ? node.getProperty("exo:lastModifier").getString() : null;
-            headModified = node.hasProperty("exo:lastModifiedDate") ? node.getProperty("exo:lastModifiedDate").getDate() : null;
+            headModified = node.hasProperty(EXO_LAST_MODIFIED_DATE) ? node.getProperty(EXO_LAST_MODIFIED_DATE).getDate() : null;
           }
 
           if(LOG.isDebugEnabled()) {
@@ -2510,11 +2517,11 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
           if (content.hasProperty("exo:dateModified")) {
             content.setProperty("exo:dateModified", editedTime);
           }
-          if (content.hasProperty("exo:lastModifiedDate")) {
-            content.setProperty("exo:lastModifiedDate", editedTime);
+          if (content.hasProperty(EXO_LAST_MODIFIED_DATE)) {
+            content.setProperty(EXO_LAST_MODIFIED_DATE, editedTime);
           }
-          if (node.hasProperty("exo:lastModifiedDate")) {
-            node.setProperty("exo:lastModifiedDate", editedTime);
+          if (node.hasProperty(EXO_LAST_MODIFIED_DATE)) {
+            node.setProperty(EXO_LAST_MODIFIED_DATE, editedTime);
           }
 
           if (node.hasProperty("exo:dateModified")) {
@@ -2601,7 +2608,7 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
           } else {
             node.setProperty("eoo:versionOwner", "");
           }
-          node.setProperty("eoo:onlyofficeVersion", true);
+          node.setProperty(EOO_ONLYOFFICE_VERSION, true);
 
           node.save();
           if(LOG.isDebugEnabled()) {
@@ -2618,7 +2625,7 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
             }
             // Remove properties from node
             node.setProperty("eoo:versionOwner", "");
-            node.setProperty("eoo:onlyofficeVersion", false);
+            node.setProperty(EOO_ONLYOFFICE_VERSION, false);
             if(LOG.isDebugEnabled()) {
               LOG.debug("Properties eoo:versionOwner removed from the node (Node (id={},path={}), userId={})",
                         node.getUUID(), node.getPath(), userId);
@@ -2953,6 +2960,22 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
   }
 
   /**
+   * Creates a temporary file that only the server's user can read and write.
+   *
+   * @return the file's path
+   * @throws IOException if the file cannot be created
+   */
+  private static Path createOwnerOnlyTempFile() throws IOException {
+    if (FileSystems.getDefault().supportedFileAttributeViews().contains("posix")) {
+      return Files.createTempFile("onlyoffice-head-",
+                                  null,
+                                  PosixFilePermissions.asFileAttribute(PosixFilePermissions.fromString("rw-------")));
+    }
+    // no POSIX view (Windows): the default temporary directory is the user's own
+    return Files.createTempFile("onlyoffice-head-", null); // NOSONAR
+  }
+
+  /**
    * Copies a document's content to a temporary file.
    *
    * @param content the document's jcr:content node
@@ -2962,8 +2985,11 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
   protected Path copyContent(Node content) throws RepositoryException {
     Path copy = null;
     try (InputStream stream = content.getProperty("jcr:data").getStream()) {
-      copy = Files.createTempFile("onlyoffice-head-", null);
-      Files.copy(stream, copy, StandardCopyOption.REPLACE_EXISTING);
+      copy = createOwnerOnlyTempFile();
+      // written into the created file: a copy that replaces it would not keep its permissions
+      try (OutputStream out = Files.newOutputStream(copy)) {
+        stream.transferTo(out);
+      }
       return copy;
     } catch (IOException e) {
       if (copy != null) {
@@ -3007,13 +3033,13 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
         node.setProperty("exo:lastModifier", headModifier);
       }
       if (headModified != null) {
-        node.setProperty("exo:lastModifiedDate", headModified);
+        node.setProperty(EXO_LAST_MODIFIED_DATE, headModified);
         if (node.hasProperty("exo:dateModified")) {
           node.setProperty("exo:dateModified", headModified);
         }
       }
       node.setProperty("eoo:versionOwner", "");
-      node.setProperty("eoo:onlyofficeVersion", false);
+      node.setProperty(EOO_ONLYOFFICE_VERSION, false);
       node.save();
       if (checkout(node)) {
         VersionHistoryUtils.createVersion(node);
@@ -3801,8 +3827,8 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
    * @throws RepositoryException the repositoryException
    */
   protected String getLastModified(Node node) throws ValueFormatException, PathNotFoundException, RepositoryException {
-    if (node.hasProperty("exo:lastModifiedDate")) {
-      Calendar date = node.getProperty("exo:lastModifiedDate").getDate();
+    if (node.hasProperty(EXO_LAST_MODIFIED_DATE)) {
+      Calendar date = node.getProperty(EXO_LAST_MODIFIED_DATE).getDate();
       Locale locale = null;
       try {
         PortalRequestContext portalRequestContext = getPortalRequestContext();

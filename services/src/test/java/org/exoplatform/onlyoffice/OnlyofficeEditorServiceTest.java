@@ -2784,6 +2784,28 @@ public class OnlyofficeEditorServiceTest extends BaseCommonsTestCase {
   }
 
   /**
+   * The head's copy kept during a superseded session's save holds the head's
+   * content and is readable by the server's user only.
+   */
+  @Test
+  public void testHeadCopyIsReadableByItsOwnerOnly() throws Exception {
+    startSessionAs(USER_USERNAME);
+    Node node = createResourceDocument("Head Copy Test.docx");
+    java.nio.file.Path copy = onlyofficeEditorService.copyContent(node.getNode("jcr:content"));
+    try {
+      try (java.io.InputStream head = node.getNode("jcr:content").getProperty("jcr:data").getStream()) {
+        org.junit.Assert.assertArrayEquals(head.readAllBytes(), java.nio.file.Files.readAllBytes(copy));
+      }
+      if (java.nio.file.FileSystems.getDefault().supportedFileAttributeViews().contains("posix")) {
+        assertEquals(java.nio.file.attribute.PosixFilePermissions.fromString("rw-------"),
+                     java.nio.file.Files.getPosixFilePermissions(copy));
+      }
+    } finally {
+      java.nio.file.Files.deleteIfExists(copy);
+    }
+  }
+
+  /**
    * A superseded session's final save with no content to download changes
    * nothing: the head keeps its author and versions, and the session opened
    * after the write stays open.
