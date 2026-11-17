@@ -246,7 +246,7 @@
             </field>
             <!-- A viewer configuration is state no store holds, which the document server downloads through any node: replicated.
                  A node that starts receives the configurations the other nodes hold: the cache factory transfers the
-                 state of a replicated cache to a joining node. -->
+                 state of a replicated cache to a joining node, unless exo.cache.cluster.replication.statetransfer is false. -->
             <field name="cacheMode" profiles="cluster">
               <string>${onlyoffice.ViewerCache.cacheMode:replication}</string>
             </field>
