@@ -116,6 +116,8 @@ import org.exoplatform.services.cache.ExoCache;
 import org.exoplatform.services.cms.BasePath;
 import org.exoplatform.services.cms.documents.DocumentService;
 import org.exoplatform.services.cms.documents.TrashService;
+import org.exoplatform.services.cms.documents.security.DocumentGrantOperation;
+import org.exoplatform.services.cms.documents.security.DocumentSpaceGuard;
 import org.exoplatform.services.cms.drives.DriveData;
 import org.exoplatform.services.cms.drives.ManageDriveService;
 import org.exoplatform.services.cms.lock.LockService;
@@ -760,7 +762,7 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
           if (isSuspendDownloadDocument()) {
             builder.setRestrictedDownload(true);
           }
-          builder.renameAllowed(canRenameDocument(node));
+          builder.renameAllowed(canRenameDocument(node, userId));
           builder.isActivity(ActivityTypeUtils.getActivityId(node) != null);
           try {
             builder.folder(node.getParent().getName());
@@ -824,7 +826,7 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
     } else {
       // Update fields
       config.getEditorPage().setDisplayPath(getDisplayPath(node, userId));
-      config.getEditorPage().setRenameAllowed(canRenameDocument(node));
+      config.getEditorPage().setRenameAllowed(canRenameDocument(node, userId));
       config.getEditorPage().setComment(nodeComment(node));
       config.getEditorPage().setLastModifier(getLastModifier(node));
       config.getEditorPage().setLastModified(getLastModified(node));
@@ -1918,6 +1920,12 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
       }
 
       if (!node.hasPermission(PermissionType.REMOVE)) {
+        if (!getDocumentSpaceGuard().newGrantOperation(userId, DocumentGrantOperation.SOURCE_ONLYOFFICE_RENAME)
+                                    .canGrant(node, userId)) {
+          // The document's space refuses to grant the renamer the rights a rename needs
+          LOG.debug("Rename of document {} refused to {}: its space refuses the grant", docId, userId);
+          return;
+        }
         Session systemSession = jcrService.getCurrentRepository().getSystemSession(workspace);
         NodeImpl systemNode = (NodeImpl) systemSession.getNodeByUUID(docId);
         systemNode.addMixin("exo:privilegeable");
@@ -1943,6 +1951,16 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
     } finally {
       restoreConvoState(contextState, contextProvider);
     }
+  }
+
+  /**
+   * Gets the guard that decides whether the document's space lets a user be
+   * granted access to it.
+   *
+   * @return the document space guard
+   */
+  protected DocumentSpaceGuard getDocumentSpaceGuard() {
+    return DocumentSpaceGuard.getInstance();
   }
 
   /**
@@ -3800,16 +3818,21 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
   }
 
   /**
-   * Checks if current user can rename the document.
+   * Checks if the user can rename the document: the parent folder lets them,
+   * and so does the document itself or, when it does not, its space lets them
+   * be granted the rights a rename needs, as {@link #updateTitle} decides.
    *
-   * @param node the node
-   * @return true if user can rename 
+   * @param node the node, read with the user's session
+   * @param userId the user
+   * @return true if user can rename
    */
-  protected boolean canRenameDocument(Node node) {
+  protected boolean canRenameDocument(Node node, String userId) {
     try {
       NodeImpl parent = (NodeImpl) node.getParent();
       return parent.hasPermission(PermissionType.READ) && parent.hasPermission(PermissionType.ADD_NODE)
-          && parent.hasPermission(PermissionType.SET_PROPERTY);
+          && parent.hasPermission(PermissionType.SET_PROPERTY)
+          && (((NodeImpl) node).hasPermission(PermissionType.REMOVE)
+              || getDocumentSpaceGuard().canManageAccess(node, userId, null));
     } catch (Exception e) {
       return false;
     }
@@ -4365,7 +4388,7 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
     builder.comment(nodeComment(node));
     builder.drive(getDrive(node));
     builder.mode(null);
-    builder.renameAllowed(canRenameDocument(node));
+    builder.renameAllowed(canRenameDocument(node, userId));
     builder.isActivity(ActivityTypeUtils.getActivityId(node) != null);
     try {
       builder.folder(node.getParent().getName());

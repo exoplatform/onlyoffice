@@ -30,6 +30,8 @@ import org.exoplatform.container.ExoContainer;
 import org.exoplatform.onlyoffice.jpa.EditorConfigDAO;
 import org.exoplatform.onlyoffice.jpa.storage.impl.RDBMSEditorConfigStorageImpl;
 import org.exoplatform.services.cms.documents.DocumentService;
+import org.exoplatform.services.cms.documents.security.DocumentGrantOperation;
+import org.exoplatform.services.cms.documents.security.DocumentSpaceGuard;
 import org.exoplatform.services.cms.drives.DriveData;
 import org.exoplatform.services.cms.drives.ManageDriveService;
 import org.exoplatform.services.jcr.access.PermissionType;
@@ -1232,6 +1234,110 @@ public class OnlyofficeEditorServiceTest extends BaseCommonsTestCase {
     assertFalse(node.getParent().hasNode("Test Document.docx"));
     assertTrue(node.getParent().hasNode("TestDocumentMary.docx"));
     node.remove();
+  }
+
+  /**
+   * A renamer who may not remove the document gets the rights a rename needs
+   * only when the document's space lets them manage its access: refused, the
+   * document keeps its name and its access list.
+   */
+  @Test
+  public void testUpdateTitleRefusedWhenTheSpaceRefusesTheGrant() throws Exception {
+    // Given
+    NodeImpl node = createDocument("Space Document.docx", "nt:file", "testContent", false);
+    node.setPermissions(Map.of(USER_USERNAME, new String[] { PermissionType.READ }));
+    node.save();
+    DocumentGrantOperation grantOperation = Mockito.mock(DocumentGrantOperation.class);
+    Mockito.when(grantOperation.canGrant(any(), Mockito.eq(USER_USERNAME))).thenReturn(false);
+    DocumentSpaceGuard guard = Mockito.mock(DocumentSpaceGuard.class);
+    Mockito.when(guard.newGrantOperation(USER_USERNAME, DocumentGrantOperation.SOURCE_ONLYOFFICE_RENAME))
+           .thenReturn(grantOperation);
+    OnlyofficeEditorServiceImpl service = Mockito.spy(onlyofficeEditorService);
+    Mockito.doReturn(guard).when(service).getDocumentSpaceGuard();
+    startSessionAs(USER_USERNAME);
+
+    try {
+      // When
+      service.updateTitle("portal-test", node.getUUID(), "Renamed Document.docx", USER_USERNAME);
+
+      // Then
+      Mockito.verify(grantOperation).canGrant(any(), Mockito.eq(USER_USERNAME));
+      Node stored = session.getNodeByUUID(node.getUUID());
+      assertEquals("Space Document.docx", stored.getName());
+      assertEquals(List.of(PermissionType.READ),
+                   ((NodeImpl) stored).getACL().getPermissions(USER_USERNAME));
+    } finally {
+      session.getNodeByUUID(node.getUUID()).remove();
+      session.save();
+    }
+  }
+
+  /**
+   * A renamer who may not remove the document gets the rights a rename needs
+   * when the document's space lets them manage its access.
+   */
+  @Test
+  public void testUpdateTitleGrantsTheRenamerWhenTheSpaceAllowsIt() throws Exception {
+    // Given
+    NodeImpl node = createDocument("Space Document.docx", "nt:file", "testContent", false);
+    node.setPermissions(Map.of(USER_USERNAME, new String[] { PermissionType.READ }));
+    node.save();
+    DocumentGrantOperation grantOperation = Mockito.mock(DocumentGrantOperation.class);
+    Mockito.when(grantOperation.canGrant(any(), Mockito.eq(USER_USERNAME))).thenReturn(true);
+    DocumentSpaceGuard guard = Mockito.mock(DocumentSpaceGuard.class);
+    Mockito.when(guard.newGrantOperation(USER_USERNAME, DocumentGrantOperation.SOURCE_ONLYOFFICE_RENAME))
+           .thenReturn(grantOperation);
+    OnlyofficeEditorServiceImpl service = Mockito.spy(onlyofficeEditorService);
+    Mockito.doReturn(guard).when(service).getDocumentSpaceGuard();
+    startSessionAs(USER_USERNAME);
+
+    try {
+      // When
+      service.updateTitle("portal-test", node.getUUID(), "Renamed Document.docx", USER_USERNAME);
+
+      // Then
+      Node stored = session.getNodeByUUID(node.getUUID());
+      assertEquals("Renamed Document.docx", stored.getName());
+      assertTrue(((NodeImpl) stored).getACL().getPermissions(USER_USERNAME).contains(PermissionType.REMOVE));
+    } finally {
+      session.getNodeByUUID(node.getUUID()).remove();
+      session.save();
+    }
+  }
+
+  /**
+   * The editor offers the rename only when the rename would be made: to a user
+   * who may remove the document, or to one its space lets manage its access.
+   */
+  @Test
+  public void testRenameOfferedOnlyWhenTheRenameWouldBeMade() throws Exception {
+    // Given
+    NodeImpl removable = createDocument("Removable Document.docx", "nt:file", "testContent", false);
+    NodeImpl readOnly = createDocument("Space Document.docx", "nt:file", "testContent", false);
+    readOnly.setPermissions(Map.of(USER_USERNAME, new String[] { PermissionType.READ }));
+    readOnly.save();
+    DocumentSpaceGuard guard = Mockito.mock(DocumentSpaceGuard.class);
+    OnlyofficeEditorServiceImpl service = Mockito.spy(onlyofficeEditorService);
+    Mockito.doReturn(guard).when(service).getDocumentSpaceGuard();
+    startSessionAs(USER_USERNAME);
+
+    try {
+      Session userSession = sessionProviderService.getSessionProvider(null)
+                                                  .getSession("portal-test", SessionProviderService.getRepository());
+
+      // When, Then
+      assertTrue(service.canRenameDocument(userSession.getNodeByUUID(removable.getUUID()), USER_USERNAME));
+      Mockito.verifyNoInteractions(guard);
+
+      Node readOnlyNode = userSession.getNodeByUUID(readOnly.getUUID());
+      assertFalse(service.canRenameDocument(readOnlyNode, USER_USERNAME));
+      Mockito.when(guard.canManageAccess(any(), Mockito.eq(USER_USERNAME), Mockito.isNull())).thenReturn(true);
+      assertTrue(service.canRenameDocument(readOnlyNode, USER_USERNAME));
+    } finally {
+      session.getNodeByUUID(removable.getUUID()).remove();
+      session.getNodeByUUID(readOnly.getUUID()).remove();
+      session.save();
+    }
   }
 
   /**
