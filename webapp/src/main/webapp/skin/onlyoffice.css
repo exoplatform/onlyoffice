@@ -15,11 +15,11 @@
   position: absolute;
   width: 100%;
   height: 35px;
-  background-color: white;
+  background-color: var(--allPagesBaseBackground, white);
   z-index: 100;
 }
 .onlyofficeEditorBody #editor-drawer {
-  background-color: #FFF;
+  background-color: var(--allPagesBaseBackground, #FFF);
 }
 
 .onlyofficeEditorBody #editor-drawer div {
@@ -80,7 +80,7 @@
   margin-left: 10px;
   position: relative;
   padding-right: 6px;
-  color: #999999;
+  color: var(--allPagesBaseColorMedium, #999999);
 }
 
 .onlyofficeEditorBody #editor-drawer .editors-comment-versions:not(:empty):after {
@@ -95,7 +95,7 @@
   width: 100%;
   padding: 6px;
   height: 40px;
-  color: black;
+  color: var(--allPagesBaseColor, black);
   font-size: 15px;
 }
 
@@ -119,7 +119,7 @@
 .onlyofficeEditorBody #editor-drawer .document-path {
   padding-right: 5px;
   margin-top: -5px;
-  color: #999;
+  color: var(--allPagesBaseColorMedium, #999);
   font-size: 12px;
 }
 
@@ -217,14 +217,14 @@ a.icon-place {
 
 .onlyofficeEditorBody #editor-drawer .uiIconOpenLinkVersions:before {
    content: "\e966";
-   color: #DEE4F2;
+   color: var(--skinGreyLighten2, #DEE4F2);
    font-size: 24px;
    line-height: 24px;
 }
 
 .onlyofficeEditorBody #editor-drawer .uiIconNoVersions:before {
    content: "\e79f";
-   color: #DEE4F2;
+   color: var(--skinGreyLighten2, #DEE4F2);
    font-size: 60px;
    line-height: 24px;
 }
@@ -236,7 +236,7 @@ a.icon-place {
 
 .onlyofficeEditorBody #editor-drawer .no-versions {
   padding: 10px;
-  color: #999;
+  color: var(--allPagesBaseColorMedium, #999);
   font-weight: 600;
   font-size: 17px;
 }
@@ -291,7 +291,7 @@ a.icon-place {
 
 .onlyofficeEditorBody #editor-drawer .user-edit {
   padding: 8px;
-  color: #333333;
+  color: var(--allPagesBaseColorDark, #333333);
   width: 45%;
   text-align: left;
 }
@@ -300,14 +300,14 @@ a.icon-place {
   padding: 9px;
   width: 40%;
   text-align: end;
-  color: #999999;
+  color: var(--allPagesBaseColorMedium, #999999);
   font-size: 12px;
 }
 
 .onlyofficeEditorBody #editor-drawer .user-label {
   display: flex;
   padding: 7px;
-  color: #999999;
+  color: var(--allPagesBaseColorMedium, #999999);
 }
 
 .onlyofficeEditorBody .RightBodyTDContainer {
