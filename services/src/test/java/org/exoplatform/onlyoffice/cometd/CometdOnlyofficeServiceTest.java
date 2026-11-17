@@ -18,6 +18,7 @@
  */
 package org.exoplatform.onlyoffice.cometd;
 
+import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -27,6 +28,10 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.lang.reflect.Field;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.cometd.bayeux.MarkedReference;
 import org.cometd.bayeux.server.BayeuxServer;
@@ -55,6 +60,44 @@ public class CometdOnlyofficeServiceTest {
     cometdService.start();
 
     verify(exoBayeux).observeChannel("/eXo/Application/Onlyoffice/editor/**");
+  }
+
+  @Test
+  public void testTheCommandsRunOnDaemonThreadsThatEndWithTheService() throws Exception {
+    CometdOnlyofficeService cometdService = new CometdOnlyofficeService(mock(EXoContinuationBayeux.class),
+                                                                        mock(OnlyofficeEditorService.class),
+                                                                        mock(RepositoryService.class));
+    Future<Boolean> daemon = cometdService.eventsHandlers.submit(() -> Thread.currentThread().isDaemon());
+    assertTrue(daemon.get(5, TimeUnit.SECONDS));
+
+    cometdService.stop();
+
+    assertTrue(cometdService.eventsHandlers.isTerminated());
+  }
+
+  @Test
+  public void testTheStopWaitsForACommandAlreadySubmitted() throws Exception {
+    CometdOnlyofficeService cometdService = new CometdOnlyofficeService(mock(EXoContinuationBayeux.class),
+                                                                        mock(OnlyofficeEditorService.class),
+                                                                        mock(RepositoryService.class));
+    CountDownLatch started = new CountDownLatch(1);
+    AtomicBoolean ended = new AtomicBoolean();
+    cometdService.eventsHandlers.submit(() -> {
+      started.countDown();
+      try {
+        Thread.sleep(300);
+      } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
+        return;
+      }
+      ended.set(true);
+    });
+    assertTrue(started.await(5, TimeUnit.SECONDS));
+
+    cometdService.stop();
+
+    assertTrue(ended.get());
+    assertTrue(cometdService.eventsHandlers.isTerminated());
   }
 
   @Test
