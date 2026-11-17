@@ -175,6 +175,37 @@ public class CometdOnlyofficeServiceTest {
   }
 
   @Test
+  public void testAStopInterruptedWhileWaitingKeepsTheInterruptOfItsThread() throws Exception {
+    CometdOnlyofficeService cometdService = new CometdOnlyofficeService(mock(EXoContinuationBayeux.class),
+                                                                        mock(OnlyofficeEditorService.class),
+                                                                        mock(RepositoryService.class));
+    CountDownLatch started = new CountDownLatch(1);
+    CountDownLatch release = new CountDownLatch(1);
+    cometdService.eventsHandlers.submit(() -> {
+      started.countDown();
+      try {
+        release.await(5, TimeUnit.SECONDS);
+      } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
+      }
+    });
+    assertTrue(started.await(5, TimeUnit.SECONDS));
+    long start = System.nanoTime();
+    Thread.currentThread().interrupt();
+    try {
+      cometdService.stop();
+      assertTrue("A stop interrupted while waiting for the commands must keep the interrupt of its thread",
+                 Thread.interrupted());
+      long waited = TimeUnit.NANOSECONDS.toSeconds(System.nanoTime() - start);
+      assertTrue("An interrupted stop must not wait for the commands", waited < CometdOnlyofficeService.STOP_TIMEOUT);
+    } finally {
+      Thread.interrupted();
+      release.countDown();
+    }
+    assertTrue(cometdService.eventsHandlers.awaitTermination(5, TimeUnit.SECONDS));
+  }
+
+  @Test
   public void testAnEventIsPublishedWithNoSessionOfThisNodeSubscribed() throws Exception {
     CometdOnlyofficeService cometdService = new CometdOnlyofficeService(mock(EXoContinuationBayeux.class),
                                                                         mock(OnlyofficeEditorService.class),
