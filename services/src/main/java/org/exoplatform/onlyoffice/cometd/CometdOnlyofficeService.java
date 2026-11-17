@@ -116,8 +116,9 @@ public class CometdOnlyofficeService implements Startable {
         }
 
       };
-      if (t.isDaemon()) {
-        t.setDaemon(false);
+      // A command left running or queued when the server stops does not keep its JVM alive
+      if (!t.isDaemon()) {
+        t.setDaemon(true);
       }
       if (t.getPriority() != Thread.NORM_PRIORITY) {
         t.setPriority(Thread.NORM_PRIORITY);
@@ -189,6 +190,9 @@ public class CometdOnlyofficeService implements Startable {
 
   /** The Constant LOG. */
   private static final Log                LOG                            = ExoLogger.getLogger(CometdOnlyofficeService.class);
+
+  /** The time the stop waits for the commands already submitted, in seconds. */
+  static final long                       STOP_TIMEOUT                   = 5;
 
   /** The channel name. */
   public static final String              CHANNEL_NAME                   = "/eXo/Application/Onlyoffice/editor/";
@@ -850,7 +854,15 @@ public class CometdOnlyofficeService implements Startable {
    */
   @Override
   public void stop() {
-    // Nothing
+    // No new command starts; the ones already submitted, a save of a document among them, get a bounded time to end
+    eventsHandlers.shutdown();
+    try {
+      if (!eventsHandlers.awaitTermination(STOP_TIMEOUT, TimeUnit.SECONDS)) {
+        LOG.warn("An editor command did not end within {} seconds of the stop", STOP_TIMEOUT);
+      }
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+    }
   }
 
   /**

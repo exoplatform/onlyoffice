@@ -19,6 +19,7 @@
 package org.exoplatform.onlyoffice.cometd;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -31,6 +32,10 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.lang.reflect.Field;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -129,6 +134,75 @@ public class CometdOnlyofficeServiceTest {
     cometdService.start();
 
     verify(exoBayeux).observeChannel("/eXo/Application/Onlyoffice/editor/**");
+  }
+
+  @Test
+  public void testTheCommandsRunOnDaemonThreadsThatEndWithTheService() throws Exception {
+    CometdOnlyofficeService cometdService = new CometdOnlyofficeService(mock(EXoContinuationBayeux.class),
+                                                                        mock(OnlyofficeEditorService.class),
+                                                                        mock(RepositoryService.class));
+    Future<Boolean> daemon = cometdService.eventsHandlers.submit(() -> Thread.currentThread().isDaemon());
+    assertTrue(daemon.get(5, TimeUnit.SECONDS));
+
+    cometdService.stop();
+
+    assertTrue(cometdService.eventsHandlers.isTerminated());
+  }
+
+  @Test
+  public void testTheStopWaitsForACommandAlreadySubmitted() throws Exception {
+    CometdOnlyofficeService cometdService = new CometdOnlyofficeService(mock(EXoContinuationBayeux.class),
+                                                                        mock(OnlyofficeEditorService.class),
+                                                                        mock(RepositoryService.class));
+    CountDownLatch started = new CountDownLatch(1);
+    AtomicBoolean ended = new AtomicBoolean();
+    cometdService.eventsHandlers.submit(() -> {
+      started.countDown();
+      try {
+        Thread.sleep(300);
+      } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
+        return;
+      }
+      ended.set(true);
+    });
+    assertTrue(started.await(5, TimeUnit.SECONDS));
+
+    cometdService.stop();
+
+    assertTrue(ended.get());
+    assertTrue(cometdService.eventsHandlers.isTerminated());
+  }
+
+  @Test
+  public void testAStopInterruptedWhileWaitingKeepsTheInterruptOfItsThread() throws Exception {
+    CometdOnlyofficeService cometdService = new CometdOnlyofficeService(mock(EXoContinuationBayeux.class),
+                                                                        mock(OnlyofficeEditorService.class),
+                                                                        mock(RepositoryService.class));
+    CountDownLatch started = new CountDownLatch(1);
+    CountDownLatch release = new CountDownLatch(1);
+    cometdService.eventsHandlers.submit(() -> {
+      started.countDown();
+      try {
+        release.await(5, TimeUnit.SECONDS);
+      } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
+      }
+    });
+    assertTrue(started.await(5, TimeUnit.SECONDS));
+    long start = System.nanoTime();
+    Thread.currentThread().interrupt();
+    try {
+      cometdService.stop();
+      assertTrue("A stop interrupted while waiting for the commands must keep the interrupt of its thread",
+                 Thread.interrupted());
+      long waited = TimeUnit.NANOSECONDS.toSeconds(System.nanoTime() - start);
+      assertTrue("An interrupted stop must not wait for the commands", waited < CometdOnlyofficeService.STOP_TIMEOUT);
+    } finally {
+      Thread.interrupted();
+      release.countDown();
+    }
+    assertTrue(cometdService.eventsHandlers.awaitTermination(5, TimeUnit.SECONDS));
   }
 
   @Test
