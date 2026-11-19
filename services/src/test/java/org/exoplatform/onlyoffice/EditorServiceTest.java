@@ -76,7 +76,7 @@ public class EditorServiceTest extends AbstractResourceTest {
           key = createTestDocument(USER, "abc.docx", "Testing Content");
           contentPayload.put("key", key);
           statusPayload.put("key", key);
-          statusPayload.put("satus", 1);
+          statusPayload.put("status", 1);
           statusPayload.put("url", "localhost");
           statusPayload.put("error", 0);
           statusPayloadJson = "{ \"key\": \"" + key + "\", \"status\": 1, \"url\": \"localhost\", \"error\": 0 }";
