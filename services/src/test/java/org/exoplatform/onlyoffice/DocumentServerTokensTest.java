@@ -180,6 +180,50 @@ public class DocumentServerTokensTest {
   }
 
   /**
+   * The status endpoint's check refuses what the token check refuses, even
+   * when the body is the token's payload: a callback naming its document by
+   * URL only, a token without purpose, an expired one, one signed with another
+   * secret, and any token without a usable secret.
+   */
+  @Test
+  public void testACallbackIsRefusedOnItsTokenWhateverItsBody() {
+    String urlOnly = "{\"url\":\"" + CONTENT + "\"}";
+    assertFalse(tokens.validateCallback(documentServerToken(Map.of("url", CONTENT), "callback"), DOC_KEY, urlOnly),
+                "a callback naming its document by URL only");
+
+    Map<String, Object> payload = callbackPayload(DOC_KEY);
+    String body = new JSONObject(payload).toString();
+    assertTrue(tokens.validateCallback(documentServerToken(payload, "callback"), DOC_KEY, body));
+    assertFalse(tokens.validateCallback(Jwts.builder().claim("payload", payload).expiration(inFiveMinutes()).signWith(KEY).compact(),
+                                        DOC_KEY,
+                                        body),
+                "a token without purpose");
+    assertFalse(tokens.validateCallback(Jwts.builder()
+                                            .claim("payload", payload)
+                                            .claim("operation", "callback")
+                                            .expiration(new Date(System.currentTimeMillis() - 60_000))
+                                            .signWith(KEY)
+                                            .compact(),
+                                        DOC_KEY,
+                                        body),
+                "an expired token");
+    SecretKey other = Keys.hmacShaKeyFor("WRONG-SECRET-KEY-hwExSQoSe97tw8gyYNhqnM1biHb".getBytes(StandardCharsets.UTF_8));
+    assertFalse(tokens.validateCallback(Jwts.builder()
+                                            .claim("payload", payload)
+                                            .claim("operation", "callback")
+                                            .expiration(inFiveMinutes())
+                                            .signWith(other)
+                                            .compact(),
+                                        DOC_KEY,
+                                        body),
+                "a token signed with another secret");
+    for (String secret : new String[] { null, "" }) {
+      assertFalse(new DocumentServerTokens(secret).validateCallback(documentServerToken(payload, "callback"), DOC_KEY, body),
+                  "no usable secret");
+    }
+  }
+
+  /**
    * A download token naming the document by its key, as the addon's own asset
    * tokens do, matches the key and still cannot trigger a save: the purpose
    * alone refuses it.
