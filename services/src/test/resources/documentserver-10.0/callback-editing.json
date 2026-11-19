@@ -31,5 +31,6 @@
         "userid": "root"
       }
     ]
-  }
+  },
+  "bodyToken": "The body also carried a token field (the body's claims signed without the payload wrapper), removed here; the test adds one back"
 }

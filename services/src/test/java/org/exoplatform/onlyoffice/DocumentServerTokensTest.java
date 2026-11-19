@@ -131,18 +131,19 @@ public class DocumentServerTokensTest {
   }
 
   /**
-   * Every callback ONLYOFFICE Docs 10.0 sent is acted on as it was sent: its
-   * body, with the token the Document Server adds to it, is its signed
-   * payload, the saves (status 2 and 6) and their history included.
+   * Every callback ONLYOFFICE Docs 10.0 sent is accepted as it was sent: its
+   * body, the token field the Document Server adds to it aside, is its signed
+   * payload, the saves (status 2 and 6) and their history included. Without
+   * that field, the body is accepted the same.
    */
   @Test
-  public void testEveryCapturedCallbackIsActedOn() {
+  public void testEveryCapturedCallbackIsAcceptedAsSigned() {
     for (String fixture : CALLBACKS) {
       DocumentServerFixture callback = DocumentServerFixture.load(fixture);
       String token = callback.callbackToken(DOC_KEY, "john", SECRET);
-      String body = new JSONObject(callback.callbackBody(DOC_KEY, "john")).put("token", token).toString();
 
-      assertTrue(tokens.validateCallback(token, DOC_KEY, body), fixture);
+      assertTrue(tokens.validateCallback(token, DOC_KEY, callback.callbackBodyAsSent(DOC_KEY, "john", SECRET)), fixture);
+      assertTrue(tokens.validateCallback(token, DOC_KEY, callback.callbackBody(DOC_KEY, "john")), fixture);
     }
   }
 

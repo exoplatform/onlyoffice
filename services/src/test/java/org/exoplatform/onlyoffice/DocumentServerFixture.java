@@ -116,10 +116,27 @@ public final class DocumentServerFixture {
   /**
    * @param key the document key
    * @param userId the user the callback names, in place of the captured one
-   * @return the captured callback body, for that key and user
+   * @return the captured callback body, for that key and user, without the
+   *         token field the Document Server also puts in it
    */
   public String callbackBody(String key, String userId) {
     return MAPPER.writeValueAsString(forUser(body, key, userId));
+  }
+
+  /**
+   * @param key the document key
+   * @param userId the user the callback names, in place of the captured one
+   * @param secret the secret to sign with
+   * @return the captured callback body as the Document Server posts it, for
+   *         that key and user: with a {@code token} field, the body's claims
+   *         signed without the payload wrapper
+   */
+  public String callbackBodyAsSent(String key, String userId, String secret) {
+    Map<String, Object> named = forUser(body, key, userId);
+    Map<String, Object> bodyClaims = new LinkedHashMap<>(named);
+    bodyClaims.put("operation", claims.get("operation"));
+    named.put("token", sign(bodyClaims, secret));
+    return MAPPER.writeValueAsString(named);
   }
 
   @SuppressWarnings("unchecked")

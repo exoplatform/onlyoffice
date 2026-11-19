@@ -159,8 +159,7 @@ public class EditorServiceTest extends AbstractResourceTest {
     DocumentServerFixture callback = DocumentServerFixture.load(DocumentServerFixture.CALLBACK_EDITING);
 
     String token = callback.callbackToken(key, USER, SECRET_KEY);
-    // the Document Server also posts its token in the body
-    String body = new JSONObject(callback.callbackBody(key, USER)).put("token", token).toString();
+    String body = callback.callbackBodyAsSent(key, USER, SECRET_KEY);
 
     MultivaluedMap<String, String> headers = new MultivaluedMapImpl();
     headers.putSingle("authorization", "Bearer " + token);
@@ -275,6 +274,31 @@ public class EditorServiceTest extends AbstractResourceTest {
                        .compact();
 
     assertStatusRefused(token);
+  }
+
+  /**
+   * The save callbacks ONLYOFFICE Docs 10.0 sent (status 6, force-save; status
+   * 2, closed after a change) pass the token and body check of the status
+   * endpoint. Their saved file is not reachable from the test, so what follows
+   * the check is not asserted.
+   *
+   * @throws Exception the exception
+   */
+  @Test
+  public void testStatusAcceptsTheCapturedSaves() throws Exception {
+    for (String fixture : new String[] { DocumentServerFixture.CALLBACK_FORCESAVED, DocumentServerFixture.CALLBACK_SAVED }) {
+      DocumentServerFixture callback = DocumentServerFixture.load(fixture);
+      MultivaluedMap<String, String> headers = new MultivaluedMapImpl();
+      headers.putSingle("authorization", "Bearer " + callback.callbackToken(key, USER, SECRET_KEY));
+      ContainerResponse response = service("POST",
+                                           RESOURCE_URL + "/status/" + USER + "/" + key,
+                                           "",
+                                           headers,
+                                           callback.callbackBodyAsSent(key, USER, SECRET_KEY).getBytes(StandardCharsets.UTF_8));
+
+      assertNotNull(response);
+      assertTrue(fixture + ": " + response.getStatus() + " " + response.getEntity(), response.getStatus() != 401);
+    }
   }
 
   /**

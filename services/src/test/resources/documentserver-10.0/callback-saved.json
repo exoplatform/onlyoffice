@@ -67,5 +67,6 @@
     "lastsave": "2026-11-19T19:19:26.000Z",
     "notmodified": false,
     "filetype": "docx"
-  }
+  },
+  "bodyToken": "The body also carried a token field (the body's claims signed without the payload wrapper), removed here; the test adds one back"
 }
