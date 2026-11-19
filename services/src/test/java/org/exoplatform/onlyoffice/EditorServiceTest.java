@@ -278,9 +278,10 @@ public class EditorServiceTest extends AbstractResourceTest {
 
   /**
    * The save callbacks ONLYOFFICE Docs 10.0 sent (status 6, force-save; status
-   * 2, closed after a change) pass the token and body check of the status
-   * endpoint. Their saved file is not reachable from the test, so what follows
-   * the check is not asserted.
+   * 2, closed after a change), posted as sent, pass the token and body check
+   * of the status endpoint and reach the document update, which finds their
+   * editor and user. Their saved file is not reachable from the test: the
+   * download, which logs its failure, is not asserted.
    *
    * @throws Exception the exception
    */
@@ -297,7 +298,8 @@ public class EditorServiceTest extends AbstractResourceTest {
                                            callback.callbackBodyAsSent(key, USER, SECRET_KEY).getBytes(StandardCharsets.UTF_8));
 
       assertNotNull(response);
-      assertTrue(fixture + ": " + response.getStatus() + " " + response.getEntity(), response.getStatus() != 401);
+      assertEquals(fixture, 200, response.getStatus());
+      assertEquals(fixture, "{\"error\": 0}", response.getEntity());
     }
   }
 

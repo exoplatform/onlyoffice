@@ -34,8 +34,9 @@ import tools.jackson.databind.ObjectMapper;
  * {@code src/test/resources/documentserver-10.0}: its token claims verbatim
  * and, for a callback, its body. A test re-signs the claims with its own
  * secret and fresh times, since the captured token expired five minutes after
- * it was sent, and names its own document: the key of a callback, the URL of
- * a download, every other claim staying as captured.
+ * it was sent, and names its own document and user: the key of a callback and
+ * the user in its {@code users}, {@code actions} and {@code userdata}, the URL
+ * of a download. Every other claim stays as captured.
  */
 public final class DocumentServerFixture {
 
@@ -145,6 +146,11 @@ public final class DocumentServerFixture {
     named.put("key", key);
     if (named.containsKey("users")) {
       named.put("users", List.of(userId));
+    }
+    if (named.get("userdata") instanceof String userdata) {
+      Map<String, Object> data = new LinkedHashMap<>(MAPPER.readValue(userdata, Map.class));
+      data.put("userId", userId);
+      named.put("userdata", MAPPER.writeValueAsString(data));
     }
     if (named.get("actions") instanceof List<?> actions) {
       named.put("actions", actions.stream().map(action -> {
