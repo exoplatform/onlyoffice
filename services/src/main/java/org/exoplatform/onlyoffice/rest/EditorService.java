@@ -60,6 +60,7 @@ import org.exoplatform.onlyoffice.OnlyofficeEditorException;
 import org.exoplatform.onlyoffice.OnlyofficeEditorService;
 import org.exoplatform.onlyoffice.Userdata;
 import org.exoplatform.onlyoffice.Version;
+import org.exoplatform.onlyoffice.constant.DocumentServerOperation;
 import org.exoplatform.services.log.ExoLogger;
 import org.exoplatform.services.log.Log;
 import org.exoplatform.services.rest.resource.ResourceContainer;
@@ -230,7 +231,7 @@ public class EditorService implements ResourceContainer {
 
         if (key != null && key.length() > 0) {
           if (userId != null && userId.length() > 0) {
-            if (editors.validateToken(token, key)) {
+            if (editors.validateToken(token, key, DocumentServerOperation.CALLBACK)) {
               DocumentStatus.Builder statusBuilder = new DocumentStatus.Builder();
               statusBuilder.key(statusKey != null && statusKey.length() > 0 ? statusKey : key)
                            .status(statusCode)
@@ -328,7 +329,7 @@ public class EditorService implements ResourceContainer {
           // signed token is carried as a query parameter for those fetches.
           token = uriInfo.getQueryParameters().getFirst("token");
         }
-        if (editors.validateToken(token, key)) {
+        if (editors.validateToken(token, key, DocumentServerOperation.DOWNLOAD)) {
           try {
             if (userId != null && userId.length() > 0) {
               DocumentContent content = editors.getContent(userId, key);

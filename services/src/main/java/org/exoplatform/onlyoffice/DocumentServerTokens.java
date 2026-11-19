@@ -1,0 +1,147 @@
+/**
+ * This file is part of the Meeds project (https://meeds.io/).
+ *
+ * Copyright (C) 2026 Meeds Association contact@meeds.io
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 3 of the License, or (at your option) any later version.
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with this program; if not, write to the Free Software Foundation,
+ * Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ */
+package org.exoplatform.onlyoffice;
+
+import java.nio.charset.StandardCharsets;
+import java.util.LinkedHashMap;
+import java.util.Map;
+
+import javax.crypto.SecretKey;
+
+import org.exoplatform.onlyoffice.constant.DocumentServerOperation;
+import org.exoplatform.services.log.ExoLogger;
+import org.exoplatform.services.log.Log;
+
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.security.Keys;
+
+/**
+ * Signs the tokens the addon sends to ONLYOFFICE Docs and validates the tokens
+ * the Document Server sends back, with the shared secret. Every token carries
+ * its purpose in the root {@code operation} claim
+ * ({@link DocumentServerOperation}): ONLYOFFICE Docs 10.0 refuses a token sent
+ * to a service of another purpose, and this class refuses a token received on
+ * an endpoint of another purpose. Without a usable secret nothing is signed and
+ * every received token is refused.
+ */
+public class DocumentServerTokens {
+
+  /** The minimum length of the secret, in bytes: HMAC-SHA256 needs 256 bits. */
+  public static final int MIN_SECRET_BYTES = 32;
+
+  private static final Log LOG = ExoLogger.getLogger(DocumentServerTokens.class);
+
+  private static final String PAYLOAD_CLAIM = "payload";
+
+  private static final String KEY_CLAIM = "key";
+
+  private static final String URL_CLAIM = "url";
+
+  private final SecretKey signingKey;
+
+  private final String secretProblem;
+
+  /**
+   * @param secret the secret shared with the Document Server, may be null
+   */
+  public DocumentServerTokens(String secret) {
+    this.secretProblem = secretProblem(secret);
+    this.signingKey = secretProblem == null ? Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8)) : null;
+  }
+
+  /**
+   * @return why the secret cannot be used, or null when it can
+   */
+  public String getSecretProblem() {
+    return secretProblem;
+  }
+
+  /**
+   * Signs a token for a request to the Document Server.
+   *
+   * @param claims the claims of the request, left unchanged
+   * @param operation the service the token is for
+   * @return the signed token
+   * @throws IllegalStateException when the secret is missing or too short
+   */
+  public String sign(Map<String, ?> claims, DocumentServerOperation operation) {
+    if (signingKey == null) {
+      throw new IllegalStateException("Cannot sign a request to the Document Server: " + secretProblem);
+    }
+    Map<String, Object> signed = new LinkedHashMap<>(claims);
+    signed.put(DocumentServerOperation.CLAIM, operation.getClaimValue());
+    return Jwts.builder().claims(signed).signWith(signingKey).compact();
+  }
+
+  /**
+   * Validates a token the Document Server sent to an addon endpoint.
+   *
+   * @param token the token, may be null
+   * @param key the document key the endpoint was called for, may be null
+   * @param expected the purpose of the endpoint: {@link DocumentServerOperation#CALLBACK}
+   *          or {@link DocumentServerOperation#DOWNLOAD}
+   * @return true when the token is signed with the secret, unexpired, carries
+   *         the expected purpose and is for that key: for a callback its
+   *         {@code payload.key} equals the key; for a download its
+   *         {@code payload.key} equals the key or its {@code payload.url} ends
+   *         with it
+   */
+  public boolean validate(String token, String key, DocumentServerOperation expected) {
+    if (signingKey == null || token == null || key == null) {
+      return false;
+    }
+    Claims claims;
+    try {
+      claims = Jwts.parser().verifyWith(signingKey).build().parseSignedClaims(token).getPayload();
+    } catch (RuntimeException e) {
+      LOG.debug("Document Server token refused for key {}: {}", key, e.getMessage());
+      return false;
+    }
+    if (!expected.getClaimValue().equals(claims.get(DocumentServerOperation.CLAIM))) {
+      LOG.debug("Document Server token refused for key {}: operation {} where {} is expected",
+                key,
+                claims.get(DocumentServerOperation.CLAIM),
+                expected.getClaimValue());
+      return false;
+    }
+    if (!(claims.get(PAYLOAD_CLAIM) instanceof Map<?, ?> payload)) {
+      return false;
+    }
+    if (payload.containsKey(KEY_CLAIM)) {
+      return key.equals(String.valueOf(payload.get(KEY_CLAIM)));
+    }
+    return expected == DocumentServerOperation.DOWNLOAD && payload.containsKey(URL_CLAIM)
+        && String.valueOf(payload.get(URL_CLAIM)).endsWith(key);
+  }
+
+  static String secretProblem(String secret) {
+    if (secret == null || secret.trim().isEmpty()) {
+      return "the property onlyoffice.documentserver.secret is empty. ONLYOFFICE Docs 10.0 refuses unsigned requests, "
+          + "so the editor, conversions and the Document Builder do not work, and every Document Server callback is refused, "
+          + "until it is set to the secret configured on the Document Server";
+    }
+    if (secret.getBytes(StandardCharsets.UTF_8).length < MIN_SECRET_BYTES) {
+      return "the property onlyoffice.documentserver.secret is shorter than " + MIN_SECRET_BYTES
+          + " bytes, which HMAC-SHA256 tokens need. The editor, conversions and the Document Builder do not work, "
+          + "and every Document Server callback is refused, until a longer secret is set on both sides";
+    }
+    return null;
+  }
+}

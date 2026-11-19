@@ -209,6 +209,8 @@
             <include>**/**/OnlyofficeMcpToolTest.java</include>
             <include>**/**/CometdOnlyofficeServiceTest.java</include>
             <include>**/**/CometdUpdatedOutsideEventTest.java</include>
+            <include>**/**/DocumentServerTokensTest.java</include>
+            <include>**/**/DocumentServerRequestsTest.java</include>
           </includes>
         </configuration>
       </plugin>

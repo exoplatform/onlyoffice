@@ -100,6 +100,7 @@ public class EditorServiceTest extends AbstractResourceTest {
     String token = Jwts.builder()
                        .setSubject("exo-onlyoffice")
                        .claim("payload", contentPayload)
+                       .claim("operation", "download")
                        .signWith(Keys.hmacShaKeyFor(SECRET_KEY.getBytes()))
                        .compact();
 
@@ -123,6 +124,7 @@ public class EditorServiceTest extends AbstractResourceTest {
     String token = Jwts.builder()
                        .setSubject("exo-onlyoffice")
                        .claim("payload", contentPayload)
+                       .claim("operation", "download")
                        .signWith(Keys.hmacShaKeyFor(WRONG_SECRET_KEY.getBytes()))
                        .compact();
 
@@ -159,6 +161,7 @@ public class EditorServiceTest extends AbstractResourceTest {
     String token = Jwts.builder()
                        .setSubject("exo-onlyoffice")
                        .claim("payload", statusPayload)
+                       .claim("operation", "callback")
                        .signWith(Keys.hmacShaKeyFor(SECRET_KEY.getBytes()))
                        .compact();
 
@@ -185,6 +188,7 @@ public class EditorServiceTest extends AbstractResourceTest {
     String token = Jwts.builder()
                        .setSubject("exo-onlyoffice")
                        .claim("payload", statusPayload)
+                       .claim("operation", "callback")
                        .signWith(Keys.hmacShaKeyFor(WRONG_SECRET_KEY.getBytes()))
                        .compact();
 
@@ -211,6 +215,78 @@ public class EditorServiceTest extends AbstractResourceTest {
                                          RESOURCE_URL + "/status/" + USER + "/" + key,
                                          "",
                                          null,
+                                         statusPayloadJson.getBytes());
+    assertNotNull(response);
+    assertEquals(401, response.getStatus());
+    assertEquals("{\"error\":\"The token is not valid\"}", response.getEntity());
+  }
+
+  /**
+   * A save callback token is not a download token: the content endpoint
+   * refuses it although it is signed and names the document's key.
+   *
+   * @throws Exception the exception
+   */
+  @Test
+  public void testContentRefusesACallbackToken() throws Exception {
+    String token = Jwts.builder()
+                       .setSubject("exo-onlyoffice")
+                       .claim("payload", contentPayload)
+                       .claim("operation", "callback")
+                       .signWith(Keys.hmacShaKeyFor(SECRET_KEY.getBytes()))
+                       .compact();
+
+    MultivaluedMap<String, String> headers = new MultivaluedMapImpl();
+    headers.putSingle("authorization", "Bearer " + token);
+    ContainerResponse response = service("GET", RESOURCE_URL + "/content/" + USER + "/" + key, "", headers, null);
+
+    assertNotNull(response);
+    assertEquals(401, response.getStatus());
+    assertEquals("{\"error\":\"The token is not valid\"}", response.getEntity());
+  }
+
+  /**
+   * A download token cannot trigger a save: the status endpoint refuses it
+   * although it is signed and names the document's key.
+   *
+   * @throws Exception the exception
+   */
+  @Test
+  public void testStatusRefusesADownloadToken() throws Exception {
+    String token = Jwts.builder()
+                       .setSubject("exo-onlyoffice")
+                       .claim("payload", statusPayload)
+                       .claim("operation", "download")
+                       .signWith(Keys.hmacShaKeyFor(SECRET_KEY.getBytes()))
+                       .compact();
+
+    assertStatusRefused(token);
+  }
+
+  /**
+   * A token without a purpose, as ONLYOFFICE Docs 9.x signed its callbacks, is
+   * refused.
+   *
+   * @throws Exception the exception
+   */
+  @Test
+  public void testStatusRefusesATokenWithoutPurpose() throws Exception {
+    String token = Jwts.builder()
+                       .setSubject("exo-onlyoffice")
+                       .claim("payload", statusPayload)
+                       .signWith(Keys.hmacShaKeyFor(SECRET_KEY.getBytes()))
+                       .compact();
+
+    assertStatusRefused(token);
+  }
+
+  private void assertStatusRefused(String token) throws Exception {
+    MultivaluedMap<String, String> headers = new MultivaluedMapImpl();
+    headers.putSingle("authorization", "Bearer " + token);
+    ContainerResponse response = service("POST",
+                                         RESOURCE_URL + "/status/" + USER + "/" + key,
+                                         "",
+                                         headers,
                                          statusPayloadJson.getBytes());
     assertNotNull(response);
     assertEquals(401, response.getStatus());

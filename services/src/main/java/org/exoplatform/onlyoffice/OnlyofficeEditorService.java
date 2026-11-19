@@ -26,6 +26,7 @@ import javax.jcr.RepositoryException;
 
 import org.exoplatform.container.component.ComponentPlugin;
 import org.exoplatform.onlyoffice.Config.Editor;
+import org.exoplatform.onlyoffice.constant.DocumentServerOperation;
 import org.exoplatform.services.organization.User;
 
 /**
@@ -361,13 +362,30 @@ public interface OnlyofficeEditorService {
   Editor.User getUser(String key, String userId);
 
   /**
-   * Validates the JWT token received from the document server.
+   * Validates the JWT token received from the document server as a download
+   * token.
    * 
    * @param token the token
    * @param key the document key
    * @return true, if the token is correct, false otherwise
    */
+  /* @deprecated use validateToken(String, String, DocumentServerOperation), which checks the token's purpose; since 7.3.x, for removal */
+  @Deprecated(forRemoval = true)
   boolean validateToken(String token, String key);
+
+  /**
+   * Validates a JWT token received from the document server on an endpoint of
+   * the given purpose. A token without a usable secret, unsigned, expired, of
+   * another purpose or for another document key is refused.
+   *
+   * @param token the token, may be null
+   * @param key the document key the endpoint was called for
+   * @param operation the purpose of the endpoint:
+   *          {@link DocumentServerOperation#CALLBACK} or
+   *          {@link DocumentServerOperation#DOWNLOAD}
+   * @return true, if the token is valid for that purpose and key
+   */
+  boolean validateToken(String token, String key, DocumentServerOperation operation);
 
   /**
    * Updates title of a document.
