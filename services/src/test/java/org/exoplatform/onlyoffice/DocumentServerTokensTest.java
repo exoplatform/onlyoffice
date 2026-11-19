@@ -42,11 +42,11 @@ import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 
 /**
- * The tokens exchanged with ONLYOFFICE Docs 10.0. The claim shapes of the
- * Document Server's own tokens are copied from requests a 10.0.0.169 server
- * sent with its default settings: a save callback, a document fetch and a
- * Document Builder script fetch, each carrying its purpose in the root
- * {@code operation} claim and its subject in {@code payload}.
+ * The tokens exchanged with ONLYOFFICE Docs 10.0. The Document Server's own
+ * tokens are the requests a 10.0.0.169 server sent with its default settings
+ * ({@link DocumentServerFixture}): save callbacks, a document fetch and a
+ * Document Builder script fetch. The variations a server does not send are
+ * built by {@link #documentServerToken}, in the same shape.
  */
 public class DocumentServerTokensTest {
 
@@ -60,17 +60,36 @@ public class DocumentServerTokensTest {
 
   private final DocumentServerTokens tokens = new DocumentServerTokens(SECRET);
 
+  /**
+   * ONLYOFFICE Docs 10.0 puts the purpose at the root of its tokens, beside
+   * {@code payload}, which holds the request.
+   */
+  @Test
+  public void testTheCapturedTokensCarryTheirPurposeAtTheRoot() {
+    Map<String, String> expected = Map.of(DocumentServerFixture.CALLBACK_EDITING, "callback",
+                                          DocumentServerFixture.CALLBACK_CLOSED, "callback",
+                                          DocumentServerFixture.DOWNLOAD_DOCUMENT, "download",
+                                          DocumentServerFixture.DOWNLOAD_BUILDER_SCRIPT, "download");
+    expected.forEach((fixture, operation) -> {
+      Map<String, Object> claims = DocumentServerFixture.load(fixture).claims();
+      assertEquals(operation, claims.get("operation"), fixture);
+      assertFalse(((Map<?, ?>) claims.get("payload")).containsKey("operation"), fixture);
+    });
+  }
+
   @Test
   public void testACapturedSaveCallbackIsAcceptedAtTheCallbackEndpointOnly() {
-    String token = documentServerToken(callbackPayload(DOC_KEY), "callback");
+    for (String fixture : new String[] { DocumentServerFixture.CALLBACK_EDITING, DocumentServerFixture.CALLBACK_CLOSED }) {
+      String token = DocumentServerFixture.load(fixture).callbackToken(DOC_KEY, SECRET);
 
-    assertTrue(tokens.validate(token, DOC_KEY, DocumentServerOperation.CALLBACK));
-    assertFalse(tokens.validate(token, DOC_KEY, DocumentServerOperation.DOWNLOAD));
+      assertTrue(tokens.validate(token, DOC_KEY, DocumentServerOperation.CALLBACK), fixture);
+      assertFalse(tokens.validate(token, DOC_KEY, DocumentServerOperation.DOWNLOAD), fixture);
+    }
   }
 
   @Test
   public void testACapturedDocumentFetchIsAcceptedAtTheContentEndpointOnly() {
-    String token = documentServerToken(Map.of("url", CONTENT), "download");
+    String token = DocumentServerFixture.load(DocumentServerFixture.DOWNLOAD_DOCUMENT).downloadToken(CONTENT, SECRET);
 
     assertTrue(tokens.validate(token, DOC_KEY, DocumentServerOperation.DOWNLOAD));
     assertFalse(tokens.validate(token, DOC_KEY, DocumentServerOperation.CALLBACK));
@@ -79,9 +98,9 @@ public class DocumentServerTokensTest {
   @Test
   public void testACapturedScriptFetchIsAcceptedAtTheContentEndpoint() {
     String scriptKey = "builder-script-key";
-    String token = documentServerToken(Map.of("url",
-                                              "http://10.0.0.12:8080/rest/onlyoffice/editor/content/john/" + scriptKey),
-                                       "download");
+    String token = DocumentServerFixture.load(DocumentServerFixture.DOWNLOAD_BUILDER_SCRIPT)
+                                        .downloadToken("http://10.0.0.12:8080/rest/onlyoffice/editor/content/john/" + scriptKey,
+                                                       SECRET);
 
     assertTrue(tokens.validate(token, scriptKey, DocumentServerOperation.DOWNLOAD));
   }

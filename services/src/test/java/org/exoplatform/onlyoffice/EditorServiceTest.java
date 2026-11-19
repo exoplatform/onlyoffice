@@ -97,12 +97,9 @@ public class EditorServiceTest extends AbstractResourceTest {
    */
   @Test
   public void testContent() throws Exception {
-    String token = Jwts.builder()
-                       .setSubject("exo-onlyoffice")
-                       .claim("payload", contentPayload)
-                       .claim("operation", "download")
-                       .signWith(Keys.hmacShaKeyFor(SECRET_KEY.getBytes()))
-                       .compact();
+    String token = DocumentServerFixture.load(DocumentServerFixture.DOWNLOAD_DOCUMENT)
+                                        .downloadToken("http://127.0.0.1:8080/rest" + RESOURCE_URL + "/content/" + USER + "/" + key,
+                                                       SECRET_KEY);
 
     MultivaluedMap<String, String> headers = new MultivaluedMapImpl();
     headers.putSingle("authorization", "Bearer " + token);
@@ -158,20 +155,15 @@ public class EditorServiceTest extends AbstractResourceTest {
    */
   @Test
   public void testStatus() throws Exception {
-    String token = Jwts.builder()
-                       .setSubject("exo-onlyoffice")
-                       .claim("payload", statusPayload)
-                       .claim("operation", "callback")
-                       .signWith(Keys.hmacShaKeyFor(SECRET_KEY.getBytes()))
-                       .compact();
+    DocumentServerFixture callback = DocumentServerFixture.load(DocumentServerFixture.CALLBACK_EDITING);
 
     MultivaluedMap<String, String> headers = new MultivaluedMapImpl();
-    headers.putSingle("authorization", "Bearer " + token);
+    headers.putSingle("authorization", "Bearer " + callback.callbackToken(key, SECRET_KEY));
     ContainerResponse response = service("POST",
                                          RESOURCE_URL + "/status/" + USER + "/" + key,
                                          "",
                                          headers,
-                                         statusPayloadJson.getBytes());
+                                         callback.callbackBody(key, USER).getBytes(StandardCharsets.UTF_8));
 
     assertNotNull(response);
     assertEquals(200, response.getStatus());
