@@ -1,20 +1,18 @@
-/**
- * This file is part of the Meeds project (https://meeds.io/).
+/*
+ * Copyright (C) 2026 eXo Platform SAS.
  *
- * Copyright (C) 2026 Meeds Association contact@meeds.io
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License
+ * as published by the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU Lesser General Public
- * License as published by the Free Software Foundation; either
- * version 3 of the License, or (at your option) any later version.
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
- * Lesser General Public License for more details.
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU Affero General Public License for more details.
  *
- * You should have received a copy of the GNU Lesser General Public License
- * along with this program; if not, write to the Free Software Foundation,
- * Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program. If not, see <gnu.org/licenses>.
  */
 package org.exoplatform.onlyoffice;
 
@@ -24,8 +22,14 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockingDetails;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -34,8 +38,10 @@ import java.util.Map;
 import javax.crypto.SecretKey;
 
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 
 import org.exoplatform.onlyoffice.constant.DocumentServerOperation;
+import org.exoplatform.services.log.Log;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
@@ -244,6 +250,50 @@ public class DocumentServerTokensTest {
     assertEquals("forcesave", signed.get("c"));
     assertEquals(DOC_KEY, signed.get("key"));
     assertFalse(claims.containsKey("operation"), "the caller's claims are left unchanged");
+  }
+
+  /**
+   * A missing or too short secret is reported once, as an ERROR naming the
+   * property; a usable one is not.
+   */
+  @Test
+  public void testAnUnusableSecretIsReportedAsAnError() {
+    for (String secret : new String[] { null, "", "0123456789012345678901234567890" }) {
+      Log log = mock(Log.class);
+
+      new DocumentServerTokens(secret, log);
+
+      ArgumentCaptor<Object> problem = ArgumentCaptor.forClass(Object.class);
+      verify(log).error(eq("ONLYOFFICE Document Server misconfigured: {}"), problem.capture());
+      assertTrue(String.valueOf(problem.getValue()).contains("onlyoffice.documentserver.secret"), String.valueOf(problem.getValue()));
+    }
+    Log log = mock(Log.class);
+    new DocumentServerTokens(SECRET, log);
+    verifyNoInteractions(log);
+  }
+
+  /**
+   * A refused token is logged by its document key and the reason, never with
+   * the token itself.
+   */
+  @Test
+  public void testARefusedTokenIsNotLogged() {
+    Log log = mock(Log.class);
+    DocumentServerTokens logged = new DocumentServerTokens(SECRET, log);
+    String download = documentServerToken(Map.of("key", DOC_KEY), "download");
+    String forged = download.substring(0, download.length() - 4) + "AAAA";
+
+    assertFalse(logged.validate(download, DOC_KEY, DocumentServerOperation.CALLBACK));
+    assertFalse(logged.validate(forged, DOC_KEY, DocumentServerOperation.DOWNLOAD));
+
+    String everything = mockingDetails(log).getInvocations()
+                                           .stream()
+                                           .map(invocation -> invocation.getMethod().getName() + Arrays.deepToString(invocation.getArguments()))
+                                           .toList()
+                                           .toString();
+    assertTrue(everything.contains("debug") && everything.contains(DOC_KEY), everything);
+    assertFalse(everything.contains(download), everything);
+    assertFalse(everything.contains(forged), everything);
   }
 
   private static Map<String, Object> callbackPayload(String key) {

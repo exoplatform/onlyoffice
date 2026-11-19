@@ -582,9 +582,6 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
     this.documentserverAccessOnly = Boolean.parseBoolean(config.get(CONFIG_DS_ACCESS_ONLY));
     this.documentserverSecret = config.get(CONFIG_DS_SECRET);
     this.documentServerTokens = new DocumentServerTokens(documentserverSecret);
-    if (documentServerTokens.getSecretProblem() != null) {
-      LOG.error("ONLYOFFICE Document Server misconfigured: {}", documentServerTokens.getSecretProblem());
-    }
     this.documentserverAllowedhosts = getDocumentserverAllowedHosts(config.get(CONFIG_DS_ALLOWEDHOSTS));
 
     this.usersPath = hierarchyCreator.getJcrPath(BasePath.CMS_USERS_PATH);
@@ -4136,9 +4133,9 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
   }
 
   /**
-   * Signs a JWT whose {@code payload.key} claim equals the given key, so
-   * {@link #validateToken(String, String)} accepts it (same shape the Document
-   * Server itself emits for the {@code payload.url} case).
+   * Signs a download token whose {@code payload.key} claim equals the given
+   * key, so {@link #validateToken(String, String, DocumentServerOperation)}
+   * accepts it as a {@link DocumentServerOperation#DOWNLOAD} of that key.
    */
   private String signKeyToken(String key) {
     return documentServerTokens.sign(Map.of("payload", Map.of("key", key)), DocumentServerOperation.DOWNLOAD);

@@ -1,20 +1,18 @@
-/**
- * This file is part of the Meeds project (https://meeds.io/).
+/*
+ * Copyright (C) 2026 eXo Platform SAS.
  *
- * Copyright (C) 2026 Meeds Association contact@meeds.io
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License
+ * as published by the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU Lesser General Public
- * License as published by the Free Software Foundation; either
- * version 3 of the License, or (at your option) any later version.
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
- * Lesser General Public License for more details.
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU Affero General Public License for more details.
  *
- * You should have received a copy of the GNU Lesser General Public License
- * along with this program; if not, write to the Free Software Foundation,
- * Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program. If not, see <gnu.org/licenses>.
  */
 package org.exoplatform.onlyoffice;
 
@@ -36,6 +34,7 @@ import java.net.InetSocketAddress;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 
@@ -46,6 +45,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import org.exoplatform.container.PortalContainer;
 import org.exoplatform.onlyoffice.constant.DocumentServerOperation;
 
 import com.sun.net.httpserver.HttpExchange;
@@ -72,6 +72,10 @@ public class DocumentServerIT {
 
   private final List<String>  commandAnswers  = new CopyOnWriteArrayList<>();
 
+  private final List<String>  assetFetches    = new CopyOnWriteArrayList<>();
+
+  private OnlyofficeEditorServiceImpl assetService;
+
   private DocumentServerTokens tokens;
 
   private HttpServer          server;
@@ -97,7 +101,75 @@ public class DocumentServerIT {
                                            ("builder.CreateFile(\"docx\");\nbuilder.SaveFile(\"docx\", \"result.docx\");\n"
                                                + "builder.CloseFile();\n").getBytes(StandardCharsets.UTF_8)));
     server.createContext("/command", this::forwardCommand);
+    server.createContext("/" + PortalContainer.getCurrentRestContextName() + "/onlyoffice/editor/content/", this::serveStagedAsset);
     server.start();
+  }
+
+  /**
+   * A script that opens a file: the Document Builder fetches the file the addon
+   * staged, at the URL the addon signed, and the addon's content endpoint
+   * accepts the fetch.
+   */
+  @Test
+  public void testTheDocumentBuilderOpensAStagedFile() throws Exception {
+    String platformUrl = System.getProperty("exo.base.url");
+    System.setProperty("exo.base.url", base);
+    try {
+      assetService = service();
+      doReturn(false).when(assetService).isCluster();
+      byte[] docx;
+      try (InputStream in = getClass().getResourceAsStream("/files/template.docx")) {
+        docx = in.readAllBytes();
+      }
+      String script = "builder.OpenFile(\"@@ASSET:in.docx@@\");\n"
+          + "builder.SaveFile(\"docx\", \"result.docx\");\n"
+          + "builder.CloseFile();\n";
+
+      byte[] built = assetService.runDocBuilderScript(script, Map.of("in.docx", docx), "docx", "result.docx", "john");
+
+      assertEquals("PK", new String(built, 0, 2, StandardCharsets.US_ASCII));
+      assertTrue(refusedFetches.isEmpty(), refusedFetches.toString());
+      assertEquals(2, assetFetches.size(), "the script and the file it opens: " + assetFetches);
+    } finally {
+      if (platformUrl == null) {
+        System.clearProperty("exo.base.url");
+      } else {
+        System.setProperty("exo.base.url", platformUrl);
+      }
+    }
+  }
+
+  /**
+   * The addon's content endpoint for staged Document Builder files: the token
+   * of the Authorization header, else of the query, validated as a download.
+   */
+  private void serveStagedAsset(HttpExchange exchange) throws IOException {
+    String path = exchange.getRequestURI().getPath();
+    String key = path.substring(path.lastIndexOf('/') + 1);
+    String query = exchange.getRequestURI().getRawQuery();
+    String authorization = exchange.getRequestHeaders().getFirst("Authorization");
+    String token;
+    if (authorization != null) {
+      token = authorization.replace("Bearer", "").trim();
+    } else {
+      token = query != null && query.startsWith("token=") ? query.substring("token=".length()) : null;
+    }
+    assetFetches.add(path + (authorization != null ? " [header]" : "") + (query != null ? " [query]" : ""));
+    if (!assetService.validateToken(token, key, DocumentServerOperation.DOWNLOAD)) {
+      refusedFetches.add(path + (authorization != null ? " (header token)" : " (query token)"));
+      exchange.sendResponseHeaders(401, -1);
+      exchange.close();
+      return;
+    }
+    try {
+      byte[] data = assetService.getContent("john", key).getData().readAllBytes();
+      exchange.sendResponseHeaders(200, data.length);
+      exchange.getResponseBody().write(data);
+    } catch (Exception e) {
+      refusedFetches.add(path + ": " + e);
+      exchange.sendResponseHeaders(404, -1);
+    }
+    exchange.close();
   }
 
   @AfterEach

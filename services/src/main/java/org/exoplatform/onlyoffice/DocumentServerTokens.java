@@ -1,20 +1,18 @@
-/**
- * This file is part of the Meeds project (https://meeds.io/).
+/*
+ * Copyright (C) 2026 eXo Platform SAS.
  *
- * Copyright (C) 2026 Meeds Association contact@meeds.io
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License
+ * as published by the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU Lesser General Public
- * License as published by the Free Software Foundation; either
- * version 3 of the License, or (at your option) any later version.
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
- * Lesser General Public License for more details.
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU Affero General Public License for more details.
  *
- * You should have received a copy of the GNU Lesser General Public License
- * along with this program; if not, write to the Free Software Foundation,
- * Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program. If not, see <gnu.org/licenses>.
  */
 package org.exoplatform.onlyoffice;
 
@@ -58,12 +56,24 @@ public class DocumentServerTokens {
 
   private final String secretProblem;
 
+  private final Log log;
+
   /**
+   * Reports a missing or too short secret as an ERROR, once.
+   *
    * @param secret the secret shared with the Document Server, may be null
    */
   public DocumentServerTokens(String secret) {
+    this(secret, LOG);
+  }
+
+  DocumentServerTokens(String secret, Log log) {
+    this.log = log;
     this.secretProblem = secretProblem(secret);
     this.signingKey = secretProblem == null ? Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8)) : null;
+    if (secretProblem != null) {
+      log.error("ONLYOFFICE Document Server misconfigured: {}", secretProblem);
+    }
   }
 
   /**
@@ -111,11 +121,11 @@ public class DocumentServerTokens {
     try {
       claims = Jwts.parser().verifyWith(signingKey).build().parseSignedClaims(token).getPayload();
     } catch (RuntimeException e) {
-      LOG.debug("Document Server token refused for key {}: {}", key, e.getMessage());
+      log.debug("Document Server token refused for key {}: {}", key, e.getMessage());
       return false;
     }
     if (!expected.getClaimValue().equals(claims.get(DocumentServerOperation.CLAIM))) {
-      LOG.debug("Document Server token refused for key {}: operation {} where {} is expected",
+      log.debug("Document Server token refused for key {}: operation {} where {} is expected",
                 key,
                 claims.get(DocumentServerOperation.CLAIM),
                 expected.getClaimValue());
