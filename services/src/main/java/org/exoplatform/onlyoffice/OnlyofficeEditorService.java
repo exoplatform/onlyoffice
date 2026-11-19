@@ -380,9 +380,10 @@ public interface OnlyofficeEditorService {
    *
    * @param token the token, may be null
    * @param key the document key the endpoint was called for
-   * @param operation the purpose of the endpoint:
-   *          {@link DocumentServerOperation#CALLBACK} or
-   *          {@link DocumentServerOperation#DOWNLOAD}
+   * @param operation the purpose of the endpoint,
+   *          {@link DocumentServerOperation#DOWNLOAD} for a file fetch. This
+   *          checks the token only: a callback, whose body is acted on, is
+   *          validated by {@link #validateCallback(String, String, String)}
    * @return true, if the token is valid for that purpose and key
    */
   boolean validateToken(String token, String key, DocumentServerOperation operation);

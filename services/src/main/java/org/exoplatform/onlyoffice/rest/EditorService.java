@@ -200,8 +200,7 @@ public class EditorService implements ResourceContainer {
     String clientIp = getClientIpAddr(request);
 
     if (LOG.isDebugEnabled()) {
-      LOG.debug("> Onlyoffice document status: " + userId + "@" + key + " " + statusText + " from " + clientHost + "(" + clientIp
-          + ")");
+      LOG.debug("> Onlyoffice document status: {}@{} from {}({})", userId, key, clientHost, clientIp);
     }
 
     EditorResponse resp = new EditorResponse();
@@ -283,7 +282,7 @@ public class EditorService implements ResourceContainer {
           resp.status(Status.BAD_REQUEST).error("Null or empty file key.");
         }
       } catch (ParseException | IOException e) {
-        LOG.warn("JSON parse error while handling status for " + key + ". JSON: " + statusText, e);
+        LOG.warn("JSON parse error while handling status for {}: {}", key, e.getMessage());
         resp.error("JSON parse error: " + e.getMessage()).status(Status.BAD_REQUEST);
       }
     } else {

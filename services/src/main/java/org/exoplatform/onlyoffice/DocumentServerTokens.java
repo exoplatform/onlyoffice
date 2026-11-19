@@ -110,8 +110,10 @@ public class DocumentServerTokens {
    *
    * @param token the token, may be null
    * @param key the document key the endpoint was called for, may be null
-   * @param expected the purpose of the endpoint: {@link DocumentServerOperation#CALLBACK}
-   *          or {@link DocumentServerOperation#DOWNLOAD}
+   * @param expected the purpose of the endpoint, {@link DocumentServerOperation#DOWNLOAD}
+   *          for a file fetch. This checks the token only: a callback, whose
+   *          body the addon acts on, is validated by
+   *          {@link #validateCallback(String, String, String)}
    * @return true when the token is signed with the secret, unexpired, carries
    *         the expected purpose and is for that key: for a callback its
    *         {@code payload.key} equals the key; for a download its
