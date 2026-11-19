@@ -65,6 +65,9 @@ public class DocumentServerTokensTest {
 
   private static final String    CONTENT    = "http://exo.example.org/rest/onlyoffice/editor/content/john/" + DOC_KEY;
 
+  private static final String[]  CALLBACKS  = { DocumentServerFixture.CALLBACK_EDITING, DocumentServerFixture.CALLBACK_CLOSED,
+      DocumentServerFixture.CALLBACK_FORCESAVED, DocumentServerFixture.CALLBACK_SAVED };
+
   private final DocumentServerTokens tokens = new DocumentServerTokens(SECRET);
 
   /**
@@ -75,6 +78,8 @@ public class DocumentServerTokensTest {
   public void testTheCapturedTokensCarryTheirPurposeAtTheRoot() {
     Map<String, String> expected = Map.of(DocumentServerFixture.CALLBACK_EDITING, "callback",
                                           DocumentServerFixture.CALLBACK_CLOSED, "callback",
+                                          DocumentServerFixture.CALLBACK_FORCESAVED, "callback",
+                                          DocumentServerFixture.CALLBACK_SAVED, "callback",
                                           DocumentServerFixture.DOWNLOAD_DOCUMENT, "download",
                                           DocumentServerFixture.DOWNLOAD_BUILDER_SCRIPT, "download");
     expected.forEach((fixture, operation) -> {
@@ -118,10 +123,26 @@ public class DocumentServerTokensTest {
    */
   @Test
   public void testTheCapturedCallbackBodyIsItsSignedPayload() {
-    for (String fixture : new String[] { DocumentServerFixture.CALLBACK_EDITING, DocumentServerFixture.CALLBACK_CLOSED }) {
+    for (String fixture : CALLBACKS) {
       DocumentServerFixture callback = DocumentServerFixture.load(fixture);
 
       assertEquals(callback.claims().get("payload"), callback.body(), fixture);
+    }
+  }
+
+  /**
+   * Every callback ONLYOFFICE Docs 10.0 sent is acted on as it was sent: its
+   * body, with the token the Document Server adds to it, is its signed
+   * payload, the saves (status 2 and 6) and their history included.
+   */
+  @Test
+  public void testEveryCapturedCallbackIsActedOn() {
+    for (String fixture : CALLBACKS) {
+      DocumentServerFixture callback = DocumentServerFixture.load(fixture);
+      String token = callback.callbackToken(DOC_KEY, "john", SECRET);
+      String body = new JSONObject(callback.callbackBody(DOC_KEY, "john")).put("token", token).toString();
+
+      assertTrue(tokens.validateCallback(token, DOC_KEY, body), fixture);
     }
   }
 

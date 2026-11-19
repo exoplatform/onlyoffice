@@ -45,6 +45,12 @@ public final class DocumentServerFixture {
   /** A save callback, status 4: the document was closed without changes. */
   public static final String CALLBACK_CLOSED         = "callback-closed.json";
 
+  /** A save callback, status 6: a force-save through the command service. */
+  public static final String CALLBACK_FORCESAVED     = "callback-forcesaved.json";
+
+  /** A save callback, status 2: the document was closed after a change. */
+  public static final String CALLBACK_SAVED          = "callback-saved.json";
+
   /** The fetch of the document of an editing session. */
   public static final String DOWNLOAD_DOCUMENT       = "download-document.json";
 
