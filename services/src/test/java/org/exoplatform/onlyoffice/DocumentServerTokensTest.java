@@ -37,6 +37,7 @@ import java.util.Map;
 
 import javax.crypto.SecretKey;
 
+import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
@@ -86,7 +87,7 @@ public class DocumentServerTokensTest {
   @Test
   public void testACapturedSaveCallbackIsAcceptedAtTheCallbackEndpointOnly() {
     for (String fixture : new String[] { DocumentServerFixture.CALLBACK_EDITING, DocumentServerFixture.CALLBACK_CLOSED }) {
-      String token = DocumentServerFixture.load(fixture).callbackToken(DOC_KEY, SECRET);
+      String token = DocumentServerFixture.load(fixture).callbackToken(DOC_KEY, "john", SECRET);
 
       assertTrue(tokens.validate(token, DOC_KEY, DocumentServerOperation.CALLBACK), fixture);
       assertFalse(tokens.validate(token, DOC_KEY, DocumentServerOperation.DOWNLOAD), fixture);
@@ -109,6 +110,51 @@ public class DocumentServerTokensTest {
                                                        SECRET);
 
     assertTrue(tokens.validate(token, scriptKey, DocumentServerOperation.DOWNLOAD));
+  }
+
+  /**
+   * ONLYOFFICE Docs 10.0 signs the whole callback: the body it posts is the
+   * token's payload, plus the token itself.
+   */
+  @Test
+  public void testTheCapturedCallbackBodyIsItsSignedPayload() {
+    for (String fixture : new String[] { DocumentServerFixture.CALLBACK_EDITING, DocumentServerFixture.CALLBACK_CLOSED }) {
+      DocumentServerFixture callback = DocumentServerFixture.load(fixture);
+
+      assertEquals(callback.claims().get("payload"), callback.body(), fixture);
+    }
+  }
+
+  /**
+   * The addon acts on a callback's body only when the body is the payload the
+   * Document Server signed for the document of the endpoint.
+   */
+  @Test
+  public void testACallbackIsActedOnOnlyWhenItsBodyIsTheSignedPayload() {
+    DocumentServerFixture captured = DocumentServerFixture.load(DocumentServerFixture.CALLBACK_EDITING);
+    String token = captured.callbackToken(DOC_KEY, "john", SECRET);
+    JSONObject body = new JSONObject(captured.callbackBody(DOC_KEY, "john"));
+
+    assertTrue(tokens.validateCallback(token, DOC_KEY, body.toString()));
+    assertTrue(tokens.validateCallback(token, DOC_KEY, new JSONObject(body.toString()).put("token", token).toString()),
+               "the body's own token field is not part of the payload");
+
+    assertFalse(tokens.validateCallback(token, DOC_KEY, new JSONObject(body.toString()).put("key", "another-key").toString()));
+    assertFalse(tokens.validateCallback(token,
+                                        DOC_KEY,
+                                        new JSONObject(body.toString()).put("url", "http://attacker.example.org/x.docx").toString()));
+    assertFalse(tokens.validateCallback(token, DOC_KEY, new JSONObject(body.toString()).put("status", 2).toString()));
+    assertFalse(tokens.validateCallback(token, DOC_KEY, new JSONObject(body.toString()).put("users", List.of("mary")).toString()));
+    assertFalse(tokens.validateCallback(token, DOC_KEY, "not json"));
+    assertFalse(tokens.validateCallback(token, DOC_KEY, null));
+    assertFalse(tokens.validateCallback(captured.callbackToken("another-key", "john", SECRET), DOC_KEY, body.toString()),
+                "a callback signed for another document");
+    assertFalse(tokens.validateCallback(captured.callbackToken("another-key", "john", SECRET),
+                                        DOC_KEY,
+                                        captured.callbackBody("another-key", "john")),
+                "another document's callback, body and token alike, posted for this document");
+    assertFalse(tokens.validateCallback(documentServerToken(Map.of("key", DOC_KEY), "download"), DOC_KEY, "{\"key\":\"" + DOC_KEY + "\"}"),
+                "a download token");
   }
 
   /**

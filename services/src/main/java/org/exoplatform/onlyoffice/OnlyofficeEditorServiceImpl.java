@@ -1898,6 +1898,14 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
     return documentServerTokens.validate(token, key, operation);
   }
 
+  /**
+   * {@inheritDoc}
+   */
+  @Override
+  public boolean validateCallback(String token, String key, String body) {
+    return documentServerTokens.validateCallback(token, key, body);
+  }
+
   @Override
   public void updateTitle(String workspace, String docId, String newTitle, String userId) {
     ConversationState contextState = ConversationState.getCurrent();

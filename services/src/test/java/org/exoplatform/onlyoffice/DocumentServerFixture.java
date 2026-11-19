@@ -87,12 +87,24 @@ public final class DocumentServerFixture {
   }
 
   /**
-   * @param key the document key
-   * @param secret the secret to sign with
-   * @return the captured callback token, for that key
+   * @return the captured callback body, as sent
    */
-  public String callbackToken(String key, String secret) {
-    return sign(withPayload("key", key), secret);
+  public Map<String, Object> body() {
+    return copy(body);
+  }
+
+  /**
+   * @param key the document key
+   * @param userId the user the callback names, in place of the captured one
+   * @param secret the secret to sign with
+   * @return the captured callback token, for that key and user: its payload
+   *         is {@link #callbackBody(String, String)}
+   */
+  @SuppressWarnings("unchecked")
+  public String callbackToken(String key, String userId, String secret) {
+    Map<String, Object> named = copy(claims);
+    named.put("payload", forUser((Map<String, Object>) named.get("payload"), key, userId));
+    return sign(named, secret);
   }
 
   /**
@@ -100,9 +112,13 @@ public final class DocumentServerFixture {
    * @param userId the user the callback names, in place of the captured one
    * @return the captured callback body, for that key and user
    */
-  @SuppressWarnings("unchecked")
   public String callbackBody(String key, String userId) {
-    Map<String, Object> named = new LinkedHashMap<>(body);
+    return MAPPER.writeValueAsString(forUser(body, key, userId));
+  }
+
+  @SuppressWarnings("unchecked")
+  private static Map<String, Object> forUser(Map<String, Object> callback, String key, String userId) {
+    Map<String, Object> named = new LinkedHashMap<>(callback);
     named.put("key", key);
     if (named.containsKey("users")) {
       named.put("users", List.of(userId));
@@ -114,7 +130,7 @@ public final class DocumentServerFixture {
         return renamed;
       }).toList());
     }
-    return MAPPER.writeValueAsString(named);
+    return named;
   }
 
   /**

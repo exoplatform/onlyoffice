@@ -231,7 +231,7 @@ public class EditorService implements ResourceContainer {
 
         if (key != null && key.length() > 0) {
           if (userId != null && userId.length() > 0) {
-            if (editors.validateToken(token, key, DocumentServerOperation.CALLBACK)) {
+            if (editors.validateCallback(token, key, statusText)) {
               DocumentStatus.Builder statusBuilder = new DocumentStatus.Builder();
               statusBuilder.key(statusKey != null && statusKey.length() > 0 ? statusKey : key)
                            .status(statusCode)

@@ -22,6 +22,9 @@ import java.util.Map;
 
 import javax.crypto.SecretKey;
 
+import org.json.JSONException;
+import org.json.JSONObject;
+
 import org.exoplatform.onlyoffice.constant.DocumentServerOperation;
 import org.exoplatform.services.log.ExoLogger;
 import org.exoplatform.services.log.Log;
@@ -51,6 +54,8 @@ public class DocumentServerTokens {
   private static final String KEY_CLAIM = "key";
 
   private static final String URL_CLAIM = "url";
+
+  private static final String TOKEN_FIELD = "token";
 
   private final SecretKey signingKey;
 
@@ -114,24 +119,8 @@ public class DocumentServerTokens {
    *         with it
    */
   public boolean validate(String token, String key, DocumentServerOperation expected) {
-    if (signingKey == null || token == null || key == null) {
-      return false;
-    }
-    Claims claims;
-    try {
-      claims = Jwts.parser().verifyWith(signingKey).build().parseSignedClaims(token).getPayload();
-    } catch (RuntimeException e) {
-      log.debug("Document Server token refused for key {}: {}", key, e.getMessage());
-      return false;
-    }
-    if (!expected.getClaimValue().equals(claims.get(DocumentServerOperation.CLAIM))) {
-      log.debug("Document Server token refused for key {}: operation {} where {} is expected",
-                key,
-                claims.get(DocumentServerOperation.CLAIM),
-                expected.getClaimValue());
-      return false;
-    }
-    if (!(claims.get(PAYLOAD_CLAIM) instanceof Map<?, ?> payload)) {
+    Map<?, ?> payload = payload(token, key, expected);
+    if (payload == null) {
       return false;
     }
     if (payload.containsKey(KEY_CLAIM)) {
@@ -140,6 +129,65 @@ public class DocumentServerTokens {
     return expected == DocumentServerOperation.DOWNLOAD && payload.containsKey(URL_CLAIM)
         && String.valueOf(payload.get(URL_CLAIM)).endsWith(key);
   }
+
+  /**
+   * Validates a save or status callback: its token, and the callback the
+   * addon acts on. ONLYOFFICE Docs signs the whole callback in the token's
+   * {@code payload}, so the body must be that payload, its own {@code token}
+   * field aside.
+   *
+   * @param token the token of the Authorization header, may be null
+   * @param key the document key the endpoint was called for, may be null
+   * @param body the callback body, may be null
+   * @return true when the token is a valid callback token whose
+   *         {@code payload.key} equals the key and whose payload equals the
+   *         body
+   */
+  public boolean validateCallback(String token, String key, String body) {
+    Map<?, ?> payload = payload(token, key, DocumentServerOperation.CALLBACK);
+    if (payload == null || body == null || !key.equals(String.valueOf(payload.get(KEY_CLAIM)))) {
+      return false;
+    }
+    JSONObject callback;
+    try {
+      callback = new JSONObject(body);
+    } catch (JSONException e) {
+      log.debug("Document Server callback refused for key {}: the body is not a JSON object", key);
+      return false;
+    }
+    callback.remove(TOKEN_FIELD);
+    if (!new JSONObject(payload).similar(callback)) {
+      log.debug("Document Server callback refused for key {}: the body differs from the signed payload", key);
+      return false;
+    }
+    return true;
+  }
+
+  /**
+   * @return the token's payload when the token is signed with the secret,
+   *         unexpired and carries the expected purpose; null otherwise
+   */
+  private Map<?, ?> payload(String token, String key, DocumentServerOperation expected) {
+    if (signingKey == null || token == null || key == null) {
+      return null;
+    }
+    Claims claims;
+    try {
+      claims = Jwts.parser().verifyWith(signingKey).build().parseSignedClaims(token).getPayload();
+    } catch (RuntimeException e) {
+      log.debug("Document Server token refused for key {}: {}", key, e.getMessage());
+      return null;
+    }
+    if (!expected.getClaimValue().equals(claims.get(DocumentServerOperation.CLAIM))) {
+      log.debug("Document Server token refused for key {}: operation {} where {} is expected",
+                key,
+                claims.get(DocumentServerOperation.CLAIM),
+                expected.getClaimValue());
+      return null;
+    }
+    return claims.get(PAYLOAD_CLAIM) instanceof Map<?, ?> payload ? payload : null;
+  }
+
 
   static String secretProblem(String secret) {
     if (secret == null || secret.trim().isEmpty()) {

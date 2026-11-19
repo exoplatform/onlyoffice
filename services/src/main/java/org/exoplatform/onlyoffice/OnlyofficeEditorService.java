@@ -388,6 +388,18 @@ public interface OnlyofficeEditorService {
   boolean validateToken(String token, String key, DocumentServerOperation operation);
 
   /**
+   * Validates a save or status callback received from the document server:
+   * a callback token for the document key whose signed payload is the
+   * callback body.
+   *
+   * @param token the token of the Authorization header, may be null
+   * @param key the document key the endpoint was called for
+   * @param body the callback body
+   * @return true, if the callback can be acted on
+   */
+  boolean validateCallback(String token, String key, String body);
+
+  /**
    * Updates title of a document.
    * 
    * @param workspace the workspace

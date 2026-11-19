@@ -8,6 +8,7 @@ import java.util.Map;
 import javax.ws.rs.core.MultivaluedMap;
 
 import org.apache.commons.io.IOUtils;
+import org.json.JSONObject;
 import org.junit.Test;
 
 import org.exoplatform.container.ExoContainer;
@@ -157,13 +158,17 @@ public class EditorServiceTest extends AbstractResourceTest {
   public void testStatus() throws Exception {
     DocumentServerFixture callback = DocumentServerFixture.load(DocumentServerFixture.CALLBACK_EDITING);
 
+    String token = callback.callbackToken(key, USER, SECRET_KEY);
+    // the Document Server also posts its token in the body
+    String body = new JSONObject(callback.callbackBody(key, USER)).put("token", token).toString();
+
     MultivaluedMap<String, String> headers = new MultivaluedMapImpl();
-    headers.putSingle("authorization", "Bearer " + callback.callbackToken(key, SECRET_KEY));
+    headers.putSingle("authorization", "Bearer " + token);
     ContainerResponse response = service("POST",
                                          RESOURCE_URL + "/status/" + USER + "/" + key,
                                          "",
                                          headers,
-                                         callback.callbackBody(key, USER).getBytes(StandardCharsets.UTF_8));
+                                         body.getBytes(StandardCharsets.UTF_8));
 
     assertNotNull(response);
     assertEquals(200, response.getStatus());
@@ -270,6 +275,36 @@ public class EditorServiceTest extends AbstractResourceTest {
                        .compact();
 
     assertStatusRefused(token);
+  }
+
+  /**
+   * A valid callback token for this document does not let its holder post
+   * another callback: a body that is not the signed payload is refused.
+   *
+   * @throws Exception the exception
+   */
+  @Test
+  public void testStatusRefusesABodyOtherThanTheSignedOne() throws Exception {
+    DocumentServerFixture callback = DocumentServerFixture.load(DocumentServerFixture.CALLBACK_EDITING);
+    String token = callback.callbackToken(key, USER, SECRET_KEY);
+    String otherKey = new JSONObject(callback.callbackBody(key, USER)).put("key", "another-document-key").toString();
+    String otherUrl = new JSONObject(callback.callbackBody(key, USER))
+                                                                               .put("status", 2)
+                                                                               .put("url", "http://127.0.0.1:1/other.docx")
+                                                                               .toString();
+
+    for (String body : new String[] { otherKey, otherUrl }) {
+      MultivaluedMap<String, String> headers = new MultivaluedMapImpl();
+      headers.putSingle("authorization", "Bearer " + token);
+      ContainerResponse response = service("POST",
+                                           RESOURCE_URL + "/status/" + USER + "/" + key,
+                                           "",
+                                           headers,
+                                           body.getBytes(StandardCharsets.UTF_8));
+      assertNotNull(response);
+      assertEquals(body, 401, response.getStatus());
+      assertEquals("{\"error\":\"The token is not valid\"}", response.getEntity());
+    }
   }
 
   private void assertStatusRefused(String token) throws Exception {
