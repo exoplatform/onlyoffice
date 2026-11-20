@@ -43,11 +43,11 @@ Also, Onlyoffice add-on enables users to create documents from ECMS. The 'New Do
 
 ONLYOFFICE™ Document Server can be [installed](http://helpcenter.onlyoffice.com/server/docker/document/docker-installation.aspx) in Docker container from ready image with pre-configured defaults. While this add-on has no constraints on how the Onlyoffice installed, Docker way is a simplest and strightforward way to add Document Office to you infra, for both development or production. Document Server is an Open Source Software, thus if you'll need to customize it, it's always possible to get the sources and make your Docker image.
 
-When you have installed Docker, you need a single command to start the Document Server on-premise:
+This add-on requires ONLYOFFICE Docs 10.0 or a later 10.x version; a 9.x Document Server is not supported. When you have installed Docker, you need a single command to start the Document Server on-premise, with the secret it shares with eXo Platform (see [JSON Web Tokens](#json-web-tokens-to-secure-access)):
 
-    sudo docker run -i -t -d -p 80:80 onlyoffice/documentserver
+    sudo docker run -i -t -d -p 80:80 -e JWT_SECRET=SECRET_KEY onlyoffice/documentserver:10.0
 
-The Document Server needs only port 80 by default, but you also can run in on HTTPS. Follow its guides for more detailed setup.
+The Docker image listens on port 80; the DEB and RPM packages of ONLYOFFICE Docs 10.0 listen on port 8083 by default, which `onlyoffice.documentserver.host` must then name. You also can run it on HTTPS. Follow its guides for more detailed setup.
 
 To check you have running Document Server successfuly, open a page on its address [http://DOCUMENT\_SERVER\_HOST/OnlineEditorsExample/](http://localhost/OnlineEditorsExample/), it will show you simple demo page where you can upload a document, or use their sample, and try to edit online in your browser. After you'll see it works well, you are ready to install the add-on in eXo Platform.
 
@@ -64,6 +64,7 @@ When building from sources, then go to `/packaging/target` folder of the project
 
 | eXo Addon version | OnlyOffice version |
 |-------------------|--------------------|
+| >= 7.3.x          | 10.0 or later 10.x (required) |
 | >= 2.5.x          | 7.3.3.49              |
 | >= 2.4.x          | 7.2.2              |
 | >= 2.3.x          | 7.0.1              |
@@ -77,20 +78,17 @@ When building from sources, then go to `/packaging/target` folder of the project
 
 Onlyoffice add-on need to know an adress of your Document Server and eXo Platform server, and it's also required to point a protocol scheme to use (`http` or `https`). Add following lines to your `exo.properties`.
 
-For Platform 4.4 and higher:
-
     onlyoffice.documentserver.host=YOUR_DOCUMENT_SERVER_HOST
     onlyoffice.documentserver.schema=http
     onlyoffice.documentserver.secret=SECRET_KEY
 
-`SECRET_KEY` is used for JSON Web Tokens security configurations and must have a size >= 256 bits.
+Where `YOUR_DOCUMENT_SERVER_HOST` is an IP or host name of Document Server, with its port when it is not the scheme's default (8083 for the DEB and RPM packages).
 
-For Platform 4.3 also need point your server public host and schema:
+`SECRET_KEY` is **mandatory**: it is the secret of the JSON Web Tokens exchanged with the Document Server, the same value on both sides, at least 32 bytes long (256 bits). When it is empty or shorter, the server logs an error at startup, the editor, conversions and the Document Builder do not work, and every request of the Document Server to eXo Platform is refused.
 
-    onlyoffice.server.host=YOUR_EXO_SERVER_HOST
-    onlyoffice.server.schema=http
+### Upgrading from ONLYOFFICE Docs 9.x
 
-Where `YOUR_DOCUMENT_SERVER_HOST` is an IP or host name of Document Server and `YOUR_EXO_SERVER_HOST` host ip or name (with port if not 80 or 443) of your eXo Platform server.
+Upgrade the add-on and the Document Server in the same maintenance window. This version of the add-on refuses the tokens of a 9.x Document Server, which carry no purpose, so editing and conversions are unavailable between the two upgrades. Keep the secret configured on both sides.
 
 ## Security
 
@@ -118,15 +116,14 @@ This parameter will work only in conjunction with `onlyoffice.documentserver.acc
 
 ### JSON Web Tokens to secure access
 
-Onlyoffice Document Server can use JSON Web Tokens to secure access to eXo Platform REST endpoints. It's **recommended security setup** for a production deployment.
+ONLYOFFICE Docs signs every request it sends to eXo Platform, and the add-on signs every request it sends to ONLYOFFICE Docs, with JSON Web Tokens. Both sides **must** share the same secret. Each token carries its purpose (`operation`: a save callback, a download, a command, a conversion or a Document Builder run), and each side refuses a token used for another purpose: keep ONLYOFFICE Docs' `services.CoAuthoring.token.purposeCheck` at its default, `validate`.
 
-To setup use of JSON Web Token edit a configuration file which can be found (or created) at the following path:
+ONLYOFFICE Docs 10.0 enables tokens by default. With the Docker image, set the secret with the `JWT_SECRET` environment variable, and never keep its placeholder value, `developer-only-not-a-real-secret`. Otherwise, edit a configuration file which can be found (or created) at the following path:
 
     For Linux - /etc/onlyoffice/documentserver/local.json.
     For Windows - %ProgramFiles%\ONLYOFFICE\DocumentServer\config\local.json.
 
-You need to enable tokens validation and set up the secret key.
-To enable tokens validation set true values to the params:
+Check that tokens validation is enabled (the default in 10.0):
 
     services.CoAuthoring.token.enable.request.outbox
     services.CoAuthoring.token.enable.request.inbox

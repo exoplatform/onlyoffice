@@ -38,6 +38,8 @@
     <rest.api.doc.description>OnlyOffice addon rest endpoints</rest.api.doc.description>
 
     <exo.test.coverage.ratio>0.50</exo.test.coverage.ratio>
+    <!-- The integration tests need a real ONLYOFFICE Docs server: run them with -Prun-its -->
+    <skipITs>true</skipITs>
   </properties>
 
   <dependencies>
@@ -209,9 +211,21 @@
             <include>**/**/OnlyofficeMcpToolTest.java</include>
             <include>**/**/CometdOnlyofficeServiceTest.java</include>
             <include>**/**/CometdUpdatedOutsideEventTest.java</include>
+            <include>**/**/DocumentServerTokensTest.java</include>
+            <include>**/**/DocumentServerRequestsTest.java</include>
           </includes>
         </configuration>
       </plugin>
     </plugins>
   </build>
+  <profiles>
+    <profile>
+      <!-- mvn -pl services verify -Prun-its -Donlyoffice.it.documentserver=<url> -Donlyoffice.it.host=<address>,
+           with the shared secret in ONLYOFFICE_IT_SECRET: see DocumentServerIT -->
+      <id>run-its</id>
+      <properties>
+        <skipITs>false</skipITs>
+      </properties>
+    </profile>
+  </profiles>
 </project>

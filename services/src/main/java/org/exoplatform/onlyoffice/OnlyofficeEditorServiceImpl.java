@@ -41,9 +41,9 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
@@ -101,6 +101,7 @@ import org.exoplatform.ecm.utils.text.Text;
 import org.exoplatform.ecm.utils.permission.PermissionUtil;
 import org.exoplatform.services.wcm.utils.Utils;
 import org.exoplatform.onlyoffice.Config.Editor;
+import org.exoplatform.onlyoffice.constant.DocumentServerOperation;
 import org.exoplatform.onlyoffice.jcr.NodeFinder;
 import org.exoplatform.onlyoffice.jpa.EditorConfigStorage;
 import org.exoplatform.onlyoffice.jpa.storage.cache.CachedEditorConfigStorage;
@@ -154,10 +155,6 @@ import org.exoplatform.social.core.space.model.Space;
 import org.exoplatform.social.core.space.spi.SpaceService;
 import org.exoplatform.web.application.RequestContext;
 
-import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.Jws;
-import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.security.Keys;
 
 /**
  * Service implementing {@link OnlyofficeEditorService} and {@link Startable}.
@@ -176,6 +173,10 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
 
   /** The Constant UTF_8. */
   private static final String    UTF_8                    = "utf-8";
+
+  private static final String    AUTHORIZATION_HEADER     = "Authorization";
+
+  private static final String    BEARER_PREFIX            = "Bearer ";
 
   public static final String SPACE_APP_ID = "exosocial:spaces";
 
@@ -477,6 +478,9 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
   /** The document server secret. */
   protected final String                                          documentserverSecret;
 
+  /** Signs and validates the tokens exchanged with the document server. */
+  protected final DocumentServerTokens                            documentServerTokens;
+
   /** The documentserver access only. */
   protected final boolean                                         documentserverAccessOnly;
 
@@ -577,10 +581,11 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
     this.uploadUrl = new StringBuilder(documentserverUrl).append("/FileUploader.ashx").toString();
     this.convertUrl = new StringBuilder(documentserverUrl).append("/converter").toString();
     this.documentserverUrl = new StringBuilder(documentserverUrl).append("/web-apps/").toString();
-    this.commandServiceUrl = new StringBuilder(documentserverUrl).append("/coauthoring/CommandService.ashx").toString();
+    this.commandServiceUrl = new StringBuilder(documentserverUrl).append("/command").toString();
     this.docbuilderUrl = new StringBuilder(documentserverUrl).append("/docbuilder").toString();
     this.documentserverAccessOnly = Boolean.parseBoolean(config.get(CONFIG_DS_ACCESS_ONLY));
     this.documentserverSecret = config.get(CONFIG_DS_SECRET);
+    this.documentServerTokens = new DocumentServerTokens(documentserverSecret);
     this.documentserverAllowedhosts = getDocumentserverAllowedHosts(config.get(CONFIG_DS_ALLOWEDHOSTS));
 
     this.usersPath = hierarchyCreator.getJcrPath(BasePath.CMS_USERS_PATH);
@@ -1852,16 +1857,13 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
       connection.setDoOutput(true);
       connection.setDoInput(true);
 
-      if (documentserverSecret != null && !documentserverSecret.trim().isEmpty()) {
-        String jwtToken = Jwts.builder()
-                              .setSubject("exo-onlyoffice")
-                              .claim("c", "forcesave")
-                              .claim("key", key)
-                              .claim("userdata", userdata.toJSON())
-                              .signWith(Keys.hmacShaKeyFor(documentserverSecret.getBytes()))
-                              .compact();
-        connection.setRequestProperty("Authorization", "Bearer " + jwtToken);
-      }
+      Map<String, Object> claims = new LinkedHashMap<>();
+      claims.put("sub", "exo-onlyoffice");
+      claims.put("c", "forcesave");
+      claims.put("key", key);
+      claims.put("userdata", userdata.toJSON());
+      connection.setRequestProperty(AUTHORIZATION_HEADER,
+                                    BEARER_PREFIX + documentServerTokens.sign(claims, DocumentServerOperation.COMMAND));
 
       try (OutputStream outputStream = connection.getOutputStream()) {
         outputStream.write(postDataBytes);
@@ -1883,29 +1885,29 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
     }
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
+  @Deprecated(forRemoval = true)
   public boolean validateToken(String token, String key) {
-    if (documentserverSecret == null || documentserverSecret.trim().isEmpty()) {
-      return true;
-    }
-    if (token != null && key != null) {
-      try {
-        Jws<Claims> jws = Jwts.parser().setSigningKey(Keys.hmacShaKeyFor(documentserverSecret.getBytes())).build().parseClaimsJws(token);
-        @SuppressWarnings("unchecked")
-        Map<String, Object> claims = (Map<String, Object>) jws.getBody().get("payload");
-        if (claims != null) {
-          if (claims.containsKey("key")) {
-            return String.valueOf(claims.get("key")).equals(key);
-          }
-          if (claims.containsKey("url")) {
-            return String.valueOf(claims.get("url")).endsWith(key);
-          }
-        }
-      } catch (Exception e) {
-        LOG.warn("Couldn't validate the token: {} key: {} :", token, key, e.getMessage());
-      }
-    }
-    return false;
+    return validateToken(token, key, DocumentServerOperation.DOWNLOAD);
+  }
+
+  /**
+   * {@inheritDoc}
+   */
+  @Override
+  public boolean validateToken(String token, String key, DocumentServerOperation operation) {
+    return documentServerTokens.validate(token, key, operation);
+  }
+
+  /**
+   * {@inheritDoc}
+   */
+  @Override
+  public boolean validateCallback(String token, String key, String body) {
+    return documentServerTokens.validateCallback(token, key, body);
   }
 
   @Override
@@ -3968,10 +3970,12 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
         String documentUrl = config.getDocument().getUrl();
         LOG.debug("Node {}, generatedId={}, originalFileType={}, convertUrl={}, documentUrl={}",node.getPath(),key,originalFileType,this.convertUrl, documentUrl);
 
-        String json = new JSONObject().put("filetype", originalFileType)
-                .put("outputtype", format)
-                .put("key", key)
-                .put("url",documentUrl).toString();
+        Map<String, Object> claims = new LinkedHashMap<>();
+        claims.put("filetype", originalFileType);
+        claims.put("outputtype", format);
+        claims.put("key", key);
+        claims.put("url", documentUrl);
+        String json = new JSONObject(claims).toString();
 
         byte[] postDataBytes = json.toString().getBytes("UTF-8");
 
@@ -3983,12 +3987,8 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
         connection.setDoOutput(true);
         connection.setDoInput(true);
 
-        if (documentserverSecret != null && !documentserverSecret.trim().isEmpty()) {
-          String jwtToken = Jwts.builder().setPayload(json)
-                  .signWith(Keys.hmacShaKeyFor(documentserverSecret.getBytes()))
-                  .compact();
-          connection.setRequestProperty("Authorization", "Bearer " + jwtToken);
-        }
+        connection.setRequestProperty(AUTHORIZATION_HEADER,
+                                      BEARER_PREFIX + documentServerTokens.sign(claims, DocumentServerOperation.CONVERTER));
 
         try (OutputStream outputStream = connection.getOutputStream()) {
           outputStream.write(postDataBytes);
@@ -4074,8 +4074,9 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
         }
       }
       // 2) Stage the resolved script itself. The Document Server fetches the
-      // script URL WITH an Authorization: Bearer <jwt payload.url=scriptUrl>
-      // header it signs itself, which validateToken accepts (url endsWith key).
+      // script URL WITH an Authorization: Bearer <jwt operation=download,
+      // payload.url=scriptUrl> header it signs itself, which the content
+      // endpoint accepts as a download token whose url ends with the key.
       String scriptKey = stageDocBuilderAsset(resolvedScript.getBytes(StandardCharsets.UTF_8), "text/plain", expiresAt);
       stagedKeys.add(scriptKey);
       String scriptUrl = docBuilderAssetUrl(base, rest, uid, scriptKey);
@@ -4144,19 +4145,12 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
   }
 
   /**
-   * Signs a JWT whose {@code payload.key} claim equals the given key, so
-   * {@link #validateToken(String, String)} accepts it (same shape the Document
-   * Server itself emits for the {@code payload.url} case).
+   * Signs a download token whose {@code payload.key} claim equals the given
+   * key, so {@link #validateToken(String, String, DocumentServerOperation)}
+   * accepts it as a {@link DocumentServerOperation#DOWNLOAD} of that key.
    */
   private String signKeyToken(String key) {
-    if (documentserverSecret == null || documentserverSecret.trim().isEmpty()) {
-      return "";
-    }
-    Map<String, Object> inner = new HashMap<>();
-    inner.put("key", key);
-    Map<String, Object> claims = new HashMap<>();
-    claims.put("payload", inner);
-    return Jwts.builder().setClaims(claims).signWith(Keys.hmacShaKeyFor(documentserverSecret.getBytes())).compact();
+    return documentServerTokens.sign(Map.of("payload", Map.of("key", key)), DocumentServerOperation.DOWNLOAD);
   }
 
   private static String mimeForAsset(String name) {
@@ -4190,15 +4184,12 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
   byte[] postDocBuilder(String scriptUrl, String outputName) {
     HttpURLConnection connection = null;
     try {
-      JSONObject body = new JSONObject();
-      body.put("async", false);
-      body.put("url", scriptUrl);
-      String signedJson = body.toString();
-      String token = null;
-      if (documentserverSecret != null && !documentserverSecret.trim().isEmpty()) {
-        token = Jwts.builder().setPayload(signedJson).signWith(Keys.hmacShaKeyFor(documentserverSecret.getBytes())).compact();
-        body.put("token", token);
-      }
+      Map<String, Object> claims = new LinkedHashMap<>();
+      claims.put("async", false);
+      claims.put("url", scriptUrl);
+      String token = documentServerTokens.sign(claims, DocumentServerOperation.DOCBUILDER);
+      JSONObject body = new JSONObject(claims);
+      body.put("token", token);
       byte[] postDataBytes = body.toString().getBytes(StandardCharsets.UTF_8);
 
       URL url = new URL(docbuilderUrl);
@@ -4206,9 +4197,7 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
       connection.setRequestMethod("POST");
       connection.setRequestProperty("Content-Type", "application/json; charset=UTF-8");
       connection.setRequestProperty("Content-Length", String.valueOf(postDataBytes.length));
-      if (token != null) {
-        connection.setRequestProperty("Authorization", "Bearer " + token);
-      }
+      connection.setRequestProperty(AUTHORIZATION_HEADER, BEARER_PREFIX + token);
       connection.setDoOutput(true);
       connection.setDoInput(true);
       try (OutputStream outputStream = connection.getOutputStream()) {

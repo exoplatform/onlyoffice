@@ -24,6 +24,7 @@ import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 
@@ -526,7 +527,7 @@ public class Config implements Externalizable {
                               .claim("document", document)
                               .claim("editorConfig", editor)
                               .claim("documentType", documentType)
-                              .signWith(Keys.hmacShaKeyFor(documentserverSecret.getBytes()))
+                              .signWith(Keys.hmacShaKeyFor(documentserverSecret.getBytes(StandardCharsets.UTF_8)))
                               .compact();
         config.setToken(jwtToken);
       }
@@ -1677,7 +1678,7 @@ public class Config implements Externalizable {
                             .claim("document", userDocument)
                             .claim("editorConfig", userEditor)
                             .claim("documentType", documentType)
-                            .signWith(Keys.hmacShaKeyFor(documentserverSecret.getBytes()))
+                            .signWith(Keys.hmacShaKeyFor(documentserverSecret.getBytes(StandardCharsets.UTF_8)))
                             .compact();
       config.setToken(jwtToken);
     }
