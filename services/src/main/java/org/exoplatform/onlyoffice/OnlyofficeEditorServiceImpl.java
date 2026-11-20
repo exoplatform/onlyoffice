@@ -174,6 +174,10 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
   /** The Constant UTF_8. */
   private static final String    UTF_8                    = "utf-8";
 
+  private static final String    AUTHORIZATION_HEADER     = "Authorization";
+
+  private static final String    BEARER_PREFIX            = "Bearer ";
+
   public static final String SPACE_APP_ID = "exosocial:spaces";
 
   /** The Constant RANDOM. */
@@ -1858,8 +1862,8 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
       claims.put("c", "forcesave");
       claims.put("key", key);
       claims.put("userdata", userdata.toJSON());
-      connection.setRequestProperty("Authorization",
-                                    "Bearer " + documentServerTokens.sign(claims, DocumentServerOperation.COMMAND));
+      connection.setRequestProperty(AUTHORIZATION_HEADER,
+                                    BEARER_PREFIX + documentServerTokens.sign(claims, DocumentServerOperation.COMMAND));
 
       try (OutputStream outputStream = connection.getOutputStream()) {
         outputStream.write(postDataBytes);
@@ -3983,8 +3987,8 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
         connection.setDoOutput(true);
         connection.setDoInput(true);
 
-        connection.setRequestProperty("Authorization",
-                                      "Bearer " + documentServerTokens.sign(claims, DocumentServerOperation.CONVERTER));
+        connection.setRequestProperty(AUTHORIZATION_HEADER,
+                                      BEARER_PREFIX + documentServerTokens.sign(claims, DocumentServerOperation.CONVERTER));
 
         try (OutputStream outputStream = connection.getOutputStream()) {
           outputStream.write(postDataBytes);
@@ -4193,7 +4197,7 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
       connection.setRequestMethod("POST");
       connection.setRequestProperty("Content-Type", "application/json; charset=UTF-8");
       connection.setRequestProperty("Content-Length", String.valueOf(postDataBytes.length));
-      connection.setRequestProperty("Authorization", "Bearer " + token);
+      connection.setRequestProperty(AUTHORIZATION_HEADER, BEARER_PREFIX + token);
       connection.setDoOutput(true);
       connection.setDoInput(true);
       try (OutputStream outputStream = connection.getOutputStream()) {

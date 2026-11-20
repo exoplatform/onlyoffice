@@ -61,7 +61,7 @@ public class DocumentServerTokens {
 
   private final String secretProblem;
 
-  private final Log log;
+  private final Log logger;
 
   /**
    * Reports a missing or too short secret as an ERROR, once.
@@ -73,7 +73,7 @@ public class DocumentServerTokens {
   }
 
   DocumentServerTokens(String secret, Log log) {
-    this.log = log;
+    this.logger = log;
     this.secretProblem = secretProblem(secret);
     this.signingKey = secretProblem == null ? Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8)) : null;
     if (secretProblem != null) {
@@ -153,13 +153,13 @@ public class DocumentServerTokens {
     JSONObject callback;
     try {
       callback = new JSONObject(body);
-    } catch (JSONException e) {
-      log.debug("Document Server callback refused for key {}: the body is not a JSON object", key);
+    } catch (JSONException _) {
+      logger.debug("Document Server callback refused for key {}: the body is not a JSON object", key);
       return false;
     }
     callback.remove(TOKEN_FIELD);
     if (!new JSONObject(payload).similar(callback)) {
-      log.debug("Document Server callback refused for key {}: the body differs from the signed payload", key);
+      logger.debug("Document Server callback refused for key {}: the body differs from the signed payload", key);
       return false;
     }
     return true;
@@ -177,11 +177,11 @@ public class DocumentServerTokens {
     try {
       claims = Jwts.parser().verifyWith(signingKey).build().parseSignedClaims(token).getPayload();
     } catch (RuntimeException e) {
-      log.debug("Document Server token refused for key {}: {}", key, e.getMessage());
+      logger.debug("Document Server token refused for key {}: {}", key, e.getMessage());
       return null;
     }
     if (!expected.getClaimValue().equals(claims.get(DocumentServerOperation.CLAIM))) {
-      log.debug("Document Server token refused for key {}: operation {} where {} is expected",
+      logger.debug("Document Server token refused for key {}: operation {} where {} is expected",
                 key,
                 claims.get(DocumentServerOperation.CLAIM),
                 expected.getClaimValue());
