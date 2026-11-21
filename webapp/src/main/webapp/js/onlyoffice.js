@@ -1152,9 +1152,7 @@
         var newDrivePath = spaceNameWithoutAccent.replace(/\ /g, '_').toLowerCase();
         var pathDocument = config.path.split(newDrivePath + '/')[1];
         pathDocument = pathDocument.substring(0, pathDocument.lastIndexOf('/'))
-        var pathDocumentWithIcon = pathDocument.replace(/\//g, function() {
-          return "<i class='uiIconArrowRight'></i>";
-        });
+        var pathFolders = pathDocument.split('/');
         var $avatarSpaceElem = $bar.find(".spaceAvatar img");
         $avatarSpaceElem.attr("src", "/rest/v1/social/spaces/" + newDrivePath + "/avatar");
         var $tooltipSpaceElem = $bar.find(".spaceAvatar img");
@@ -1164,9 +1162,7 @@
         var folders = config.editorPage.displayPath.split(':')[1].split('/');
         var title = folders.pop();
         var path = config.editorPage.displayPath.split('/')[0];
-        var pathDocumentWithIcon = path.replace(/\//g, function() {
-          return "<i class='uiIconArrowRight'></i>";
-        });
+        var pathFolders = path.split('/');
         var $avatarSpaceElem = $bar.find(".spaceAvatar img");
         $avatarSpaceElem.attr("src", "/rest/v1/social/users/" + config.editorConfig.user.id + "/avatar");
         var $tooltipSpaceElem = $bar.find(".spaceAvatar img");
@@ -1191,10 +1187,18 @@
         $bar.find("a[rel=tooltip]").not(".document-title a[rel=tooltip]").tooltip();
       }
       var $pathElem = $bar.find(".document-path");
-      $pathElem.append("<span class='folder'>" + pathDocumentWithIcon + "</span>" + " <i class='uiIconArrowRight'></i> ");
+      // folder and document names are shown as text, each folder followed by an arrow
+      var $folderElem = $("<span class='folder'></span>");
+      pathFolders.forEach(function(folder, index) {
+        if (index > 0) {
+          $folderElem.append("<i class='uiIconArrowRight'></i>");
+        }
+        $folderElem.append(document.createTextNode(folder));
+      });
+      $pathElem.append($folderElem).append(" <i class='uiIconArrowRight'></i> ");
 
       var $titleElem = $bar.find(".document-title a");
-      $titleElem.append("<span class='editable-title'>" + title + " " + "<i class='uiIconPencilEdit'></i> </span>");
+      $titleElem.append($("<span class='editable-title'></span>").text(title + " ").append("<i class='uiIconPencilEdit'></i> "));
       $titleElem.attr("data-original-title", message('TitleTooltip'));
 
       $("#editor-drawer").ready(function() {
