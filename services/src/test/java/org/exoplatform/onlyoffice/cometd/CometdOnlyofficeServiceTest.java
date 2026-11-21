@@ -60,6 +60,7 @@ import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.mortbay.cometd.continuation.EXoContinuationBayeux;
 
+import org.exoplatform.onlyoffice.ChangeState;
 import org.exoplatform.onlyoffice.Config;
 import org.exoplatform.onlyoffice.DocumentStatus;
 import org.exoplatform.onlyoffice.OnlyofficeEditorException;
@@ -326,6 +327,35 @@ public class CometdOnlyofficeServiceTest {
     // the change event records the sender as the key's last modifier, the link event saves the key
     verify(editors).setLastModifier("key1", "john");
     verify(editors).forceSave("john", "key1", false, false, false, null);
+  }
+
+  /**
+   * A closed editor of the document still counts: the close event of an
+   * editor that already closed saves the last modifier's changes.
+   */
+  @Test
+  public void testCloseEventOfAClosedEditorOfTheDocumentSavesTheChanges() throws Exception {
+    when(exoBayeux.isSubscribed("john", john.getServerSession().getId())).thenReturn(true);
+    Config closed = mock(Config.class);
+    when(closed.getDocId()).thenReturn(DOC_ID);
+    when(closed.isClosed()).thenReturn(true);
+    when(closed.isOpen()).thenReturn(false);
+    when(editors.getEditorByKey("john", "key1")).thenReturn(closed);
+    Config.Editor.User lastUser = mock(Config.Editor.User.class);
+    when(lastUser.getId()).thenReturn("mary");
+    when(lastUser.getLinkSaved()).thenReturn(0L);
+    when(lastUser.getLastModified()).thenReturn(1L);
+    when(editors.getLastModifier("key1")).thenReturn(lastUser);
+    ChangeState state = mock(ChangeState.class);
+    when(state.getUsers()).thenReturn(new String[] { "john", "mary" });
+    when(editors.getState("john", "key1")).thenReturn(state);
+
+    Map<String, Object> event = keyEvent(CometdOnlyofficeService.EDITOR_CLOSED_EVENT, "key1");
+    event.put("changes", Boolean.TRUE);
+    john.getChannel(CHANNEL).publish(event);
+    runSubmittedCommands(1);
+
+    verify(editors).forceSave("mary", "key1", true, false, false, null);
   }
 
   /**

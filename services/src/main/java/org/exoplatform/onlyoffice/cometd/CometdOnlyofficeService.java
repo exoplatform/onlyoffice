@@ -557,7 +557,9 @@ public class CometdOnlyofficeService implements Startable {
     }
 
     /**
-     * Tells whether the user holds an editor of the document on the key.
+     * Tells whether the user holds an editor of the document on the key. An
+     * editor that closed still counts, so that its close event saves the
+     * last changes.
      *
      * @param key the editing key the event names
      * @param userId the user of the event
