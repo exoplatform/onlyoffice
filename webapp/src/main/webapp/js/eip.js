@@ -71,12 +71,14 @@ $.fn.editable = function (options) {
         const wrapper = `
             <input type="text" style="display:none"/>
             <div class="form-group" style="margin: 0px;">
-                <input type="${type}" class="form-control eip-editable input-sm" value="${documentTitle}"/>
+                <input type="${type}" class="form-control eip-editable input-sm"/>
             </div>
         `;
 
         setParent(parent, wrapper, width);
         const input = parent.querySelector('.eip-editable');
+        // the title is set as the field's value, never written into its markup
+        input.value = documentTitle;
         input.style.width = '250px';
         input.style.margin = "0px";
         input.style.paddint = "1px";
