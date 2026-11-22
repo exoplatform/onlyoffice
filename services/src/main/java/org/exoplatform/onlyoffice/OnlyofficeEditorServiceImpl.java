@@ -20,6 +20,7 @@ package org.exoplatform.onlyoffice;
 
 import java.io.BufferedInputStream;
 import java.io.ByteArrayInputStream;
+import java.io.FilterInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -1009,6 +1010,7 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
         // the end
         ConversationState contextState = ConversationState.getCurrent();
         SessionProvider contextProvider = sessionProviders.getSessionProvider(null);
+        boolean handedOver = false;
         try {
           // We all the job under actual (requester) user here
           if (!setUserConvoState(userId)) {
@@ -1028,7 +1030,22 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
           Node content = nodeContent(node);
           final String mimeType = content.getProperty("jcr:mimeType").getString();
           // data stream will be closed when EoF will be reached
-          final InputStream data = new AutoCloseInputStream(content.getProperty("jcr:data").getStream());
+          // the stream reads from the user's JCR session: that session's provider
+          // stays open until the stream is closed (EoF included) and is closed
+          // with it
+          final SessionProvider userProvider = sessionProviders.getSessionProvider(null);
+          final InputStream data = new AutoCloseInputStream(new FilterInputStream(content.getProperty("jcr:data")
+                                                                                         .getStream()) {
+            @Override
+            public void close() throws IOException {
+              try {
+                super.close();
+              } finally {
+                userProvider.close();
+              }
+            }
+          });
+          handedOver = true;
 
           return new DocumentContent() {
             @Override
@@ -1042,7 +1059,11 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
             }
           };
         } finally {
-          restoreConvoState(contextState, contextProvider);
+          if (handedOver) {
+            detachConvoState(contextState, contextProvider);
+          } else {
+            restoreConvoState(contextState, contextProvider);
+          }
         }
       } else {
         throw new BadParameterException("User editor not found or already closed " + userId);
@@ -3558,14 +3579,34 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
   }
 
   /**
-   * Restores the conversation state.
+   * Restores the conversation state. Closes the user provider found in the
+   * thread's slot when it is not the caller's.
    * 
    * @param contextState the contextState
    * @param contextProvider the contextProvider
    */
   protected void restoreConvoState(ConversationState contextState, SessionProvider contextProvider) {
+    SessionProvider userProvider = detachConvoState(contextState, contextProvider);
+    if (userProvider != null) {
+      userProvider.close();
+    }
+  }
+
+  /**
+   * Restores the conversation state and the caller's session provider without
+   * closing the user provider {@link #setUserConvoState(String)} created: the
+   * caller that still reads from its sessions closes it itself.
+   *
+   * @param contextState the contextState
+   * @param contextProvider the contextProvider
+   * @return the user provider that was in the thread's slot and is not the
+   *         caller's, or null when none
+   */
+  protected SessionProvider detachConvoState(ConversationState contextState, SessionProvider contextProvider) {
+    SessionProvider userProvider = sessionProviders.getSessionProvider(null);
     ConversationState.setCurrent(contextState);
     sessionProviders.setSessionProvider(null, contextProvider);
+    return userProvider == contextProvider ? null : userProvider;
   }
 
   /**
