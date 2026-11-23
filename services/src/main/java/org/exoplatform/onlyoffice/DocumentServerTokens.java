@@ -76,7 +76,7 @@ public class DocumentServerTokens {
   DocumentServerTokens(String secret, Log log) {
     this.logger = log;
     this.secretProblem = secretProblem(secret);
-    this.signingKey = secretProblem == null ? Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8)) : null;
+    this.signingKey = signingKey(secret);
     if (secretProblem != null) {
       log.error("ONLYOFFICE Document Server misconfigured: {}", secretProblem);
     }
@@ -211,6 +211,15 @@ public class DocumentServerTokens {
     return claims.get(PAYLOAD_CLAIM) instanceof Map<?, ?> payload ? payload : null;
   }
 
+
+  /**
+   * @param secret the secret shared with the Document Server, may be null
+   * @return the key tokens are signed with, or null when the secret is missing
+   *         or too short ({@link #secretProblem(String)})
+   */
+  static SecretKey signingKey(String secret) {
+    return secretProblem(secret) == null ? Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8)) : null;
+  }
 
   static String secretProblem(String secret) {
     if (secret == null || secret.trim().isEmpty()) {

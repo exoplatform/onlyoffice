@@ -213,6 +213,7 @@
             <include>**/**/CometdUpdatedOutsideEventTest.java</include>
             <include>**/**/DocumentServerTokensTest.java</include>
             <include>**/**/DocumentServerRequestsTest.java</include>
+            <include>**/**/ConfigTokenTest.java</include>
           </includes>
         </configuration>
       </plugin>
