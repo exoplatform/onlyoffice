@@ -26,6 +26,7 @@ import javax.jcr.RepositoryException;
 
 import org.exoplatform.container.component.ComponentPlugin;
 import org.exoplatform.onlyoffice.Config.Editor;
+import org.exoplatform.onlyoffice.constant.DocumentServerOperation;
 import org.exoplatform.services.organization.User;
 
 /**
@@ -361,13 +362,43 @@ public interface OnlyofficeEditorService {
   Editor.User getUser(String key, String userId);
 
   /**
-   * Validates the JWT token received from the document server.
+   * Validates the JWT token received from the document server as a download
+   * token.
    * 
    * @param token the token
    * @param key the document key
    * @return true, if the token is correct, false otherwise
    */
+  /* @deprecated use validateToken(String, String, DocumentServerOperation), which checks the token's purpose; since 7.3.x, for removal */
+  @Deprecated(forRemoval = true)
   boolean validateToken(String token, String key);
+
+  /**
+   * Validates a JWT token received from the document server on an endpoint of
+   * the given purpose. A token without a usable secret, unsigned, expired, of
+   * another purpose or for another document key is refused.
+   *
+   * @param token the token, may be null
+   * @param key the document key the endpoint was called for
+   * @param operation the purpose of the endpoint,
+   *          {@link DocumentServerOperation#DOWNLOAD} for a file fetch. This
+   *          checks the token only: a callback, whose body is acted on, is
+   *          validated by {@link #validateCallback(String, String, String)}
+   * @return true, if the token is valid for that purpose and key
+   */
+  boolean validateToken(String token, String key, DocumentServerOperation operation);
+
+  /**
+   * Validates a save or status callback received from the document server:
+   * a callback token for the document key whose signed payload is the
+   * callback body.
+   *
+   * @param token the token of the Authorization header, may be null
+   * @param key the document key the endpoint was called for
+   * @param body the callback body
+   * @return true, if the callback can be acted on
+   */
+  boolean validateCallback(String token, String key, String body);
 
   /**
    * Updates title of a document.

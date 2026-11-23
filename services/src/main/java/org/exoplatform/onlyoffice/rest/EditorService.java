@@ -60,6 +60,7 @@ import org.exoplatform.onlyoffice.OnlyofficeEditorException;
 import org.exoplatform.onlyoffice.OnlyofficeEditorService;
 import org.exoplatform.onlyoffice.Userdata;
 import org.exoplatform.onlyoffice.Version;
+import org.exoplatform.onlyoffice.constant.DocumentServerOperation;
 import org.exoplatform.services.log.ExoLogger;
 import org.exoplatform.services.log.Log;
 import org.exoplatform.services.rest.resource.ResourceContainer;
@@ -199,8 +200,7 @@ public class EditorService implements ResourceContainer {
     String clientIp = getClientIpAddr(request);
 
     if (LOG.isDebugEnabled()) {
-      LOG.debug("> Onlyoffice document status: " + userId + "@" + key + " " + statusText + " from " + clientHost + "(" + clientIp
-          + ")");
+      LOG.debug("> Onlyoffice document status: {}@{} from {}({})", userId, key, clientHost, clientIp);
     }
 
     EditorResponse resp = new EditorResponse();
@@ -230,7 +230,7 @@ public class EditorService implements ResourceContainer {
 
         if (key != null && key.length() > 0) {
           if (userId != null && userId.length() > 0) {
-            if (editors.validateToken(token, key)) {
+            if (editors.validateCallback(token, key, statusText)) {
               DocumentStatus.Builder statusBuilder = new DocumentStatus.Builder();
               statusBuilder.key(statusKey != null && statusKey.length() > 0 ? statusKey : key)
                            .status(statusCode)
@@ -282,7 +282,7 @@ public class EditorService implements ResourceContainer {
           resp.status(Status.BAD_REQUEST).error("Null or empty file key.");
         }
       } catch (ParseException | IOException e) {
-        LOG.warn("JSON parse error while handling status for " + key + ". JSON: " + statusText, e);
+        LOG.warn("JSON parse error while handling status for {}: {}", key, e.getMessage());
         resp.error("JSON parse error: " + e.getMessage()).status(Status.BAD_REQUEST);
       }
     } else {
@@ -328,7 +328,7 @@ public class EditorService implements ResourceContainer {
           // signed token is carried as a query parameter for those fetches.
           token = uriInfo.getQueryParameters().getFirst("token");
         }
-        if (editors.validateToken(token, key)) {
+        if (editors.validateToken(token, key, DocumentServerOperation.DOWNLOAD)) {
           try {
             if (userId != null && userId.length() > 0) {
               DocumentContent content = editors.getContent(userId, key);

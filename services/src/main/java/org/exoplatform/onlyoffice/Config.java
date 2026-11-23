@@ -27,6 +27,8 @@ import java.net.URISyntaxException;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 
+import javax.crypto.SecretKey;
+
 import org.exoplatform.onlyoffice.Config.Document.Info;
 import org.exoplatform.services.log.ExoLogger;
 import org.exoplatform.services.log.Log;
@@ -34,7 +36,6 @@ import org.exoplatform.ws.frameworks.json.impl.JsonException;
 import org.exoplatform.ws.frameworks.json.impl.JsonGeneratorImpl;
 
 import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.security.Keys;
 
 /**
  * Onlyoffice editor config for its JS API. <br>
@@ -520,13 +521,14 @@ public class Config implements Externalizable {
                                  docId,
                                  document,
                                  editor);
-      if (documentserverSecret != null && !documentserverSecret.trim().isEmpty()) {
+      SecretKey signingKey = DocumentServerTokens.signingKey(documentserverSecret);
+      if (signingKey != null) {
         String jwtToken = Jwts.builder()
                               .setSubject("exo-onlyoffice")
                               .claim("document", document)
                               .claim("editorConfig", editor)
                               .claim("documentType", documentType)
-                              .signWith(Keys.hmacShaKeyFor(documentserverSecret.getBytes()))
+                              .signWith(signingKey)
                               .compact();
         config.setToken(jwtToken);
       }
@@ -1671,13 +1673,14 @@ public class Config implements Externalizable {
                                docId,
                                userDocument,
                                userEditor);
-    if (documentserverSecret != null && !documentserverSecret.trim().isEmpty()) {
+    SecretKey signingKey = DocumentServerTokens.signingKey(documentserverSecret);
+    if (signingKey != null) {
       String jwtToken = Jwts.builder()
                             .setSubject("exo-onlyoffice")
                             .claim("document", userDocument)
                             .claim("editorConfig", userEditor)
                             .claim("documentType", documentType)
-                            .signWith(Keys.hmacShaKeyFor(documentserverSecret.getBytes()))
+                            .signWith(signingKey)
                             .compact();
       config.setToken(jwtToken);
     }

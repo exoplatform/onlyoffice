@@ -2,12 +2,14 @@ package org.exoplatform.onlyoffice;
 
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 
 import javax.ws.rs.core.MultivaluedMap;
 
 import org.apache.commons.io.IOUtils;
+import org.json.JSONObject;
 import org.junit.Test;
 
 import org.exoplatform.container.ExoContainer;
@@ -75,7 +77,7 @@ public class EditorServiceTest extends AbstractResourceTest {
           key = createTestDocument(USER, "abc.docx", "Testing Content");
           contentPayload.put("key", key);
           statusPayload.put("key", key);
-          statusPayload.put("satus", 1);
+          statusPayload.put("status", 1);
           statusPayload.put("url", "localhost");
           statusPayload.put("error", 0);
           statusPayloadJson = "{ \"key\": \"" + key + "\", \"status\": 1, \"url\": \"localhost\", \"error\": 0 }";
@@ -97,11 +99,9 @@ public class EditorServiceTest extends AbstractResourceTest {
    */
   @Test
   public void testContent() throws Exception {
-    String token = Jwts.builder()
-                       .setSubject("exo-onlyoffice")
-                       .claim("payload", contentPayload)
-                       .signWith(Keys.hmacShaKeyFor(SECRET_KEY.getBytes()))
-                       .compact();
+    String token = DocumentServerFixture.load(DocumentServerFixture.DOWNLOAD_DOCUMENT)
+                                        .downloadToken("http://127.0.0.1:8080/rest" + RESOURCE_URL + "/content/" + USER + "/" + key,
+                                                       SECRET_KEY);
 
     MultivaluedMap<String, String> headers = new MultivaluedMapImpl();
     headers.putSingle("authorization", "Bearer " + token);
@@ -122,7 +122,9 @@ public class EditorServiceTest extends AbstractResourceTest {
   public void testContentWrongToken() throws Exception {
     String token = Jwts.builder()
                        .setSubject("exo-onlyoffice")
+                       .expiration(inFiveMinutes())
                        .claim("payload", contentPayload)
+                       .claim("operation", "download")
                        .signWith(Keys.hmacShaKeyFor(WRONG_SECRET_KEY.getBytes()))
                        .compact();
 
@@ -156,11 +158,10 @@ public class EditorServiceTest extends AbstractResourceTest {
    */
   @Test
   public void testStatus() throws Exception {
-    String token = Jwts.builder()
-                       .setSubject("exo-onlyoffice")
-                       .claim("payload", statusPayload)
-                       .signWith(Keys.hmacShaKeyFor(SECRET_KEY.getBytes()))
-                       .compact();
+    DocumentServerFixture callback = DocumentServerFixture.load(DocumentServerFixture.CALLBACK_EDITING);
+
+    String token = callback.callbackToken(key, USER, SECRET_KEY);
+    String body = callback.callbackBodyAsSent(key, USER, SECRET_KEY);
 
     MultivaluedMap<String, String> headers = new MultivaluedMapImpl();
     headers.putSingle("authorization", "Bearer " + token);
@@ -168,7 +169,7 @@ public class EditorServiceTest extends AbstractResourceTest {
                                          RESOURCE_URL + "/status/" + USER + "/" + key,
                                          "",
                                          headers,
-                                         statusPayloadJson.getBytes());
+                                         body.getBytes(StandardCharsets.UTF_8));
 
     assertNotNull(response);
     assertEquals(200, response.getStatus());
@@ -184,7 +185,9 @@ public class EditorServiceTest extends AbstractResourceTest {
   public void testStatusWrongToken() throws Exception {
     String token = Jwts.builder()
                        .setSubject("exo-onlyoffice")
+                       .expiration(inFiveMinutes())
                        .claim("payload", statusPayload)
+                       .claim("operation", "callback")
                        .signWith(Keys.hmacShaKeyFor(WRONG_SECRET_KEY.getBytes()))
                        .compact();
 
@@ -211,6 +214,147 @@ public class EditorServiceTest extends AbstractResourceTest {
                                          RESOURCE_URL + "/status/" + USER + "/" + key,
                                          "",
                                          null,
+                                         statusPayloadJson.getBytes());
+    assertNotNull(response);
+    assertEquals(401, response.getStatus());
+    assertEquals("{\"error\":\"The token is not valid\"}", response.getEntity());
+  }
+
+  /**
+   * A save callback token is not a download token: the content endpoint
+   * refuses it although it is signed, unexpired and names the document's key.
+   *
+   * @throws Exception the exception
+   */
+  @Test
+  public void testContentRefusesACallbackToken() throws Exception {
+    String token = Jwts.builder()
+                       .setSubject("exo-onlyoffice")
+                       .expiration(inFiveMinutes())
+                       .claim("payload", contentPayload)
+                       .claim("operation", "callback")
+                       .signWith(Keys.hmacShaKeyFor(SECRET_KEY.getBytes()))
+                       .compact();
+
+    MultivaluedMap<String, String> headers = new MultivaluedMapImpl();
+    headers.putSingle("authorization", "Bearer " + token);
+    ContainerResponse response = service("GET", RESOURCE_URL + "/content/" + USER + "/" + key, "", headers, null);
+
+    assertNotNull(response);
+    assertEquals(401, response.getStatus());
+    assertEquals("{\"error\":\"The token is not valid\"}", response.getEntity());
+  }
+
+  /**
+   * A download token cannot trigger a save: the status endpoint refuses it
+   * although it is signed, unexpired and names the document's key.
+   *
+   * @throws Exception the exception
+   */
+  @Test
+  public void testStatusRefusesADownloadToken() throws Exception {
+    String token = Jwts.builder()
+                       .setSubject("exo-onlyoffice")
+                       .expiration(inFiveMinutes())
+                       .claim("payload", statusPayload)
+                       .claim("operation", "download")
+                       .signWith(Keys.hmacShaKeyFor(SECRET_KEY.getBytes()))
+                       .compact();
+
+    assertStatusRefused(token);
+  }
+
+  /**
+   * A token without a purpose, as ONLYOFFICE Docs 9.x signed its callbacks, is
+   * refused although it is signed and unexpired.
+   *
+   * @throws Exception the exception
+   */
+  @Test
+  public void testStatusRefusesATokenWithoutPurpose() throws Exception {
+    String token = Jwts.builder()
+                       .setSubject("exo-onlyoffice")
+                       .expiration(inFiveMinutes())
+                       .claim("payload", statusPayload)
+                       .signWith(Keys.hmacShaKeyFor(SECRET_KEY.getBytes()))
+                       .compact();
+
+    assertStatusRefused(token);
+  }
+
+  /**
+   * The save callbacks ONLYOFFICE Docs 10.0 sent (status 6, force-save; status
+   * 2, closed after a change), posted as sent, pass the token and body check
+   * of the status endpoint and reach the document update, which finds their
+   * editor and user. Their saved file is not reachable from the test: the
+   * download, which logs its failure, is not asserted.
+   *
+   * @throws Exception the exception
+   */
+  @Test
+  public void testStatusAcceptsTheCapturedSaves() throws Exception {
+    for (String fixture : new String[] { DocumentServerFixture.CALLBACK_FORCESAVED, DocumentServerFixture.CALLBACK_SAVED }) {
+      DocumentServerFixture callback = DocumentServerFixture.load(fixture);
+      MultivaluedMap<String, String> headers = new MultivaluedMapImpl();
+      headers.putSingle("authorization", "Bearer " + callback.callbackToken(key, USER, SECRET_KEY));
+      ContainerResponse response = service("POST",
+                                           RESOURCE_URL + "/status/" + USER + "/" + key,
+                                           "",
+                                           headers,
+                                           callback.callbackBodyAsSent(key, USER, SECRET_KEY).getBytes(StandardCharsets.UTF_8));
+
+      assertNotNull(response);
+      assertEquals(fixture, 200, response.getStatus());
+      assertEquals(fixture, "{\"error\": 0}", response.getEntity());
+    }
+  }
+
+  /**
+   * A valid callback token for this document does not let its holder post
+   * another callback: a body that is not the signed payload is refused.
+   *
+   * @throws Exception the exception
+   */
+  @Test
+  public void testStatusRefusesABodyOtherThanTheSignedOne() throws Exception {
+    DocumentServerFixture callback = DocumentServerFixture.load(DocumentServerFixture.CALLBACK_EDITING);
+    String token = callback.callbackToken(key, USER, SECRET_KEY);
+    String otherKey = new JSONObject(callback.callbackBody(key, USER)).put("key", "another-document-key").toString();
+    String otherUrl = new JSONObject(callback.callbackBody(key, USER))
+                                                                               .put("status", 2)
+                                                                               .put("url", "http://127.0.0.1:1/other.docx")
+                                                                               .toString();
+
+    for (String body : new String[] { otherKey, otherUrl }) {
+      MultivaluedMap<String, String> headers = new MultivaluedMapImpl();
+      headers.putSingle("authorization", "Bearer " + token);
+      ContainerResponse response = service("POST",
+                                           RESOURCE_URL + "/status/" + USER + "/" + key,
+                                           "",
+                                           headers,
+                                           body.getBytes(StandardCharsets.UTF_8));
+      assertNotNull(response);
+      assertEquals(body, 401, response.getStatus());
+      assertEquals("{\"error\":\"The token is not valid\"}", response.getEntity());
+    }
+  }
+
+  /**
+   * @return an expiry five minutes ahead, as ONLYOFFICE Docs 10.0 sets it
+   *         ({@code iat} + 300 s), so that a refusal is not caused by a missing or
+   *         past expiry
+   */
+  private static Date inFiveMinutes() {
+    return new Date(System.currentTimeMillis() + 300_000);
+  }
+
+  private void assertStatusRefused(String token) throws Exception {
+    MultivaluedMap<String, String> headers = new MultivaluedMapImpl();
+    headers.putSingle("authorization", "Bearer " + token);
+    ContainerResponse response = service("POST",
+                                         RESOURCE_URL + "/status/" + USER + "/" + key,
+                                         "",
+                                         headers,
                                          statusPayloadJson.getBytes());
     assertNotNull(response);
     assertEquals(401, response.getStatus());
