@@ -4,6 +4,7 @@ import static org.mockito.ArgumentMatchers.any;
 
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -1740,6 +1741,7 @@ public class OnlyofficeEditorServiceTest extends BaseCommonsTestCase {
                .setSubject("exo-onlyoffice")
                .claim("payload", payload)
                .claim("operation", operation)
+               .expiration(new Date(System.currentTimeMillis() + 300_000))
                .signWith(Keys.hmacShaKeyFor(secret.getBytes()))
                .compact();
   }

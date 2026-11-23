@@ -17,6 +17,7 @@
 package org.exoplatform.onlyoffice;
 
 import java.nio.charset.StandardCharsets;
+import java.util.Date;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -97,12 +98,26 @@ public class DocumentServerTokens {
    * @throws IllegalStateException when the secret is missing or too short
    */
   public String sign(Map<String, ?> claims, DocumentServerOperation operation) {
+    return sign(claims, operation, null);
+  }
+
+  /**
+   * Signs a token that expires, for a URL the addon hands out and validates
+   * itself.
+   *
+   * @param claims the claims of the request, left unchanged
+   * @param operation the service the token is for
+   * @param expiresAt when the token expires, none when null
+   * @return the signed token
+   * @throws IllegalStateException when the secret is missing or too short
+   */
+  public String sign(Map<String, ?> claims, DocumentServerOperation operation, Date expiresAt) {
     if (signingKey == null) {
       throw new IllegalStateException("Cannot sign a request to the Document Server: " + secretProblem);
     }
     Map<String, Object> signed = new LinkedHashMap<>(claims);
     signed.put(DocumentServerOperation.CLAIM, operation.getClaimValue());
-    return Jwts.builder().claims(signed).signWith(signingKey).compact();
+    return Jwts.builder().claims(signed).expiration(expiresAt).signWith(signingKey).compact();
   }
 
   /**
@@ -114,8 +129,8 @@ public class DocumentServerTokens {
    *          for a file fetch. This checks the token only: a callback, whose
    *          body the addon acts on, is validated by
    *          {@link #validateCallback(String, String, String)}
-   * @return true when the token is signed with the secret, unexpired, carries
-   *         the expected purpose and is for that key: for a callback its
+   * @return true when the token is signed with the secret, carries an expiry
+   *         not yet reached and the expected purpose, and is for that key: for a callback its
    *         {@code payload.key} equals the key; for a download its
    *         {@code payload.key} equals the key or its {@code payload.url} ends
    *         with it
@@ -168,7 +183,8 @@ public class DocumentServerTokens {
 
   /**
    * @return the token's payload when the token is signed with the secret,
-   *         unexpired and carries the expected purpose; null otherwise
+   *         carries an expiry not yet reached and the expected purpose; null
+   *         otherwise
    */
   private Map<?, ?> payload(String token, String key, DocumentServerOperation expected) {
     if (signingKey == null || token == null || key == null) {
@@ -179,6 +195,10 @@ public class DocumentServerTokens {
       claims = Jwts.parser().verifyWith(signingKey).build().parseSignedClaims(token).getPayload();
     } catch (RuntimeException e) {
       logger.debug("Document Server token refused for key {}: {}", key, e.getMessage());
+      return null;
+    }
+    if (claims.getExpiration() == null) {
+      logger.debug("Document Server token refused for key {}: it has no expiry", key);
       return null;
     }
     if (!expected.getClaimValue().equals(claims.get(DocumentServerOperation.CLAIM))) {

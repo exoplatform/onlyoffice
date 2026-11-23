@@ -304,6 +304,37 @@ public class DocumentServerTokensTest {
   }
 
   /**
+   * A token without {@code exp} is refused, though signed, for its purpose and
+   * its key: ONLYOFFICE Docs 10.0 sets one on every token it signs.
+   */
+  @Test
+  public void testATokenWithoutExpiryIsRefused() {
+    Map<String, Object> payload = callbackPayload(DOC_KEY);
+    String callback = Jwts.builder().claim("payload", payload).claim("operation", "callback").signWith(KEY).compact();
+    String download = Jwts.builder().claim("payload", Map.of("key", DOC_KEY)).claim("operation", "download").signWith(KEY).compact();
+
+    assertFalse(tokens.validateCallback(callback, DOC_KEY, new JSONObject(payload).toString()));
+    assertFalse(tokens.validate(download, DOC_KEY, DocumentServerOperation.DOWNLOAD));
+    assertTrue(tokens.validate(documentServerToken(Map.of("key", DOC_KEY), "download"), DOC_KEY, DocumentServerOperation.DOWNLOAD));
+  }
+
+  /**
+   * A token signed with an expiry carries it, and is refused once it passed.
+   */
+  @Test
+  public void testATokenSignedWithAnExpiryCarriesIt() {
+    Date expiresAt = new Date((System.currentTimeMillis() / 1000 + 120) * 1000);
+    String token = tokens.sign(Map.of("payload", Map.of("key", DOC_KEY)), DocumentServerOperation.DOWNLOAD, expiresAt);
+
+    assertEquals(expiresAt, Jwts.parser().verifyWith(KEY).build().parseSignedClaims(token).getPayload().getExpiration());
+    assertTrue(tokens.validate(token, DOC_KEY, DocumentServerOperation.DOWNLOAD));
+    String expired = tokens.sign(Map.of("payload", Map.of("key", DOC_KEY)),
+                                 DocumentServerOperation.DOWNLOAD,
+                                 new Date(System.currentTimeMillis() - 60_000));
+    assertFalse(tokens.validate(expired, DOC_KEY, DocumentServerOperation.DOWNLOAD));
+  }
+
+  /**
    * A field the Document Server signs as {@code null}, at the root or nested,
    * is accepted when the body carries the same {@code null}; the body must
    * still equal the signed payload.

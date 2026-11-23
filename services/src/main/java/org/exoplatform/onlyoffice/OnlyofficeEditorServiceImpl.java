@@ -41,6 +41,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
@@ -4069,7 +4070,7 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
           String key = stageDocBuilderAsset(data, mimeForAsset(name), expiresAt);
           stagedKeys.add(key);
           String cleanUrl = docBuilderAssetUrl(base, rest, uid, key);
-          String assetUrl = cleanUrl + "?token=" + signKeyToken(key);
+          String assetUrl = cleanUrl + "?token=" + signKeyToken(key, expiresAt);
           resolvedScript = resolvedScript.replace("@@ASSET:" + name + "@@", assetUrl);
         }
       }
@@ -4147,10 +4148,13 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
   /**
    * Signs a download token whose {@code payload.key} claim equals the given
    * key, so {@link #validateToken(String, String, DocumentServerOperation)}
-   * accepts it as a {@link DocumentServerOperation#DOWNLOAD} of that key.
+   * accepts it as a {@link DocumentServerOperation#DOWNLOAD} of that key until
+   * the staged asset expires.
    */
-  private String signKeyToken(String key) {
-    return documentServerTokens.sign(Map.of("payload", Map.of("key", key)), DocumentServerOperation.DOWNLOAD);
+  private String signKeyToken(String key, long expiresAt) {
+    return documentServerTokens.sign(Map.of("payload", Map.of("key", key)),
+                                     DocumentServerOperation.DOWNLOAD,
+                                     new Date(expiresAt));
   }
 
   private static String mimeForAsset(String name) {

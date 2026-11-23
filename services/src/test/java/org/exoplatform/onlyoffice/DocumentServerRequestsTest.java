@@ -19,10 +19,10 @@ package org.exoplatform.onlyoffice;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.CALLS_REAL_METHODS;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
@@ -34,6 +34,7 @@ import java.io.IOException;
 import java.lang.reflect.Field;
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -191,13 +192,18 @@ public class DocumentServerRequestsTest {
       service.runDocBuilderScript("builder.OpenFile(\"@@ASSET:in.docx@@\");", Map.of("in.docx", OUTPUT), "docx", "out.docx", "john");
 
       ArgumentCaptor<byte[]> staged = ArgumentCaptor.forClass(byte[].class);
-      verify(service, times(2)).stageDocBuilderAsset(staged.capture(), any(), anyLong());
+      ArgumentCaptor<Long> expiresAt = ArgumentCaptor.forClass(Long.class);
+      verify(service, times(2)).stageDocBuilderAsset(staged.capture(), any(), expiresAt.capture());
       String script = new String(staged.getAllValues().get(1), StandardCharsets.UTF_8);
       Matcher assetUrl = Pattern.compile("/content/john/([^?\"]+)\\?token=([^\"]+)").matcher(script);
       assertTrue(assetUrl.find(), script);
       DocumentServerTokens tokens = new DocumentServerTokens(SECRET);
       assertTrue(tokens.validate(assetUrl.group(2), assetUrl.group(1), DocumentServerOperation.DOWNLOAD));
       assertFalse(tokens.validate(assetUrl.group(2), assetUrl.group(1), DocumentServerOperation.CALLBACK));
+      // the token expires with the staged asset
+      Date tokenExpiry = Jwts.parser().verifyWith(KEY).build().parseSignedClaims(assetUrl.group(2)).getPayload().getExpiration();
+      assertNotNull(tokenExpiry);
+      assertEquals(expiresAt.getAllValues().get(0) / 1000, tokenExpiry.getTime() / 1000);
     } finally {
       if (platformUrl == null) {
         System.clearProperty("exo.base.url");
