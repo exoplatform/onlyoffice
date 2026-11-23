@@ -327,6 +327,8 @@ public class CometdOnlyofficeServiceTest {
     // the change event records the sender as the key's last modifier, the link event saves the key
     verify(editors).setLastModifier("key1", "john");
     verify(editors).forceSave("john", "key1", false, false, false, null);
+    // each of the change, version, user saved and editor closed handlers reads the key's last modifier once
+    verify(editors, times(4)).getLastModifier("key1");
   }
 
   /**
