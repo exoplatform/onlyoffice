@@ -144,7 +144,9 @@ public class Config implements Externalizable {
     protected String       userId, name;
     
     protected boolean      canAccessDocumentLocation;
-  
+
+    protected boolean      fromRecycleBin;
+
     protected boolean      allowEdition = true;
 
     protected boolean      restrictedDownload;
@@ -446,6 +448,18 @@ public class Config implements Externalizable {
     }
 
     /**
+     * Sets whether the document is viewed from a Recycle Bin, which stays open
+     * where the viewer was opened from: the viewer offers no way back.
+     *
+     * @param fromRecycleBin true when the document is viewed from a Recycle Bin
+     * @return the builder
+     */
+    public Builder fromRecycleBin(boolean fromRecycleBin) {
+      this.fromRecycleBin = fromRecycleBin;
+      return this;
+    }
+
+    /**
      * Download url.
      *
      * @param downloadUrl the download url
@@ -506,6 +520,7 @@ public class Config implements Externalizable {
       Editor.User user = new Editor.User(userId, name);
       Editor editor = new Editor(callbackUrl, lang, mode, user);
       editor.setCanAccessDocumentLocation(this.canAccessDocumentLocation);
+      editor.setFromRecycleBin(this.fromRecycleBin);
       EditorPage editorPage = new EditorPage(comment, renameAllowed, displayPath, lastModifier, lastModified,drive);
       Config config = new Config(documentserverUrl,
                                  platformRestUrl,
@@ -961,6 +976,8 @@ public class Config implements Externalizable {
 
     protected boolean      canAccessDocumentLocation;
 
+    protected boolean      fromRecycleBin;
+
     /**
      * Instantiates a new editor.
      *
@@ -994,6 +1011,25 @@ public class Config implements Externalizable {
      */
     public Boolean isCanAccessDocumentLocation() {
       return canAccessDocumentLocation;
+    }
+
+    /**
+     * Sets whether the document is viewed from a Recycle Bin.
+     *
+     * @param fromRecycleBin true when the document is viewed from a Recycle Bin
+     */
+    public void setFromRecycleBin(boolean fromRecycleBin) {
+      this.fromRecycleBin = fromRecycleBin;
+    }
+
+    /**
+     * Tells whether the document is viewed from a Recycle Bin, whose viewer
+     * offers no way back.
+     *
+     * @return true when the document is viewed from a Recycle Bin
+     */
+    public Boolean isFromRecycleBin() {
+      return fromRecycleBin;
     }
 
     /**

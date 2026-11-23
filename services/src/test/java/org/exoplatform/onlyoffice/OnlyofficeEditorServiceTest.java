@@ -1,5 +1,6 @@
 package org.exoplatform.onlyoffice;
 
+import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 
 import java.util.ArrayList;
@@ -21,12 +22,14 @@ import org.apache.commons.lang3.ArrayUtils;
 import org.junit.Test;
 import org.mockito.Mockito;
 
+import org.exoplatform.commons.exception.ObjectNotFoundException;
 import org.exoplatform.commons.testing.BaseCommonsTestCase;
 import org.exoplatform.component.test.ConfigurationUnit;
 import org.exoplatform.component.test.ConfiguredBy;
 import org.exoplatform.component.test.ContainerScope;
 import org.exoplatform.container.ExoContainerContext;
 import org.exoplatform.container.ExoContainer;
+import org.exoplatform.documents.service.RecycleBinService;
 import org.exoplatform.onlyoffice.jpa.EditorConfigDAO;
 import org.exoplatform.onlyoffice.jpa.storage.impl.RDBMSEditorConfigStorageImpl;
 import org.exoplatform.services.cms.documents.DocumentService;
@@ -58,6 +61,15 @@ public class OnlyofficeEditorServiceTest extends BaseCommonsTestCase {
   private static final String           USER_FULL_NAME = "John Anthony";
 
   private static final String           USER_USERNAME  = "john";
+
+  /** A user who manages the space a member deleted a document of. */
+  private static final String           SPACE_MANAGER  = "mary";
+
+  /** The workspace the trash home is in. */
+  private static final String           TRASH_WORKSPACE = "collaboration";
+
+  /** A workspace the trash home is not in. */
+  private static final String           OTHER_WORKSPACE = "portal-test";
 
   /** The Constant LOG. */
   protected static final Log        LOG        = ExoLogger.getLogger(OnlyofficeEditorServiceTest.class);
@@ -3303,6 +3315,293 @@ public class OnlyofficeEditorServiceTest extends BaseCommonsTestCase {
     } finally {
       node.remove();
     }
+  }
+
+  /**
+   * A space manager views a member's deleted office file from the space's
+   * Recycle Bin: the file only its member may read is read for them, and is
+   * only read: no edition, no download, no way to its location in the trash,
+   * and no way back from the viewer. The Document Server's fetch of its
+   * content follows the same rule.
+   */
+  @Test
+  public void testViewerOfADocumentInTheRecycleBinOfItsViewer() throws Exception {
+    // Given
+    NodeImpl node = createDocumentInTrash(TRASH_WORKSPACE, "Member Document.docx", Map.of(USER_USERNAME, PermissionType.ALL));
+    RecycleBinService recycleBin = registerRecycleBin();
+    try {
+      startSessionAs(SPACE_MANAGER);
+
+      // When
+      Config config = editorService.createViewer("http", "127.0.0.1", 8080, SPACE_MANAGER, TRASH_WORKSPACE, node.getUUID());
+      DocumentContent content = editorService.getContent(SPACE_MANAGER, config.getDocument().getKey());
+
+      // Then
+      assertEquals(OnlyofficeEditorService.VIEW_MODE, config.getEditorConfig().getMode());
+      assertFalse(config.getDocument().getPermissions().isEdit());
+      assertFalse(config.getDocument().getPermissions().isDownload());
+      assertFalse(config.getDocument().getPermissions().isPrint());
+      assertNull(config.getEditorUrl());
+      assertNull(config.getDownloadUrl());
+      assertFalse(config.getEditorConfig().isCanAccessDocumentLocation());
+      assertTrue(config.getEditorConfig().isFromRecycleBin());
+      assertTrue(config.toJSON().contains("\"fromRecycleBin\":true"));
+      assertEquals("testContent", IOUtils.toString(content.getData(), "UTF-8"));
+      Mockito.verify(recycleBin, Mockito.times(2)).checkCanViewDocument(node.getUUID(), SPACE_MANAGER);
+    } finally {
+      unregisterRecycleBin();
+      removeAsSystem(node);
+    }
+  }
+
+  /**
+   * A document in the trash is refused to a user whose Recycle Bin it is not
+   * in: neither its viewer nor, once that user lost the right to view it, the
+   * Document Server's fetch of its content.
+   */
+  @Test
+  public void testViewerOfADocumentInTheTrashIsRefusedWhenItsRecycleBinIsNotTheUsers() throws Exception {
+    // Given
+    NodeImpl node = createDocumentInTrash(TRASH_WORKSPACE, "Member Document.docx", Map.of(USER_USERNAME, PermissionType.ALL));
+    RecycleBinService recycleBin = registerRecycleBin();
+    try {
+      startSessionAs(SPACE_MANAGER);
+      Config config = editorService.createViewer("http", "127.0.0.1", 8080, SPACE_MANAGER, TRASH_WORKSPACE, node.getUUID());
+      Mockito.doThrow(new IllegalAccessException("not a bin of the user"))
+             .when(recycleBin)
+             .checkCanViewDocument(node.getUUID(), SPACE_MANAGER);
+
+      // When / Then
+      assertThrows(DocumentNotFoundException.class,
+                   () -> editorService.createViewer("http", "127.0.0.1", 8080, SPACE_MANAGER, TRASH_WORKSPACE, node.getUUID()));
+      assertThrows(DocumentNotFoundException.class,
+                   () -> editorService.getContent(SPACE_MANAGER, config.getDocument().getKey()));
+    } finally {
+      unregisterRecycleBin();
+      removeAsSystem(node);
+    }
+  }
+
+  /**
+   * An anonymous visitor gets no viewer of a document in the trash, even one
+   * any user may read: no Recycle Bin is asked for them.
+   */
+  @Test
+  public void testViewerOfADocumentInTheTrashIsRefusedToAnAnonymousVisitor() throws Exception {
+    // Given
+    NodeImpl node = createDocumentInTrash(TRASH_WORKSPACE,
+                                          "Public Document.docx",
+                                          Map.of(USER_USERNAME, PermissionType.ALL, IdentityConstants.ANY, new String[] { PermissionType.READ }));
+    RecycleBinService recycleBin = registerRecycleBin();
+    try {
+      startAnonymousSession();
+
+      // When / Then
+      assertThrows(DocumentNotFoundException.class,
+                   () -> editorService.createViewer("http", "127.0.0.1", 8080, null, TRASH_WORKSPACE, node.getUUID()));
+      Mockito.verify(recycleBin, Mockito.never()).checkCanViewDocument(Mockito.nullable(String.class), Mockito.nullable(String.class));
+    } finally {
+      unregisterRecycleBin();
+      removeAsSystem(node);
+    }
+  }
+
+  /**
+   * The Document Server's fetch of a public document's content for an
+   * anonymous visitor is refused once the document is in the trash, and asks
+   * no Recycle Bin.
+   */
+  @Test
+  public void testContentOfADocumentMovedToTheTrashIsRefusedToAnAnonymousVisitor() throws Exception {
+    // Given
+    NodeImpl node = createDocumentAsSystem(TRASH_WORKSPACE,
+                                           "Public",
+                                           "Public Document.docx",
+                                           Map.of(USER_USERNAME, PermissionType.ALL, IdentityConstants.ANY, new String[] { PermissionType.READ }));
+    RecycleBinService recycleBin = registerRecycleBin();
+    try {
+      startAnonymousSession();
+      Config config = editorService.createViewer("http", "127.0.0.1", 8080, null, TRASH_WORKSPACE, node.getUUID());
+      Session systemSession = node.getSession();
+      Node bin = folderAsSystem(systemSession, "Trash/bin");
+      systemSession.save();
+      systemSession.move(node.getPath(), bin.getPath() + "/" + node.getName());
+      systemSession.save();
+
+      // When / Then
+      assertThrows(DocumentNotFoundException.class, () -> editorService.getContent("null", config.getDocument().getKey()));
+      Mockito.verify(recycleBin, Mockito.never()).checkCanViewDocument(Mockito.nullable(String.class), Mockito.nullable(String.class));
+    } finally {
+      unregisterRecycleBin();
+      removeAsSystem(node);
+    }
+  }
+
+  /**
+   * A document its Recycle Bin let a user view, that a restore took out of the
+   * trash meanwhile, is read for that user only as their own session reads it.
+   */
+  @Test
+  public void testViewerReadsNoRestoredDocumentThroughARecycleBin() throws Exception {
+    // Given
+    createTrashHome();
+    NodeImpl node = createDocumentAsSystem(TRASH_WORKSPACE, "Restored", "Member Document.docx", Map.of(USER_USERNAME, PermissionType.ALL));
+    RecycleBinService recycleBin = registerRecycleBin();
+    try {
+      startSessionAs(SPACE_MANAGER);
+
+      // When / Then
+      assertThrows(AccessDeniedException.class,
+                   () -> editorService.createViewer("http", "127.0.0.1", 8080, SPACE_MANAGER, TRASH_WORKSPACE, node.getUUID()));
+      Mockito.verify(recycleBin).checkCanViewDocument(node.getUUID(), SPACE_MANAGER);
+    } finally {
+      unregisterRecycleBin();
+      removeAsSystem(node);
+    }
+  }
+
+  /**
+   * A document in the trash that is no item of a Recycle Bin (a document of a
+   * deleted folder) is refused to a user who may read it, and the refusal of a
+   * user who may not read it stays the one their own session gave.
+   */
+  @Test
+  public void testViewerOfADocumentInTheTrashThatIsNoItemOfARecycleBinIsRefused() throws Exception {
+    // Given
+    NodeImpl node = createDocumentInTrash(TRASH_WORKSPACE, "Folder Document.docx", Map.of(USER_USERNAME, PermissionType.ALL));
+    RecycleBinService recycleBin = registerRecycleBin();
+    Mockito.doThrow(new ObjectNotFoundException("not an item"))
+           .when(recycleBin)
+           .checkCanViewDocument(Mockito.eq(node.getUUID()), Mockito.anyString());
+    try {
+      // When / Then
+      startSessionAs(USER_USERNAME);
+      assertThrows(DocumentNotFoundException.class,
+                   () -> editorService.createViewer("http", "127.0.0.1", 8080, USER_USERNAME, TRASH_WORKSPACE, node.getUUID()));
+      startSessionAs(SPACE_MANAGER);
+      assertThrows(AccessDeniedException.class,
+                   () -> editorService.createViewer("http", "127.0.0.1", 8080, SPACE_MANAGER, TRASH_WORKSPACE, node.getUUID()));
+    } finally {
+      unregisterRecycleBin();
+      removeAsSystem(node);
+    }
+  }
+
+  /**
+   * A document under a trash path of a workspace that is not the trash's is
+   * never read for a user through a Recycle Bin, whose items are all in the
+   * trash's workspace, where a node may share its id.
+   */
+  @Test
+  public void testViewerReadsNoDocumentOfAnotherWorkspaceThroughARecycleBin() throws Exception {
+    // Given
+    createTrashHome();
+    NodeImpl node = createDocumentInTrash(OTHER_WORKSPACE, "Member Document.docx", Map.of(USER_USERNAME, PermissionType.ALL));
+    RecycleBinService recycleBin = registerRecycleBin();
+    try {
+      startSessionAs(SPACE_MANAGER);
+
+      // When / Then
+      assertThrows(AccessDeniedException.class,
+                   () -> editorService.createViewer("http", "127.0.0.1", 8080, SPACE_MANAGER, OTHER_WORKSPACE, node.getUUID()));
+      Mockito.verify(recycleBin, Mockito.never()).checkCanViewDocument(Mockito.nullable(String.class), Mockito.nullable(String.class));
+    } finally {
+      unregisterRecycleBin();
+      removeAsSystem(node);
+    }
+  }
+
+  /**
+   * The viewer of a document out of the trash asks no Recycle Bin and keeps
+   * its way back.
+   */
+  @Test
+  public void testViewerOfALiveDocumentAsksNoRecycleBin() throws Exception {
+    // Given
+    Node node = createDocument("Live Document.docx", "nt:file", "testContent", true);
+    RecycleBinService recycleBin = registerRecycleBin();
+    try {
+      startSessionAs(USER_USERNAME);
+
+      // When
+      Config config = editorService.createViewer("http", "127.0.0.1", 8080, USER_USERNAME, null, node.getUUID());
+
+      // Then
+      assertTrue(config.getDocument().getPermissions().isEdit());
+      assertFalse(config.getEditorConfig().isFromRecycleBin());
+      Mockito.verify(recycleBin, Mockito.never()).checkCanViewDocument(Mockito.nullable(String.class), Mockito.nullable(String.class));
+    } finally {
+      unregisterRecycleBin();
+      node.remove();
+    }
+  }
+
+  /**
+   * A document under the trash home of a workspace, as a deleted document is
+   * in its Recycle Bin, whose own permissions are the only ones.
+   */
+  private NodeImpl createDocumentInTrash(String workspace, String title, Map<String, String[]> permissions) throws Exception {
+    return createDocumentAsSystem(workspace, "Trash/bin", title, permissions);
+  }
+
+  /**
+   * A document created in a system session under a folder of a workspace,
+   * whose own permissions are the only ones.
+   */
+  private NodeImpl createDocumentAsSystem(String workspace,
+                                          String folderPath,
+                                          String title,
+                                          Map<String, String[]> permissions) throws Exception {
+    Session systemSession = SessionProviderService.getSystemSessionProvider()
+                                                  .getSession(workspace, SessionProviderService.getRepository());
+    NodeImpl node = (NodeImpl) folderAsSystem(systemSession, folderPath).addNode(title, "nt:file");
+    node.addMixin("exo:privilegeable");
+    Node contentNode = node.addNode("jcr:content", "nt:unstructured");
+    contentNode.setProperty("jcr:mimeType", "application/vnd.oasis.opendocument.text");
+    contentNode.setProperty("jcr:lastModified", Calendar.getInstance());
+    contentNode.setProperty("jcr:data", "testContent");
+    node.addMixin("mix:referenceable");
+    systemSession.save();
+    node.setPermissions(permissions);
+    node.save();
+    return node;
+  }
+
+  /**
+   * The trash home of the trash's workspace, which the test repository holds
+   * only once a test creates it: without it no Recycle Bin is asked.
+   */
+  private void createTrashHome() throws Exception {
+    Session systemSession = SessionProviderService.getSystemSessionProvider()
+                                                  .getSession(TRASH_WORKSPACE, SessionProviderService.getRepository());
+    folderAsSystem(systemSession, "Trash");
+    systemSession.save();
+  }
+
+  private Node folderAsSystem(Session systemSession, String folderPath) throws Exception {
+    Node folder = systemSession.getRootNode();
+    for (String segment : folderPath.split("/")) {
+      folder = folder.hasNode(segment) ? folder.getNode(segment) : folder.addNode(segment, "nt:folder");
+    }
+    return folder;
+  }
+
+  private void removeAsSystem(NodeImpl node) throws Exception {
+    Session systemSession = SessionProviderService.getSystemSessionProvider()
+                                                  .getSession(node.getSession().getWorkspace().getName(),
+                                                              SessionProviderService.getRepository());
+    systemSession.getNodeByUUID(node.getUUID()).remove();
+    systemSession.save();
+  }
+
+  private RecycleBinService registerRecycleBin() {
+    RecycleBinService recycleBin = Mockito.mock(RecycleBinService.class);
+    getContainer().registerComponentInstance(RecycleBinService.class, recycleBin);
+    return recycleBin;
+  }
+
+  private void unregisterRecycleBin() {
+    getContainer().unregisterComponent(RecycleBinService.class);
   }
 
   /**

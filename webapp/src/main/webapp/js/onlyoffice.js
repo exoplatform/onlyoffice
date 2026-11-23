@@ -565,8 +565,10 @@
             "www": "exoplatform.com"
           }
         };
-        if (!eXo.env.portal.userName) {
-          // An anonymous visitor (public site viewer) has no document location to go back to
+        if (!eXo.env.portal.userName || config.editorConfig.fromRecycleBin) {
+          // An anonymous visitor (public site viewer) has no document location to go back to,
+          // nor has a document viewed from a Recycle Bin, which stays open in the tab it was
+          // opened from
           delete config.editorConfig.customization.goback;
         }
 
