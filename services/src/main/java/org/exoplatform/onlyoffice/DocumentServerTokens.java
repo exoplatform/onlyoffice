@@ -211,7 +211,6 @@ public class DocumentServerTokens {
     return claims.get(PAYLOAD_CLAIM) instanceof Map<?, ?> payload ? payload : null;
   }
 
-
   /**
    * @param secret the secret shared with the Document Server, may be null
    * @return the key tokens are signed with, or null when the secret is missing

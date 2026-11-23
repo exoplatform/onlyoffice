@@ -175,10 +175,6 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
   /** The Constant UTF_8. */
   private static final String    UTF_8                    = "utf-8";
 
-  private static final String    AUTHORIZATION_HEADER     = "Authorization";
-
-  private static final String    BEARER_PREFIX            = "Bearer ";
-
   public static final String SPACE_APP_ID = "exosocial:spaces";
 
   /** The Constant RANDOM. */
@@ -465,6 +461,10 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
    * cluster, each node sets its own URL. Defaults to {@code exo.base.url}.
    */
   public static final String                                      DOCBUILDER_NODE_URL_PROPERTY = "onlyoffice.docbuilder.nodeUrl";
+
+  private static final String                                     AUTHORIZATION_HEADER    = "Authorization";
+
+  private static final String                                     BEARER_PREFIX           = "Bearer ";
 
   /**
    * In-memory registry of short-lived, single-use assets served to the Document

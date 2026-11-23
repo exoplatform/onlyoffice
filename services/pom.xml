@@ -38,8 +38,6 @@
     <rest.api.doc.description>OnlyOffice addon rest endpoints</rest.api.doc.description>
 
     <exo.test.coverage.ratio>0.50</exo.test.coverage.ratio>
-    <!-- The integration tests need a real ONLYOFFICE Docs server: run them with -Prun-its -->
-    <skipITs>true</skipITs>
   </properties>
 
   <dependencies>
@@ -219,14 +217,7 @@
       </plugin>
     </plugins>
   </build>
-  <profiles>
-    <profile>
-      <!-- mvn -pl services verify -Prun-its -Donlyoffice.it.documentserver=<url> -Donlyoffice.it.host=<address>,
-           with the shared secret in ONLYOFFICE_IT_SECRET: see DocumentServerIT -->
-      <id>run-its</id>
-      <properties>
-        <skipITs>false</skipITs>
-      </properties>
-    </profile>
-  </profiles>
+  <!-- The integration tests need a real ONLYOFFICE Docs server, and run in the parent's run-its profile only:
+       mvn -pl services verify -Prun-its -Donlyoffice.it.documentserver=<url> -Donlyoffice.it.host=<address>,
+       with the shared secret in ONLYOFFICE_IT_SECRET: see DocumentServerIT -->
 </project>
