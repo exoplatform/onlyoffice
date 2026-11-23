@@ -184,9 +184,15 @@
             <include>**/**/OnlyofficeMcpToolTest.java</include>
             <include>**/**/CometdOnlyofficeServiceTest.java</include>
             <include>**/**/CometdUpdatedOutsideEventTest.java</include>
+            <include>**/**/DocumentServerTokensTest.java</include>
+            <include>**/**/DocumentServerRequestsTest.java</include>
+            <include>**/**/ConfigTokenTest.java</include>
           </includes>
         </configuration>
       </plugin>
     </plugins>
   </build>
+  <!-- The integration tests need a real ONLYOFFICE Docs server, and run in the parent's run-its profile only:
+       mvn -pl services verify -Prun-its -Donlyoffice.it.documentserver=<url> -Donlyoffice.it.host=<address>,
+       with the shared secret in ONLYOFFICE_IT_SECRET: see DocumentServerIT -->
 </project>

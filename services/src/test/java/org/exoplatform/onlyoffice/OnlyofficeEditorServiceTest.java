@@ -4,7 +4,7 @@ import static org.mockito.ArgumentMatchers.any;
 
 import java.util.ArrayList;
 import java.util.Calendar;
-import java.util.HashMap;
+import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -28,6 +28,7 @@ import org.exoplatform.component.test.ContainerScope;
 import org.exoplatform.container.ExoContainerContext;
 import org.exoplatform.container.ExoContainer;
 import org.exoplatform.onlyoffice.jpa.EditorConfigDAO;
+import org.exoplatform.onlyoffice.constant.DocumentServerOperation;
 import org.exoplatform.onlyoffice.jpa.storage.impl.RDBMSEditorConfigStorageImpl;
 import org.exoplatform.services.cms.documents.DocumentService;
 import org.exoplatform.services.cms.drives.DriveData;
@@ -1702,7 +1703,9 @@ public class OnlyofficeEditorServiceTest extends BaseCommonsTestCase {
   }
 
   /**
-   * Test validate token
+   * The editor service validates a Document Server token for the purpose of
+   * the endpoint that received it, and posts its commands to the command
+   * service path ONLYOFFICE Docs 10.0 documents.
    */
   @Test
   public void testValidateToken() throws Exception {
@@ -1710,45 +1713,37 @@ public class OnlyofficeEditorServiceTest extends BaseCommonsTestCase {
     Node node = createDocument("Test Document.docx", "nt:file", "testContent", true);
     Config config = editorService.createEditor("http", "127.0.0.1", 8080, USER_USERNAME, null, node.getUUID(), OnlyofficeEditorService.EDIT_MODE);
     String key = config.getDocument().getKey();
-    Map<String, Object> payload = new HashMap<>();
 
-    payload.put("key", key);
+    String callback = signedToken(Map.of("key", key), "callback", SECRET_KEY);
+    String download = signedToken(Map.of("url", "http://127.0.0.1:8080/editor/" + key), "download", SECRET_KEY);
 
-    String token = Jwts.builder()
-                       .setSubject("exo-onlyoffice")
-                       .claim("payload", payload)
-                       .signWith(Keys.hmacShaKeyFor(SECRET_KEY.getBytes()))
-                       .compact();
+    assertTrue(editorService.validateToken(callback, key, DocumentServerOperation.CALLBACK));
+    assertFalse(editorService.validateToken(callback, key, DocumentServerOperation.DOWNLOAD));
+    assertTrue(editorService.validateToken(download, key, DocumentServerOperation.DOWNLOAD));
+    assertFalse(editorService.validateToken(download, key, DocumentServerOperation.CALLBACK));
+    assertFalse(editorService.validateToken(signedToken(Map.of("key", key), "callback", "WRONG-SECRET-KEY-hwExSQoSe97tw8gyYNhqnM1biHb"),
+                                            key,
+                                            DocumentServerOperation.CALLBACK));
+    assertFalse(editorService.validateToken(signedToken(Map.of("key", "wrong-document-key"), "callback", SECRET_KEY),
+                                            key,
+                                            DocumentServerOperation.CALLBACK));
+    // the deprecated method validates as a download
+    assertTrue(editorService.validateToken(download, key));
+    assertFalse(editorService.validateToken(callback, key));
 
-    String wrongSignToken = Jwts.builder()
-                                .setSubject("exo-onlyoffice")
-                                .claim("payload", payload)
-                                .signWith(Keys.hmacShaKeyFor("WRONG-SECRET-KEY-hwExSQoSe97tw8gyYNhqnM1biHb".getBytes()))
-                                .compact();
-
-    payload.replace("key", "wrong-document-key");
-    String wrongKeyToken = Jwts.builder()
-                               .setSubject("exo-onlyoffice")
-                               .claim("payload", payload)
-                               .signWith(Keys.hmacShaKeyFor(SECRET_KEY.getBytes()))
-                               .compact();
-
-    assertTrue(editorService.validateToken(token, key));
-
-    assertFalse(editorService.validateToken(wrongSignToken, key));
-    assertFalse(editorService.validateToken(wrongKeyToken, key));
-
-    payload.clear();
-    // URL should end with key
-    payload.put("url", "http://127.0.0.1:8080/editor/" + key);
-
-    token = Jwts.builder()
-                .setSubject("exo-onlyoffice")
-                .claim("payload", payload)
-                .signWith(Keys.hmacShaKeyFor(SECRET_KEY.getBytes()))
-                .compact();
-    assertTrue(editorService.validateToken(token, key));
+    String commandServiceUrl = ((OnlyofficeEditorServiceImpl) editorService).commandServiceUrl;
+    assertTrue(commandServiceUrl, commandServiceUrl.endsWith("/command"));
     node.remove();
+  }
+
+  private static String signedToken(Map<String, Object> payload, String operation, String secret) {
+    return Jwts.builder()
+               .setSubject("exo-onlyoffice")
+               .claim("payload", payload)
+               .claim("operation", operation)
+               .expiration(new Date(System.currentTimeMillis() + 300_000))
+               .signWith(Keys.hmacShaKeyFor(secret.getBytes()))
+               .compact();
   }
 
   /**
