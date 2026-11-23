@@ -303,6 +303,28 @@ public class DocumentServerTokensTest {
     assertFalse(tokens.validate(token, DOC_KEY, DocumentServerOperation.CALLBACK));
   }
 
+  /**
+   * A field the Document Server signs as {@code null}, at the root or nested,
+   * is accepted when the body carries the same {@code null}; the body must
+   * still equal the signed payload.
+   */
+  @Test
+  public void testACallbackWithANullFieldIsAcceptedAsSigned() {
+    Map<String, Object> payload = callbackPayload(DOC_KEY);
+    payload.put("status", 3);
+    payload.put("url", null);
+    Map<String, Object> history = new LinkedHashMap<>();
+    history.put("serverVersion", null);
+    payload.put("history", history);
+    String token = documentServerToken(payload, "callback");
+    String body = "{\"key\":\"" + DOC_KEY + "\",\"status\":3,\"users\":[\"john\"],"
+        + "\"actions\":[{\"type\":1,\"userid\":\"john\"}],\"url\":null,\"history\":{\"serverVersion\":null}}";
+
+    assertTrue(tokens.validateCallback(token, DOC_KEY, body));
+    assertFalse(tokens.validateCallback(token, DOC_KEY, body.replace("\"status\":3", "\"status\":2")));
+    assertFalse(tokens.validateCallback(token, DOC_KEY, body.replace("\"url\":null", "\"url\":\"http://evil.example.org/x\"")));
+  }
+
   @Test
   public void testAMissingTokenOrKeyIsRefused() {
     String token = documentServerToken(callbackPayload(DOC_KEY), "callback");

@@ -136,7 +136,8 @@ public class DocumentServerTokens {
    * Validates a save or status callback: its token, and the callback the
    * addon acts on. ONLYOFFICE Docs signs the whole callback in the token's
    * {@code payload}, so the body must be that payload, its own {@code token}
-   * field aside.
+   * field aside. Both sides are read into the same form, where a {@code null}
+   * value and an absent one are alike, as they are to the addon.
    *
    * @param token the token of the Authorization header, may be null
    * @param key the document key the endpoint was called for, may be null
@@ -158,7 +159,7 @@ public class DocumentServerTokens {
       return false;
     }
     callback.remove(TOKEN_FIELD);
-    if (!new JSONObject(payload).similar(callback)) {
+    if (!new JSONObject(payload).similar(new JSONObject(callback.toMap()))) {
       logger.debug("Document Server callback refused for key {}: the body differs from the signed payload", key);
       return false;
     }
