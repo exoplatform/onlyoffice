@@ -2,6 +2,7 @@ package org.exoplatform.onlyoffice;
 
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -121,6 +122,7 @@ public class EditorServiceTest extends AbstractResourceTest {
   public void testContentWrongToken() throws Exception {
     String token = Jwts.builder()
                        .setSubject("exo-onlyoffice")
+                       .expiration(inFiveMinutes())
                        .claim("payload", contentPayload)
                        .claim("operation", "download")
                        .signWith(Keys.hmacShaKeyFor(WRONG_SECRET_KEY.getBytes()))
@@ -183,6 +185,7 @@ public class EditorServiceTest extends AbstractResourceTest {
   public void testStatusWrongToken() throws Exception {
     String token = Jwts.builder()
                        .setSubject("exo-onlyoffice")
+                       .expiration(inFiveMinutes())
                        .claim("payload", statusPayload)
                        .claim("operation", "callback")
                        .signWith(Keys.hmacShaKeyFor(WRONG_SECRET_KEY.getBytes()))
@@ -219,7 +222,7 @@ public class EditorServiceTest extends AbstractResourceTest {
 
   /**
    * A save callback token is not a download token: the content endpoint
-   * refuses it although it is signed and names the document's key.
+   * refuses it although it is signed, unexpired and names the document's key.
    *
    * @throws Exception the exception
    */
@@ -227,6 +230,7 @@ public class EditorServiceTest extends AbstractResourceTest {
   public void testContentRefusesACallbackToken() throws Exception {
     String token = Jwts.builder()
                        .setSubject("exo-onlyoffice")
+                       .expiration(inFiveMinutes())
                        .claim("payload", contentPayload)
                        .claim("operation", "callback")
                        .signWith(Keys.hmacShaKeyFor(SECRET_KEY.getBytes()))
@@ -243,7 +247,7 @@ public class EditorServiceTest extends AbstractResourceTest {
 
   /**
    * A download token cannot trigger a save: the status endpoint refuses it
-   * although it is signed and names the document's key.
+   * although it is signed, unexpired and names the document's key.
    *
    * @throws Exception the exception
    */
@@ -251,6 +255,7 @@ public class EditorServiceTest extends AbstractResourceTest {
   public void testStatusRefusesADownloadToken() throws Exception {
     String token = Jwts.builder()
                        .setSubject("exo-onlyoffice")
+                       .expiration(inFiveMinutes())
                        .claim("payload", statusPayload)
                        .claim("operation", "download")
                        .signWith(Keys.hmacShaKeyFor(SECRET_KEY.getBytes()))
@@ -261,7 +266,7 @@ public class EditorServiceTest extends AbstractResourceTest {
 
   /**
    * A token without a purpose, as ONLYOFFICE Docs 9.x signed its callbacks, is
-   * refused.
+   * refused although it is signed and unexpired.
    *
    * @throws Exception the exception
    */
@@ -269,6 +274,7 @@ public class EditorServiceTest extends AbstractResourceTest {
   public void testStatusRefusesATokenWithoutPurpose() throws Exception {
     String token = Jwts.builder()
                        .setSubject("exo-onlyoffice")
+                       .expiration(inFiveMinutes())
                        .claim("payload", statusPayload)
                        .signWith(Keys.hmacShaKeyFor(SECRET_KEY.getBytes()))
                        .compact();
@@ -331,6 +337,15 @@ public class EditorServiceTest extends AbstractResourceTest {
       assertEquals(body, 401, response.getStatus());
       assertEquals("{\"error\":\"The token is not valid\"}", response.getEntity());
     }
+  }
+
+  /**
+   * @return an expiry five minutes ahead, as ONLYOFFICE Docs 10.0 sets it
+   *         ({@code iat} + 300 s), so that a refusal is not caused by a missing or
+   *         past expiry
+   */
+  private static Date inFiveMinutes() {
+    return new Date(System.currentTimeMillis() + 300_000);
   }
 
   private void assertStatusRefused(String token) throws Exception {
