@@ -87,6 +87,7 @@ import org.exoplatform.commons.api.settings.SettingService;
 import org.exoplatform.commons.api.settings.SettingValue;
 import org.exoplatform.commons.api.settings.data.Context;
 import org.exoplatform.commons.api.settings.data.Scope;
+import org.exoplatform.commons.exception.ObjectNotFoundException;
 import org.exoplatform.commons.utils.CommonsUtils;
 import org.exoplatform.commons.utils.MimeTypeResolver;
 import org.exoplatform.container.ExoContainer;
@@ -96,6 +97,7 @@ import org.exoplatform.container.component.ComponentPlugin;
 import org.exoplatform.container.configuration.ConfigurationException;
 import org.exoplatform.container.xml.InitParams;
 import org.exoplatform.container.xml.PropertiesParam;
+import org.exoplatform.documents.service.RecycleBinService;
 import org.exoplatform.ecm.utils.lock.LockUtil;
 import org.exoplatform.ecm.utils.text.Text;
 import org.exoplatform.ecm.utils.permission.PermissionUtil;
@@ -727,6 +729,10 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
     }
     Node node = getDocumentById(workspace, docId);
     String path = node.getPath();
+    // A document in the trash is only viewed, from its Recycle Bin
+    if (trashService.isInTrash(node)) {
+      throw new DocumentNotFoundException("The document is in the trash. docId: " + docId + ", workspace: " + workspace);
+    }
 
     // only nt:file are supported for online edition
     if (!node.isNodeType("nt:file")) {
@@ -882,8 +888,13 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
       // it's path as docId
       docId = initDocument(workspace, docId);
     }
-    Node node = getDocumentById(workspace, docId);
+    Node node = viewableNode(workspace, docId, userId);
     String path = node.getPath();
+    // Only a document the user's Recycle Bin let them view is in the trash
+    // here: it is read, never edited, downloaded or printed, and its viewer
+    // offers no way back, the Recycle Bin staying open where it was opened
+    // from.
+    boolean inBin = trashService.isInTrash(node);
 
     // only nt:file node or FrozenType node are supported for online edition
    if (!WCMCoreUtils.isNodeTypeOrFrozenType(node, NodetypeConstant.NT_FILE)) {
@@ -924,7 +935,7 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
     String ecmsPageLink = explorerLink(path);
     builder.explorerUri(explorerUri(schema, host, port, ecmsPageLink));
     builder.secret(documentserverSecret);
-    if(!isSuspendDownloadDocument()) {
+    if (!isSuspendDownloadDocument() && !inBin) {
       // editor page URL
       builder.editorUrl(new StringBuilder(platformUrl).append(editorURLPath(docId))
                                                       .append("&mode=")
@@ -941,6 +952,7 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
       builder.setAllowEdition(false);
     }
     builder.canAccessDocumentLocation(canAccessDocumentLocation(node, userId));
+    builder.fromRecycleBin(inBin);
 
     Config config = builder.build();
     // Create users' config map and add first user
@@ -1009,8 +1021,9 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
             logError(userId, config.getPath(), config.getDocId(), config.getDocument().getKey(), "Cannot set conversation state");
             throw new OnlyofficeEditorException("Cannot set conversation state " + userId);
           }
-          // work in user session
-          Node node = nodeByUUID(config.getWorkspace(), config.getDocId());
+          // work in user session, a document in the trash only as its
+          // Recycle Bin lets the user view it
+          Node node = viewableNode(config.getWorkspace(), config.getDocId(), "__anonim".equals(userId) ? null : userId);
 
 //          if (viewMode) {
 //            viewerCache.remove(key);
@@ -1500,6 +1513,79 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
         LOG.debug("The node is not found. Workspace: {}, UUID: {}", workspace, uuid);
       }
       throw new DocumentNotFoundException("The document not found with uuid: " + uuid + ", and workspace: " + workspace);
+    }
+  }
+
+  /**
+   * The node of a document a user views. It is read in the user's session;
+   * when that read is refused or finds the document in the trash, it is read in
+   * a system session only if the document is an item of a Recycle Bin the user
+   * may view it in. An anonymous visitor views no document of the trash.
+   *
+   * @param workspace the workspace
+   * @param docId the document id
+   * @param userId who views it, null for an anonymous visitor
+   * @return the node, read in a system session when the user views it through
+   *         a Recycle Bin
+   * @throws DocumentNotFoundException when the document is in the trash and
+   *           no Recycle Bin lets the user view it
+   * @throws RepositoryException when the read in the user's session fails and
+   *           the document is no item of a Recycle Bin
+   */
+  protected Node viewableNode(String workspace, String docId, String userId) throws RepositoryException, OnlyofficeEditorException {
+    if (workspace == null) {
+      workspace = jcrService.getCurrentRepository().getConfiguration().getDefaultWorkspaceName();
+    }
+    Node node;
+    try {
+      node = getDocumentById(workspace, docId);
+    } catch (AccessDeniedException e) {
+      Node binNode = binNode(workspace, docId, userId);
+      if (binNode == null) {
+        throw e;
+      }
+      return binNode;
+    }
+    if (trashService.isInTrash(node)) {
+      Node binNode = binNode(workspace, docId, userId);
+      if (binNode == null) {
+        throw new DocumentNotFoundException("The document is in the trash. docId: " + docId + ", workspace: " + workspace);
+      }
+      return binNode;
+    }
+    return node;
+  }
+
+  /**
+   * @return the node of a document of the trash, read in a system session,
+   *         when the user may view it in a Recycle Bin; null for an anonymous
+   *         visitor, who is refused before any lookup, and when the document
+   *         is no item of a Recycle Bin of the trash's workspace
+   * @throws DocumentNotFoundException when the user may not view it
+   */
+  private Node binNode(String workspace, String docId, String userId) throws RepositoryException, DocumentNotFoundException {
+    Node trashHome = userId == null ? null : trashService.getTrashHomeNode();
+    if (trashHome == null || !workspace.equals(trashHome.getSession().getWorkspace().getName())) {
+      return null;
+    }
+    RecycleBinService recycleBinService = ExoContainerContext.getService(RecycleBinService.class);
+    if (recycleBinService == null) {
+      return null;
+    }
+    try {
+      recycleBinService.checkCanViewDocument(docId, userId);
+    } catch (ObjectNotFoundException e) {
+      return null;
+    } catch (IllegalAccessException e) {
+      throw new DocumentNotFoundException("The document is in the trash and its Recycle Bin is not one of " + userId
+          + ". docId: " + docId + ", workspace: " + workspace);
+    }
+    try {
+      Node node = ((ExtendedSession) trashHome.getSession()).getNodeByIdentifier(docId);
+      // A restore that ended meanwhile gives the document back to its users.
+      return trashService.isInTrash(node) ? node : null;
+    } catch (ItemNotFoundException e) {
+      return null;
     }
   }
 
