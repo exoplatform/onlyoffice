@@ -3537,6 +3537,31 @@ public class OnlyofficeEditorServiceTest extends BaseCommonsTestCase {
   }
 
   /**
+   * A document in the trash opens in no editor, whoever may write it: it is
+   * only viewed, from its Recycle Bin.
+   */
+  @Test
+  public void testEditorOfADocumentInTheTrashIsRefused() throws Exception {
+    // Given
+    NodeImpl node = createDocumentInTrash(TRASH_WORKSPACE, "Member Document.docx", Map.of(USER_USERNAME, PermissionType.ALL));
+    try {
+      startSessionAs(USER_USERNAME);
+
+      // When / Then
+      assertThrows(DocumentNotFoundException.class,
+                   () -> editorService.createEditor("http",
+                                                    "127.0.0.1",
+                                                    8080,
+                                                    USER_USERNAME,
+                                                    TRASH_WORKSPACE,
+                                                    node.getUUID(),
+                                                    OnlyofficeEditorService.EDIT_MODE));
+    } finally {
+      removeAsSystem(node);
+    }
+  }
+
+  /**
    * A document under the trash home of a workspace, as a deleted document is
    * in its Recycle Bin, whose own permissions are the only ones.
    */

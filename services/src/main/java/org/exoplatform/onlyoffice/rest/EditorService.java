@@ -486,6 +486,9 @@ public class EditorService implements ResourceContainer {
             LOG.warn("Bad parameter for creating editor config {}:{}. Error: {}", workspace, path, e.getMessage());
           }
           resp.error(e.getMessage()).status(Status.BAD_REQUEST);
+        } catch (DocumentNotFoundException e) {
+          LOG.debug("No document to create an editor config for {}:{}", workspace, path, e);
+          resp.error(DOCUMENT_NOT_FOUND).status(Status.NOT_FOUND);
         } catch (OnlyofficeEditorException e) {
           LOG.error("Error creating editor config " + workspace + ":" + path, e);
           resp.error("Error creating editor config. " + e.getMessage()).status(Status.INTERNAL_SERVER_ERROR);

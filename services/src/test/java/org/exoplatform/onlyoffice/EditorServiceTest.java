@@ -1,6 +1,7 @@
 package org.exoplatform.onlyoffice;
 
 import java.io.InputStream;
+import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.util.Calendar;
 import java.util.HashMap;
@@ -9,14 +10,20 @@ import java.util.Map;
 import javax.jcr.Node;
 import javax.jcr.Session;
 import javax.ws.rs.core.MultivaluedMap;
+import javax.ws.rs.core.Response;
+import javax.ws.rs.core.UriInfo;
+
+import jakarta.servlet.http.HttpServletRequest;
 
 import org.apache.commons.io.IOUtils;
 import org.junit.Test;
+import org.mockito.Mockito;
 
 import org.exoplatform.container.ExoContainer;
 import org.exoplatform.container.ExoContainerContext;
 import org.exoplatform.container.PortalContainer;
 import org.exoplatform.container.component.RequestLifeCycle;
+import org.exoplatform.onlyoffice.rest.EditorService;
 import org.exoplatform.onlyoffice.test.AbstractResourceTest;
 import org.exoplatform.services.jcr.access.PermissionType;
 import org.exoplatform.services.jcr.ext.app.SessionProviderService;
@@ -236,6 +243,35 @@ public class EditorServiceTest extends AbstractResourceTest {
       assertEquals(404, response.getStatus());
       assertEquals("{\"error\":\"Document not found\"}", response.getEntity());
       assertEquals("private, no-store", response.getHttpHeaders().getFirst("Cache-Control"));
+    } finally {
+      removeAsSystem(node);
+    }
+  }
+
+  /**
+   * The editor configuration of a document in the trash is answered as not
+   * found, whoever may write it.
+   *
+   * @throws Exception the exception
+   */
+  @Test
+  public void testEditorConfigOfADocumentInTheTrashIsNotFound() throws Exception {
+    startSessionAs(USER);
+    NodeImpl node = createDocumentAsSystem("collaboration", "Trash/bin", "edited.docx", Map.of(USER, PermissionType.ALL));
+    // Called directly: the test's request handler checks no role, and this
+    // resource method is for users only
+    EditorService editorResource = getContainer().getComponentInstanceOfType(EditorService.class);
+    UriInfo uriInfo = Mockito.mock(UriInfo.class);
+    Mockito.when(uriInfo.getRequestUri())
+           .thenReturn(new URI("http://localhost:8080/portal/rest" + RESOURCE_URL + "/config/collaboration/Trash/bin/edited.docx"));
+    try {
+      Response response = editorResource.configPost(uriInfo,
+                                                    Mockito.mock(HttpServletRequest.class),
+                                                    "collaboration",
+                                                    "Trash/bin/edited.docx");
+
+      assertEquals(404, response.getStatus());
+      assertEquals("{\"error\":\"Document not found\"}", response.getEntity());
     } finally {
       removeAsSystem(node);
     }

@@ -729,6 +729,10 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
     }
     Node node = getDocumentById(workspace, docId);
     String path = node.getPath();
+    // A document in the trash is only viewed, from its Recycle Bin
+    if (trashService.isInTrash(node)) {
+      throw new DocumentNotFoundException("The document is in the trash. docId: " + docId + ", workspace: " + workspace);
+    }
 
     // only nt:file are supported for online edition
     if (!node.isNodeType("nt:file")) {
