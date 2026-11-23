@@ -33,6 +33,7 @@ import static org.mockito.Mockito.when;
 import java.util.Locale;
 import java.util.ResourceBundle;
 
+import javax.jcr.AccessDeniedException;
 import javax.portlet.PortletConfig;
 import javax.portlet.PortletContext;
 import javax.portlet.PortletRequestDispatcher;
@@ -50,6 +51,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.exoplatform.container.ExoContainer;
 import org.exoplatform.container.ExoContainerContext;
 import org.exoplatform.onlyoffice.Config;
+import org.exoplatform.onlyoffice.DocumentNotFoundException;
 import org.exoplatform.onlyoffice.OnlyofficeEditorService;
 import org.exoplatform.onlyoffice.webui.OnlyofficeContext;
 import org.exoplatform.services.resources.ResourceBundleService;
@@ -106,6 +108,7 @@ class EditorPortletTest {
     onlyofficeContext.when(OnlyofficeContext::requireJS).thenReturn(requireJS);
 
     ResourceBundle resourceBundle = mock(ResourceBundle.class);
+    lenient().when(resourceBundle.getString(anyString())).thenAnswer(invocation -> invocation.getArgument(0));
     when(i18nService.getResourceBundle(any(String[].class), any())).thenReturn(resourceBundle);
     when(request.getLocale()).thenReturn(Locale.ENGLISH);
     lenient().when(request.getScheme()).thenReturn("http");
@@ -158,6 +161,43 @@ class EditorPortletTest {
 
     verify(onlyoffice, never()).createViewer(anyString(), anyString(), anyInt(), any(), any(), anyString());
     onlyofficeContext.verify(() -> OnlyofficeContext.callModule(argThat(code -> code.contains("initEditor"))));
+  }
+
+  /**
+   * An edit link to a document of the trash tells the user the document cannot
+   * be found, and asks for no retry.
+   */
+  @Test
+  void testUserIsToldADocumentOfTheTrashCannotBeFound() throws Exception {
+    when(request.getRemoteUser()).thenReturn("john");
+    when(requestContext.getRequestParameter("mode")).thenReturn(OnlyofficeEditorService.EDIT_MODE);
+    when(onlyoffice.createEditor(eq("http"),
+                                 eq("localhost"),
+                                 eq(8080),
+                                 eq("john"),
+                                 isNull(),
+                                 eq(DOC_ID),
+                                 eq(OnlyofficeEditorService.EDIT_MODE))).thenThrow(new DocumentNotFoundException("in the trash"));
+
+    portlet.view(request, response);
+
+    onlyofficeContext.verify(() -> OnlyofficeContext.showError(anyString(), eq("OnlyofficeEditor.error.DocumentNotFound")));
+  }
+
+  /**
+   * A view link to a document the user may not read tells them the document
+   * cannot be found.
+   */
+  @Test
+  void testUserIsToldADocumentTheyMayNotReadCannotBeFound() throws Exception {
+    when(request.getRemoteUser()).thenReturn("john");
+    when(requestContext.getRequestParameter("mode")).thenReturn(OnlyofficeEditorService.VIEW_MODE);
+    when(onlyoffice.createViewer(eq("http"), eq("localhost"), eq(8080), eq("john"), isNull(), eq(DOC_ID)))
+                                                                                                   .thenThrow(new AccessDeniedException("denied"));
+
+    portlet.view(request, response);
+
+    onlyofficeContext.verify(() -> OnlyofficeContext.showError(anyString(), eq("OnlyofficeEditor.error.DocumentNotFound")));
   }
 
   private Config config() throws Exception {

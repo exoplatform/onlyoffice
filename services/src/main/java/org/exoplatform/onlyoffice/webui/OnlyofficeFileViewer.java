@@ -1,9 +1,11 @@
 package org.exoplatform.onlyoffice.webui;
 
+import javax.jcr.AccessDeniedException;
 import javax.jcr.RepositoryException;
 import jakarta.servlet.http.HttpServletRequest;
 
 import org.exoplatform.onlyoffice.Config;
+import org.exoplatform.onlyoffice.DocumentNotFoundException;
 import org.exoplatform.onlyoffice.OnlyofficeEditorException;
 import org.exoplatform.onlyoffice.OnlyofficeEditorService;
 import org.exoplatform.portal.application.PortalRequestContext;
@@ -48,6 +50,8 @@ public class OnlyofficeFileViewer extends UIForm {
                                                  fileId);
 
       return config;
+    } catch (DocumentNotFoundException | AccessDeniedException e) {
+      LOG.debug("No document to view for fileId: {}, workspace: {}", fileId, workspace, e);
     } catch (RepositoryException | OnlyofficeEditorException e) {
       LOG.error("Cannot create viewer config for fileId: " + fileId + ", workspace: " + workspace, e);
     }

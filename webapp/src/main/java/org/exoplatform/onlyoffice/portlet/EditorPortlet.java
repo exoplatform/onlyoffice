@@ -27,6 +27,7 @@ import java.io.IOException;
 import java.util.Locale;
 import java.util.ResourceBundle;
 
+import javax.jcr.AccessDeniedException;
 import javax.jcr.RepositoryException;
 import javax.portlet.GenericPortlet;
 import javax.portlet.MimeResponse;
@@ -42,6 +43,7 @@ import org.w3c.dom.Element;
 import org.exoplatform.container.ExoContainer;
 import org.exoplatform.container.ExoContainerContext;
 import org.exoplatform.onlyoffice.Config;
+import org.exoplatform.onlyoffice.DocumentNotFoundException;
 import org.exoplatform.onlyoffice.OnlyofficeEditorException;
 import org.exoplatform.onlyoffice.OnlyofficeEditorService;
 import org.exoplatform.services.log.ExoLogger;
@@ -194,6 +196,10 @@ public class EditorPortlet extends GenericPortlet {
           showError(i18n.getString("OnlyofficeEditorClient.ErrorTitle"),
                     i18n.getString("OnlyofficeEditor.error.EditorCannotBeCreated"));
         }
+      } catch (DocumentNotFoundException | AccessDeniedException e) {
+        LOG.debug("No document to open for node by ID: {}", docId, e);
+        showError(i18n.getString("OnlyofficeEditorClient.ErrorTitle"),
+                  i18n.getString("OnlyofficeEditor.error.DocumentNotFound"));
       } catch (RepositoryException e) {
         LOG.error("Error reading document node by ID: {}", docId, e);
         showError(i18n.getString("OnlyofficeEditorClient.ErrorTitle"),
