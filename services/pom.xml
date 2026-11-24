@@ -33,10 +33,6 @@
   <description>eXo OnlyOffice Editor services of portal extension</description>
 
   <properties>
-    <rest.api.doc.title>Onlyoffice Rest Api</rest.api.doc.title>
-    <rest.api.doc.version>1.0</rest.api.doc.version>
-    <rest.api.doc.description>OnlyOffice addon rest endpoints</rest.api.doc.description>
-
     <exo.test.coverage.ratio>0.50</exo.test.coverage.ratio>
   </properties>
 
@@ -176,27 +172,6 @@
             <!-- Required so MCP tool method parameter names are retained and bound by name -->
             <arg>-parameters</arg>
           </compilerArgs>
-        </configuration>
-      </plugin>
-      <plugin>
-        <groupId>io.openapitools.swagger</groupId>
-        <artifactId>swagger-maven-plugin</artifactId>
-        <configuration>
-          <useResourcePackagesChildren>true</useResourcePackagesChildren>
-          <resourcePackages>
-            <locations>org.exoplatform.onlyoffice.rest</locations>
-          </resourcePackages>
-          <swaggerConfig>
-            <info>
-              <title>${rest.api.doc.title}</title>
-              <version>${rest.api.doc.version}</version>
-              <description>${rest.api.doc.description}</description>
-              <license>
-                <url>https://www.gnu.org/licenses/agpl-3.0.en.html</url>
-                <name>AGPL</name>
-              </license>
-            </info>
-          </swaggerConfig>
         </configuration>
       </plugin>
       <plugin>
