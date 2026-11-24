@@ -51,6 +51,8 @@ import org.mockito.MockedConstruction;
 
 import org.exoplatform.onlyoffice.jpa.storage.cache.CachedEditorConfigStorage;
 import org.exoplatform.services.jcr.ext.app.SessionProviderService;
+import org.exoplatform.services.jcr.impl.core.NodeImpl;
+import org.exoplatform.services.jcr.impl.core.SessionImpl;
 import org.exoplatform.services.jcr.ext.common.SessionProvider;
 import org.exoplatform.services.security.ConversationState;
 import org.exoplatform.services.security.Identity;
@@ -101,9 +103,57 @@ public class EditorSessionProviderReleaseTest {
   }
 
   @Test
-  public void testTheTitleUpdateClosesTheUserProvider() throws Exception {
+  public void testTheTitleUpdateClosesTheUserProvider() {
     // a blank title returns early, still under the user's provider
     service.updateTitle("collaboration", "docId", " ", USER);
+
+    assertUserProviderClosedAndCallersRestored();
+  }
+
+  @Test
+  public void testARenameClosesTheUserProviderOnceSaved() throws Exception {
+    NodeImpl node = mock(NodeImpl.class);
+    NodeImpl parent = mock(NodeImpl.class);
+    SessionImpl session = mock(SessionImpl.class);
+    when(node.getPath()).thenReturn("/Users/john/Documents/old.docx");
+    when(node.getParent()).thenReturn(parent);
+    when(parent.getPath()).thenReturn("/Users/john/Documents");
+    when(parent.getSession()).thenReturn(session);
+    doReturn(node).when(service).getDocumentById("collaboration", "docId");
+    doReturn(true).when(service).canRenameDocument(node);
+
+    service.updateTitle("collaboration", "docId", "new.docx", USER);
+
+    verify(session).move("/Users/john/Documents/old.docx", "/Users/john/Documents/new.docx");
+    verify(session).save();
+    assertUserProviderClosedAndCallersRestored();
+  }
+
+  @Test
+  public void testAFailedRenameClosesTheUserProvider() throws Exception {
+    doThrow(new RepositoryException("gone")).when(service).getDocumentById("collaboration", "docId");
+
+    service.updateTitle("collaboration", "docId", "new.docx", USER);
+
+    assertUserProviderClosedAndCallersRestored();
+  }
+
+  @Test
+  public void testAFailedSaveClosesTheUserProvider() throws Exception {
+    Config config = mock(Config.class);
+    Config.Document document = mock(Config.Document.class);
+    when(document.getKey()).thenReturn("key");
+    when(config.getWorkspace()).thenReturn("collaboration");
+    when(config.getDocId()).thenReturn("uuid");
+    when(config.getDocument()).thenReturn(document);
+    DocumentStatus status = mock(DocumentStatus.class);
+    when(status.getConfig()).thenReturn(config);
+    when(status.getUserId()).thenReturn(USER);
+    doNothing().when(service).validateUser(eq(USER), any());
+    doReturn(false).when(service).isSupersededKey(config);
+    doThrow(new RepositoryException("gone")).when(service).getDocumentById("collaboration", "uuid");
+
+    assertThrows(RepositoryException.class, () -> service.download(status));
 
     assertUserProviderClosedAndCallersRestored();
   }

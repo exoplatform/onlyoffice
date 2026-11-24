@@ -1034,7 +1034,7 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
           // stays open until the stream is closed (EoF included) and is closed
           // with it
           final SessionProvider userProvider = sessionProviders.getSessionProvider(null);
-          final InputStream data = new AutoCloseInputStream(new FilterInputStream(content.getProperty("jcr:data")
+          final InputStream data = new AutoCloseInputStream(new FilterInputStream(content.getProperty(NodetypeConstant.JCR_DATA)
                                                                                          .getStream()) {
             @Override
             public void close() throws IOException {
