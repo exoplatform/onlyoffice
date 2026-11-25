@@ -187,6 +187,7 @@
             <include>**/**/DocumentServerTokensTest.java</include>
             <include>**/**/DocumentServerRequestsTest.java</include>
             <include>**/**/ConfigTokenTest.java</include>
+            <include>**/**/EditorSessionProviderReleaseTest.java</include>
           </includes>
         </configuration>
       </plugin>
