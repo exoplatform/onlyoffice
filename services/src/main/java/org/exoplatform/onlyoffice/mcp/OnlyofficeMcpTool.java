@@ -27,12 +27,14 @@ import java.io.InputStream;
 import java.net.URI;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
@@ -47,6 +49,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
 
@@ -61,6 +64,7 @@ import org.exoplatform.onlyoffice.OfficeDocumentsThumbnailPlugin;
 import org.exoplatform.onlyoffice.OnlyofficeEditorService;
 import org.exoplatform.onlyoffice.mcp.model.OfficeDocumentModel;
 import org.exoplatform.onlyoffice.mcp.model.OfficeEditorLinkModel;
+import org.exoplatform.onlyoffice.mcp.model.SpreadsheetCellsModel;
 import org.exoplatform.portal.config.UserACL;
 import org.exoplatform.services.jcr.RepositoryService;
 import org.exoplatform.services.jcr.core.ManageableRepository;
@@ -72,8 +76,11 @@ import org.exoplatform.social.attachment.AttachmentService;
 import org.exoplatform.social.core.manager.IdentityManager;
 import org.exoplatform.upload.UploadService;
 
+import io.meeds.mcp.server.model.ActingIdentity;
 import io.meeds.mcp.server.plugin.McpToolPlugin;
+import io.meeds.mcp.server.plugin.SpaceScopeResolver;
 import io.meeds.mcp.server.tool.util.UploadToolUtils;
+import io.meeds.mcp.server.util.McpToolUtils;
 
 /**
  * MCP tools exposing the ONLYOFFICE editor add-on to the AI agent (EVA). The
@@ -115,8 +122,20 @@ public class OnlyofficeMcpTool implements McpToolPlugin {
   /** EMU (English Metric Units) per point, used by the Document Builder shape/chart geometry. */
   private static final int         EMU                = 36000;
 
+  /** Name of the {@link SpaceScopeResolver} that tells the space of a document node. */
+  public static final String       DOCUMENT_RESOLVER  = "document";
+
+  /** The largest spreadsheet whose cells are read, the workbook being loaded whole. */
+  static final long                MAX_SPREADSHEET_BYTES = SpreadsheetCellReader.MAX_WORKBOOK_BYTES;
+
+  /** A node id as the space scope hands it over: 32 lowercase hexadecimal digits, exactly. */
+  private static final Pattern     NODE_ID            = Pattern.compile("[0-9a-f]{32}");
+
   /** Max bytes fetched for an image referenced by a URL. */
   private static final long        MAX_IMAGE_BYTES    = 15L * 1024 * 1024;
+
+  /** The first sheet of a spreadsheet the Document Builder creates. */
+  private static final String      DEFAULT_SHEET_NAME = "Sheet1";
 
   private static final String      CONVERT_FAILED_MSG =
                                                       "The Document Server could not convert this file. "
@@ -145,6 +164,21 @@ public class OnlyofficeMcpTool implements McpToolPlugin {
 
   private final FileService             fileService;
 
+  /** The contributed resolvers that tell the space of an object, looked up at call time. */
+  private final ObjectProvider<SpaceScopeResolver> spaceScopeResolvers;
+
+  /**
+   * @param onlyofficeEditorService the ONLYOFFICE editor service
+   * @param documentFileService reads the documents
+   * @param identityManager the social identity manager
+   * @param userAcl the user ACL, to build the user's JCR session
+   * @param repositoryService the JCR repository service
+   * @param uploadService the upload service
+   * @param attachmentService the attachment service
+   * @param fileService the file service
+   * @param spaceScopeResolvers the resolvers contributed to the MCP server, among which the
+   *          {@value #DOCUMENT_RESOLVER} one tells the space of an image node
+   */
   public OnlyofficeMcpTool(OnlyofficeEditorService onlyofficeEditorService,
                            DocumentFileService documentFileService,
                            IdentityManager identityManager,
@@ -152,7 +186,8 @@ public class OnlyofficeMcpTool implements McpToolPlugin {
                            RepositoryService repositoryService,
                            UploadService uploadService,
                            AttachmentService attachmentService,
-                           FileService fileService) {
+                           FileService fileService,
+                           ObjectProvider<SpaceScopeResolver> spaceScopeResolvers) {
     this.onlyofficeEditorService = onlyofficeEditorService;
     this.documentFileService = documentFileService;
     this.identityManager = identityManager;
@@ -161,6 +196,7 @@ public class OnlyofficeMcpTool implements McpToolPlugin {
     this.uploadService = uploadService;
     this.attachmentService = attachmentService;
     this.fileService = fileService;
+    this.spaceScopeResolvers = spaceScopeResolvers;
   }
 
   // ---------------------------------------------------------------------------
@@ -303,6 +339,7 @@ public class OnlyofficeMcpTool implements McpToolPlugin {
       }
     }
     JSONArray ops = parseOperations(operations);
+    checkScopedImages(ops, attachmentObjectType, attachmentObjectId);
 
     UserSession userSession = openUserSession();
     try {
@@ -319,7 +356,7 @@ public class OnlyofficeMcpTool implements McpToolPlugin {
 
       switch (format) {
         case "xlsx":
-          appendSpreadsheetOps(ops, script);
+          appendSpreadsheetOps(ops, script, modify ? assets.get("input") : null);
           break;
         case "pptx":
           appendPresentationOps(ops, script, assets, userSession.session(), !modify, attachmentObjectType, attachmentObjectId);
@@ -354,6 +391,137 @@ public class OnlyofficeMcpTool implements McpToolPlugin {
     } finally {
       userSession.close();
     }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Space scope: the images an edit may add while the run is limited to a space
+  // ---------------------------------------------------------------------------
+
+  /**
+   * @return true when the current call is limited to a space; also true when
+   *         its identity can't be read, which a limited call must never be
+   *         taken for the opposite of
+   */
+  protected boolean isSpaceScoped() {
+    try {
+      ActingIdentity identity = McpToolUtils.getCurrentActingIdentity();
+      return identity != null && identity.spaceScope() != null;
+    } catch (IllegalStateException e) {
+      return true;
+    }
+  }
+
+  /**
+   * @return the id of the space the current call is limited to, or null when
+   *         it isn't limited or its identity can't be read
+   */
+  protected Long getSpaceScope() {
+    try {
+      ActingIdentity identity = McpToolUtils.getCurrentActingIdentity();
+      return identity == null ? null : identity.spaceScope();
+    } catch (IllegalStateException e) {
+      return null;
+    }
+  }
+
+  /**
+   * While the call is limited to a space, accepts an {@code add_image}
+   * operation only when it names an image node already in that space: an image
+   * by {@code url}, by an {@code attachment_object_*} (on the operation or on
+   * the tool) or by a node of another space is refused, and so is an operation
+   * that names no node. Without a space scope, nothing is checked.
+   *
+   * @param ops the operations of the call
+   * @param attachmentObjectType the tool-level attachment object type, if any
+   * @param attachmentObjectId the tool-level attachment object id, if any
+   */
+  private void checkScopedImages(JSONArray ops, String attachmentObjectType, String attachmentObjectId) {
+    if (!isSpaceScoped()) {
+      return;
+    }
+    Long spaceScope = getSpaceScope();
+    for (int i = 0; i < ops.length(); i++) {
+      JSONObject op = ops.getJSONObject(i);
+      if (!"add_image".equals(op.optString("type", ""))) {
+        continue;
+      }
+      if (spaceScope == null) {
+        throw scopedImageRefused(null, "its space can't be read, so no image can be added");
+      }
+      if (StringUtils.isNotBlank(op.optString("url", ""))) {
+        throw scopedImageRefused(spaceScope, "an image can't be added from a url");
+      }
+      if (StringUtils.isNotBlank(op.optString("attachment_object_type", ""))
+          || StringUtils.isNotBlank(op.optString("attachment_object_id", ""))
+          || StringUtils.isNotBlank(attachmentObjectType)
+          || StringUtils.isNotBlank(attachmentObjectId)) {
+        throw scopedImageRefused(spaceScope, "an attached image can't be added");
+      }
+      String documentId = op.optString("document_id", "");
+      String imageDocumentId = op.optString("image_document_id", "");
+      if (StringUtils.isBlank(documentId) && StringUtils.isBlank(imageDocumentId)) {
+        throw scopedImageRefused(spaceScope, "an image can only be added by the 'document_id' of an image file of that space");
+      }
+      checkImageNodeInSpace(documentId, spaceScope);
+      checkImageNodeInSpace(imageDocumentId, spaceScope);
+    }
+  }
+
+  /**
+   * Refuses an image node that is not exactly a lowercase 32 hexadecimal
+   * digits id, or that the {@value #DOCUMENT_RESOLVER} resolver does not place
+   * in the space; a blank id is skipped.
+   *
+   * @param nodeId the image node id, may be blank
+   * @param spaceScope the space the call is limited to
+   */
+  private void checkImageNodeInSpace(String nodeId, Long spaceScope) {
+    if (StringUtils.isBlank(nodeId)) {
+      return;
+    }
+    if (!NODE_ID.matcher(nodeId).matches()) {
+      throw scopedImageRefused(spaceScope, "image %s isn't a file id".formatted(nodeId));
+    }
+    List<SpaceScopeResolver> resolvers = spaceScopeResolvers == null ?
+                                                                     List.of() :
+                                                                     spaceScopeResolvers.orderedStream()
+                                                                                        .filter(r -> DOCUMENT_RESOLVER.equals(nameOf(r)))
+                                                                                        .toList();
+    if (resolvers.size() != 1) {
+      throw scopedImageRefused(spaceScope, "the space of an image can't be told");
+    }
+    Long imageSpace;
+    try {
+      imageSpace = resolvers.get(0).spaceOf(nodeId);
+    } catch (RuntimeException e) {
+      LOG.warn("The space of image {} couldn't be read: the image is refused", nodeId, e);
+      imageSpace = null;
+    }
+    if (!spaceScope.equals(imageSpace)) {
+      throw scopedImageRefused(spaceScope, "image %s isn't a file of that space".formatted(nodeId));
+    }
+  }
+
+  /**
+   * @param resolver a contributed resolver
+   * @return its name, null when it fails to give one
+   */
+  private static String nameOf(SpaceScopeResolver resolver) {
+    try {
+      return resolver.getName();
+    } catch (RuntimeException e) {
+      return null;
+    }
+  }
+
+  /**
+   * @param spaceScope the space the call is limited to, null when unknown
+   * @param reason why the image is refused
+   * @return the refusal, worded for the model
+   */
+  private static IllegalArgumentException scopedImageRefused(Long spaceScope, String reason) {
+    return new IllegalArgumentException("Not executed: while this run is limited to the space with id %s, %s. Add only an image file already stored in that space, by its 'document_id', or leave the image out."
+        .formatted(spaceScope == null ? "(unknown)" : spaceScope, reason));
   }
 
   // ---------------------------------------------------------------------------
@@ -541,15 +709,97 @@ public class OnlyofficeMcpTool implements McpToolPlugin {
   }
 
   // ---------------------------------------------------------------------------
+  // get_spreadsheet_cells
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Reads the cells of a range of one sheet of a spreadsheet the user can
+   * read, each with its A1 position, its value and its formula, plus the list
+   * of the workbook's sheets, so a grid can be filled back in its own format
+   * with {@code edit_spreadsheet}. Read from the file as stored: a formula's
+   * value is the one computed when the file was last saved.
+   *
+   * @param documentId the JCR uuid of the spreadsheet
+   * @param sheet the sheet to read, blank for the active one
+   * @param range the range in A1 notation, blank for the sheet's used range
+   * @return the sheets and the non-empty cells of the range
+   * @throws IllegalAccessException when the user can't read the document
+   * @throws ObjectNotFoundException when the document doesn't exist
+   */
+  public SpreadsheetCellsModel getSpreadsheetCells(String documentId,
+                                                   String sheet,
+                                                   String range) throws IllegalAccessException, ObjectNotFoundException {
+    if (StringUtils.isBlank(documentId)) {
+      throw new IllegalArgumentException("The 'document_id' parameter is mandatory (the JCR uuid of the spreadsheet).");
+    }
+    UserSession userSession = openUserSession();
+    try {
+      Node node = resolveNode(userSession.session(), documentId);
+      checkSpreadsheetSize(node, documentId);
+      return SpreadsheetCellReader.read(documentId, nodeTitleOrName(node), readNodeBytes(node, documentId), sheet, range);
+    } finally {
+      userSession.close();
+    }
+  }
+
+  /**
+   * Refuses a spreadsheet too large to be read in memory, before reading it.
+   *
+   * @param node the spreadsheet node
+   * @param documentId its id
+   */
+  private void checkSpreadsheetSize(Node node, String documentId) {
+    long size;
+    try {
+      size = node.getNode("jcr:content").getProperty("jcr:data").getLength();
+    } catch (RepositoryException e) {
+      size = -1;
+    }
+    if (size > MAX_SPREADSHEET_BYTES) {
+      throw new IllegalArgumentException(("The spreadsheet %s is %d MB, over the %d MB its cells can be read from. "
+          + "Read its text with get_document_content_by_id instead.").formatted(documentId,
+                                                                            size / (1024 * 1024),
+                                                                            MAX_SPREADSHEET_BYTES / (1024 * 1024)));
+    }
+  }
+
+  // ---------------------------------------------------------------------------
   // Document Builder script generators (lean, per format)
   // ---------------------------------------------------------------------------
 
-  private void appendSpreadsheetOps(JSONArray ops, StringBuilder s) {
+  /**
+   * Appends the spreadsheet operations to the script. An operation names the
+   * sheet it writes in with {@code sheet}; without it, it writes in the active
+   * sheet, or the last one added. Naming a sheet never activates it, so the
+   * sheet the workbook opens on, and a PDF export shows, stays the same.
+   *
+   * @param ops the operations
+   * @param s the script
+   * @param input the spreadsheet modified, null when one is created
+   */
+  private void appendSpreadsheetOps(JSONArray ops, StringBuilder s, byte[] input) {
     s.append("var oWorksheet = Api.GetActiveSheet();\n");
     boolean sheetAdded = false;
+    List<String> sheetNames = null;
+    List<String> addedSheets = new ArrayList<>();
     for (int i = 0; i < ops.length(); i++) {
       JSONObject op = ops.getJSONObject(i);
       String type = opType(op);
+      String ws = "oWorksheet";
+      if (StringUtils.isNotBlank(op.optString("sheet", null)) && !"add_sheet".equals(type)) {
+        if (sheetNames == null) {
+          sheetNames = input == null ? List.of(DEFAULT_SHEET_NAME) : SpreadsheetCellReader.sheetNames(input);
+        }
+        List<String> knownSheets = new ArrayList<>(sheetNames);
+        knownSheets.addAll(addedSheets);
+        String sheetName = SpreadsheetCellReader.findSheetName(knownSheets, op.getString("sheet"));
+        if (sheetName == null) {
+          throw new IllegalArgumentException(("The spreadsheet has no sheet named '%s'. Its sheets are: %s. Add it first with "
+              + "an add_sheet operation, or name one of them.").formatted(op.getString("sheet"), String.join(", ", knownSheets)));
+        }
+        ws = "__sheet" + i;
+        s.append("var ").append(ws).append(" = Api.GetSheet(").append(jsString(sheetName)).append(");\n");
+      }
       switch (type) {
         case "set_cells": {
           String start = op.optString("start", "A1");
@@ -565,7 +815,7 @@ public class OnlyofficeMcpTool implements McpToolPlugin {
             }
             for (int c = 0; c < cols.length(); c++) {
               Object value = cols.get(c);
-              s.append("oWorksheet.GetRangeByNumber(")
+              s.append(ws).append(".GetRangeByNumber(")
                .append(rc[0] + r)
                .append(", ")
                .append(rc[1] + c)
@@ -579,14 +829,14 @@ public class OnlyofficeMcpTool implements McpToolPlugin {
         case "set_formula": {
           String cell = requireString(op, "cell", "set_formula");
           String formula = requireString(op, "formula", "set_formula");
-          s.append("oWorksheet.GetRange(").append(jsString(cell)).append(").SetValue(").append(jsString(formula)).append(");\n");
+          s.append(ws).append(".GetRange(").append(jsString(cell)).append(").SetValue(").append(jsString(formula)).append(");\n");
           break;
         }
         case "add_chart": {
           String chartType = normalizeChartType(op.optString("chart", op.optString("type_chart", "bar")));
           String range = requireString(op, "range", "add_chart");
           String title = op.optString("title", "");
-          s.append("var oChart = oWorksheet.AddChart(")
+          s.append("var oChart = ").append(ws).append(".AddChart(")
            .append(jsString(range))
            .append(", true, ")
            .append(jsString(chartType))
@@ -605,6 +855,7 @@ public class OnlyofficeMcpTool implements McpToolPlugin {
           s.append("Api.AddSheet(").append(jsString(sheetName)).append(");\n");
           s.append("oWorksheet = Api.GetActiveSheet();\n");
           sheetAdded = true;
+          addedSheets.add(sheetName);
           break;
         }
         default:
