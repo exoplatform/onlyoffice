@@ -21,6 +21,7 @@ package org.exoplatform.onlyoffice.cometd;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.nullable;
@@ -37,6 +38,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -58,7 +60,10 @@ import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.mortbay.cometd.continuation.EXoContinuationBayeux;
 
+import org.exoplatform.onlyoffice.ChangeState;
+import org.exoplatform.onlyoffice.Config;
 import org.exoplatform.onlyoffice.DocumentStatus;
+import org.exoplatform.onlyoffice.OnlyofficeEditorException;
 import org.exoplatform.onlyoffice.OnlyofficeEditorListener;
 import org.exoplatform.onlyoffice.OnlyofficeEditorService;
 import org.exoplatform.services.jcr.RepositoryService;
@@ -301,6 +306,105 @@ public class CometdOnlyofficeServiceTest {
     verify(exoBayeux, never()).isSubscribed(any(), any());
     verify(executor, never()).submit(any(Runnable.class));
     assertEquals(1, delivered.size());
+  }
+
+  /**
+   * An event acting on an editing session by its key is handled when the
+   * sender holds an editor of the channel's document on that key.
+   */
+  @Test
+  public void testKeyEventOfAnEditorTheSenderHoldsOnTheDocumentIsHandled() throws Exception {
+    when(exoBayeux.isSubscribed("john", john.getServerSession().getId())).thenReturn(true);
+    Config config = mock(Config.class);
+    when(config.getDocId()).thenReturn(DOC_ID);
+    when(editors.getEditorByKey("john", "key1")).thenReturn(config);
+
+    for (String type : KEY_EVENTS) {
+      john.getChannel(CHANNEL).publish(keyEvent(type, "key1"));
+    }
+    runSubmittedCommands(KEY_EVENTS.size());
+
+    // the change event records the sender as the key's last modifier, the link event saves the key
+    verify(editors).setLastModifier("key1", "john");
+    verify(editors).forceSave("john", "key1", false, false, false, null);
+    // each of the change, version, user saved and editor closed handlers reads the key's last modifier once
+    verify(editors, times(4)).getLastModifier("key1");
+  }
+
+  /**
+   * A closed editor of the document still counts: the close event of an
+   * editor that already closed saves the last modifier's changes.
+   */
+  @Test
+  public void testCloseEventOfAClosedEditorOfTheDocumentSavesTheChanges() throws Exception {
+    when(exoBayeux.isSubscribed("john", john.getServerSession().getId())).thenReturn(true);
+    Config closed = mock(Config.class);
+    when(closed.getDocId()).thenReturn(DOC_ID);
+    when(closed.isClosed()).thenReturn(true);
+    when(closed.isOpen()).thenReturn(false);
+    when(editors.getEditorByKey("john", "key1")).thenReturn(closed);
+    Config.Editor.User lastUser = mock(Config.Editor.User.class);
+    when(lastUser.getId()).thenReturn("mary");
+    when(lastUser.getLinkSaved()).thenReturn(0L);
+    when(lastUser.getLastModified()).thenReturn(1L);
+    when(editors.getLastModifier("key1")).thenReturn(lastUser);
+    ChangeState state = mock(ChangeState.class);
+    when(state.getUsers()).thenReturn(new String[] { "john", "mary" });
+    when(editors.getState("john", "key1")).thenReturn(state);
+
+    Map<String, Object> event = keyEvent(CometdOnlyofficeService.EDITOR_CLOSED_EVENT, "key1");
+    event.put("changes", Boolean.TRUE);
+    john.getChannel(CHANNEL).publish(event);
+    runSubmittedCommands(1);
+
+    verify(editors).forceSave("mary", "key1", true, false, false, null);
+  }
+
+  /**
+   * An event naming a key of another document, a key the sender holds no
+   * editor on, or no key, is not handled, and is still delivered.
+   */
+  @Test
+  public void testKeyEventOutsideTheSendersEditorsOfTheDocumentIsNotHandled() throws Exception {
+    when(exoBayeux.isSubscribed("john", john.getServerSession().getId())).thenReturn(true);
+    Config otherDocument = mock(Config.class);
+    when(otherDocument.getDocId()).thenReturn("doc2");
+    when(editors.getEditorByKey("john", "key2")).thenReturn(otherDocument);
+    when(editors.getEditorByKey("john", "key3")).thenReturn(null);
+    when(editors.getEditorByKey("john", "key4")).thenThrow(new OnlyofficeEditorException("no user"));
+
+    for (String type : KEY_EVENTS) {
+      for (String key : Arrays.asList("key2", "key3", "key4", null)) {
+        john.getChannel(CHANNEL).publish(keyEvent(type, key));
+      }
+    }
+    runSubmittedCommands(KEY_EVENTS.size() * 4);
+
+    verify(editors, never()).getLastModifier(nullable(String.class));
+    verify(editors, never()).forceSave(nullable(String.class), nullable(String.class), anyBoolean(), anyBoolean(), anyBoolean(), nullable(String.class));
+    assertEquals(KEY_EVENTS.size() * 4, delivered.size());
+  }
+
+  // runs the handler commands the events submitted, as the executor's thread does under the container
+  private void runSubmittedCommands(int count) {
+    ArgumentCaptor<Runnable> commands = ArgumentCaptor.forClass(Runnable.class);
+    verify(executor, times(count)).submit(commands.capture());
+    commands.getAllValues().forEach(command -> ((CometdOnlyofficeService.ContainerCommand) command).execute(null));
+  }
+
+  // the client events acting on an editing session by its key
+  private static final List<String> KEY_EVENTS = Arrays.asList(CometdOnlyofficeService.DOCUMENT_CHANGED_EVENT,
+                                                               CometdOnlyofficeService.DOCUMENT_VERSION_EVENT,
+                                                               CometdOnlyofficeService.DOCUMENT_LINK_EVENT,
+                                                               CometdOnlyofficeService.DOCUMENT_USERSAVED,
+                                                               CometdOnlyofficeService.EDITOR_CLOSED_EVENT);
+
+  private Map<String, Object> keyEvent(String type, String key) {
+    Map<String, Object> data = new HashMap<>();
+    data.put("type", type);
+    data.put("userId", "john");
+    data.put("key", key);
+    return data;
   }
 
   private Map<String, Object> titleEvent(String userId) {

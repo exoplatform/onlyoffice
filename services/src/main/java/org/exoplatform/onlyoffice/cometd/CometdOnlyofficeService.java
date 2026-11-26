@@ -62,6 +62,7 @@ import org.exoplatform.container.ExoContainer;
 import org.exoplatform.container.ExoContainerContext;
 import org.exoplatform.container.PortalContainer;
 import org.exoplatform.container.component.RequestLifeCycle;
+import org.exoplatform.onlyoffice.Config;
 import org.exoplatform.onlyoffice.Config.Editor;
 import org.exoplatform.onlyoffice.DocumentStatus;
 import org.exoplatform.onlyoffice.OnlyofficeEditorException;
@@ -229,6 +230,13 @@ public class CometdOnlyofficeService implements Startable {
 
   /** The content was written outside the editor: the open editors show stale content. */
   public static final String              DOCUMENT_UPDATED_OUTSIDE_EVENT = "DOCUMENT_UPDATED_OUTSIDE";
+
+  /** The client events that act on the editing session their key names. */
+  static final Set<String>                KEY_EVENTS                     = Set.of(DOCUMENT_CHANGED_EVENT,
+                                                                                DOCUMENT_VERSION_EVENT,
+                                                                                DOCUMENT_LINK_EVENT,
+                                                                                DOCUMENT_USERSAVED,
+                                                                                EDITOR_CLOSED_EVENT);
 
   /**
    * Base minimum number of threads for document updates thread executors.
@@ -504,6 +512,12 @@ public class CometdOnlyofficeService implements Startable {
 
         @Override
         void execute(ExoContainer exoContainer) {
+          if (KEY_EVENTS.contains(type) && !isDocumentEditorKey((String) data.get("key"), userId, docId)) {
+            LOG.debug("Ignoring document event for docId {}: user {} holds no editor of that document on the event's key",
+                      docId,
+                      userId);
+            return;
+          }
           switch (type) {
           case DOCUMENT_CHANGED_EVENT:
             handleDocumentChangeEvent(data, docId);
@@ -540,6 +554,29 @@ public class CometdOnlyofficeService implements Startable {
      */
     boolean isSessionUser(ServerSession session, String userId) {
       return session != null && StringUtils.isNotBlank(userId) && exoBayeux.isSubscribed(userId, session.getId());
+    }
+
+    /**
+     * Tells whether the user holds an editor of the document on the key. An
+     * editor that closed still counts, so that its close event saves the
+     * last changes.
+     *
+     * @param key the editing key the event names
+     * @param userId the user of the event
+     * @param docId the document of the channel
+     * @return true if the user holds an editor of that document on that key
+     */
+    boolean isDocumentEditorKey(String key, String userId, String docId) {
+      if (StringUtils.isBlank(key)) {
+        return false;
+      }
+      try {
+        Config config = editors.getEditorByKey(userId, key);
+        return config != null && StringUtils.equals(docId, config.getDocId());
+      } catch (Exception e) {
+        LOG.debug("Cannot read the editor of key {} for user {}", key, userId, e);
+        return false;
+      }
     }
 
     /**
