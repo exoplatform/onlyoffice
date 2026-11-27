@@ -283,6 +283,14 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
   /** The Constant EMPTY_TEXT. */
   protected static final String  EMPTY_TEXT               = "".intern();
 
+  /**
+   * The path of the Document Server's command service. ONLYOFFICE Docs 10.0
+   * also serves it at {@code /command}, but a reverse proxy that routes the
+   * Document Server by path may forward {@code /coauthoring/} and not
+   * {@code /command}.
+   */
+  protected static final String  COMMAND_SERVICE_PATH     = "/coauthoring/CommandService.ashx";
+
   /** The Constant CACHE_NAME. */
   public static final String     CACHE_NAME               = "onlyoffice.EditorCache".intern();
 
@@ -583,7 +591,7 @@ public class OnlyofficeEditorServiceImpl implements OnlyofficeEditorService, Sta
     this.uploadUrl = new StringBuilder(documentserverUrl).append("/FileUploader.ashx").toString();
     this.convertUrl = new StringBuilder(documentserverUrl).append("/converter").toString();
     this.documentserverUrl = new StringBuilder(documentserverUrl).append("/web-apps/").toString();
-    this.commandServiceUrl = new StringBuilder(documentserverUrl).append("/command").toString();
+    this.commandServiceUrl = new StringBuilder(documentserverUrl).append(COMMAND_SERVICE_PATH).toString();
     this.docbuilderUrl = new StringBuilder(documentserverUrl).append("/docbuilder").toString();
     this.documentserverAccessOnly = Boolean.parseBoolean(config.get(CONFIG_DS_ACCESS_ONLY));
     this.documentserverSecret = config.get(CONFIG_DS_SECRET);

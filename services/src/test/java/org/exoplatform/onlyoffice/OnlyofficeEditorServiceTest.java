@@ -1704,8 +1704,7 @@ public class OnlyofficeEditorServiceTest extends BaseCommonsTestCase {
 
   /**
    * The editor service validates a Document Server token for the purpose of
-   * the endpoint that received it, and posts its commands to the command
-   * service path ONLYOFFICE Docs 10.0 documents.
+   * the endpoint that received it.
    */
   @Test
   public void testValidateToken() throws Exception {
@@ -1730,10 +1729,20 @@ public class OnlyofficeEditorServiceTest extends BaseCommonsTestCase {
     // the deprecated method validates as a download
     assertTrue(editorService.validateToken(download, key));
     assertFalse(editorService.validateToken(callback, key));
-
-    String commandServiceUrl = ((OnlyofficeEditorServiceImpl) editorService).commandServiceUrl;
-    assertTrue(commandServiceUrl, commandServiceUrl.endsWith("/command"));
     node.remove();
+  }
+
+  /**
+   * Force-save is posted to the Document Server's command service under
+   * {@code /coauthoring/}, which a reverse proxy that routes the Document
+   * Server by path may forward without forwarding {@code /command}, which
+   * ONLYOFFICE Docs 10.0 also serves: such a proxy hands {@code /command} to
+   * eXo, which answers 404.
+   */
+  @Test
+  public void testTheCommandServiceUrlIsTheOneProxiesRoute() {
+    String commandServiceUrl = ((OnlyofficeEditorServiceImpl) editorService).commandServiceUrl;
+    assertTrue(commandServiceUrl, commandServiceUrl.endsWith("/coauthoring/CommandService.ashx"));
   }
 
   private static String signedToken(Map<String, Object> payload, String operation, String secret) {
