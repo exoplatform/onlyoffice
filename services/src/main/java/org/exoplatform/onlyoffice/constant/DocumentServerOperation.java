@@ -24,7 +24,7 @@ package org.exoplatform.onlyoffice.constant;
  */
 public enum DocumentServerOperation {
 
-  /** A request to the command service ({@code /command}). */
+  /** A request to the command service ({@code /coauthoring/CommandService.ashx}). */
   COMMAND("command"),
 
   /** A request to the conversion service ({@code /converter}). */

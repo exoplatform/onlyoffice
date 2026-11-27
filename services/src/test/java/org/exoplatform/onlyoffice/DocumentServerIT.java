@@ -100,7 +100,7 @@ public class DocumentServerIT {
                                            "script-key",
                                            ("builder.CreateFile(\"docx\");\nbuilder.SaveFile(\"docx\", \"result.docx\");\n"
                                                + "builder.CloseFile();\n").getBytes(StandardCharsets.UTF_8)));
-    server.createContext("/command", this::forwardCommand);
+    server.createContext(OnlyofficeEditorServiceImpl.COMMAND_SERVICE_PATH, this::forwardCommand);
     server.createContext("/" + PortalContainer.getCurrentRestContextName() + "/onlyoffice/editor/content/", this::serveStagedAsset);
     server.start();
   }
@@ -191,6 +191,20 @@ public class DocumentServerIT {
     assertEquals(1, new JSONObject(commandAnswers.get(0)).getInt("error"), commandAnswers.get(0));
   }
 
+  /**
+   * The command service, at the path the addon posts to, refuses a token signed
+   * for another service and a request with no token: error 6, invalid token.
+   */
+  @Test
+  public void testTheCommandServiceRefusesATokenForAnotherServiceOrNone() throws Exception {
+    Map<String, Object> version = Map.of("c", "version");
+    String converterToken = tokens.sign(version, DocumentServerOperation.CONVERTER);
+
+    assertEquals(6, postCommand(version, converterToken).getInt("error"));
+    assertEquals(6, postCommand(version, null).getInt("error"));
+    assertEquals(0, postCommand(version, tokens.sign(version, DocumentServerOperation.COMMAND)).getInt("error"));
+  }
+
   @Test
   public void testTheConversionServiceConvertsADocument() throws Exception {
     OnlyofficeEditorServiceImpl service = service();
@@ -243,7 +257,7 @@ public class DocumentServerIT {
    */
   private void forwardCommand(HttpExchange exchange) throws IOException {
     byte[] body = exchange.getRequestBody().readAllBytes();
-    HttpURLConnection connection = (HttpURLConnection) URI.create(DOCUMENT_SERVER + "/command").toURL().openConnection();
+    HttpURLConnection connection = (HttpURLConnection) URI.create(DOCUMENT_SERVER + OnlyofficeEditorServiceImpl.COMMAND_SERVICE_PATH).toURL().openConnection();
     connection.setRequestMethod("POST");
     connection.setDoOutput(true);
     connection.setRequestProperty("Content-Type", "application/json; charset=UTF-8");
@@ -259,10 +273,26 @@ public class DocumentServerIT {
     exchange.close();
   }
 
+  private JSONObject postCommand(Map<String, Object> command, String token) throws IOException {
+    HttpURLConnection connection = (HttpURLConnection) URI.create(DOCUMENT_SERVER + OnlyofficeEditorServiceImpl.COMMAND_SERVICE_PATH)
+                                                          .toURL()
+                                                          .openConnection();
+    connection.setRequestMethod("POST");
+    connection.setDoOutput(true);
+    connection.setRequestProperty("Content-Type", "application/json; charset=UTF-8");
+    if (token != null) {
+      connection.setRequestProperty("Authorization", "Bearer " + token);
+    }
+    connection.getOutputStream().write(new JSONObject(command).toString().getBytes(StandardCharsets.UTF_8));
+    try (InputStream in = connection.getInputStream()) {
+      return new JSONObject(new String(in.readAllBytes(), StandardCharsets.UTF_8));
+    }
+  }
+
   private OnlyofficeEditorServiceImpl service() throws Exception {
     OnlyofficeEditorServiceImpl service = mock(OnlyofficeEditorServiceImpl.class, CALLS_REAL_METHODS);
     set(service, "documentServerTokens", tokens);
-    set(service, "commandServiceUrl", "http://127.0.0.1:" + server.getAddress().getPort() + "/command");
+    set(service, "commandServiceUrl", "http://127.0.0.1:" + server.getAddress().getPort() + OnlyofficeEditorServiceImpl.COMMAND_SERVICE_PATH);
     set(service, "convertUrl", DOCUMENT_SERVER + "/converter");
     set(service, "docbuilderUrl", DOCUMENT_SERVER + "/docbuilder");
     set(service, "docBuilderAssets", new ConcurrentHashMap<>());

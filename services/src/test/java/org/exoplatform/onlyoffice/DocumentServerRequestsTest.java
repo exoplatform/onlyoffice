@@ -88,7 +88,7 @@ public class DocumentServerRequestsTest {
   public void startDocumentServer() throws IOException {
     server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
     base = "http://127.0.0.1:" + server.getAddress().getPort();
-    server.createContext("/command", exchange -> answer(exchange, "{\"key\":\"k\",\"error\":0}"));
+    server.createContext(OnlyofficeEditorServiceImpl.COMMAND_SERVICE_PATH, exchange -> answer(exchange, "{\"key\":\"k\",\"error\":0}"));
     server.createContext("/converter", exchange -> answer(exchange, "{\"fileUrl\":\"" + base + "/output\",\"percent\":100,\"endConvert\":true}"));
     server.createContext("/docbuilder", exchange -> answer(exchange, "{\"key\":\"bld_1\",\"urls\":{\"result.docx\":\"" + base + "/output\"},\"end\":true}"));
     server.createContext("/output", exchange -> {
@@ -108,7 +108,7 @@ public class DocumentServerRequestsTest {
   public void testAForceSaveIsACommandSignedForTheCommandService() throws Exception {
     service(SECRET).forceSave("john", "doc-key", true, false, false, "a comment");
 
-    Request request = single("/command");
+    Request request = single(OnlyofficeEditorServiceImpl.COMMAND_SERVICE_PATH);
     Claims claims = claimsOf(request.authorization());
     assertEquals("command", claims.get("operation"));
     assertEquals("forcesave", claims.get("c"));
@@ -241,7 +241,7 @@ public class DocumentServerRequestsTest {
   private OnlyofficeEditorServiceImpl service(String secret) throws Exception {
     OnlyofficeEditorServiceImpl service = mock(OnlyofficeEditorServiceImpl.class, CALLS_REAL_METHODS);
     set(service, "documentServerTokens", new DocumentServerTokens(secret));
-    set(service, "commandServiceUrl", base + "/command");
+    set(service, "commandServiceUrl", base + OnlyofficeEditorServiceImpl.COMMAND_SERVICE_PATH);
     set(service, "convertUrl", base + "/converter");
     set(service, "docbuilderUrl", base + "/docbuilder");
     set(service, "docBuilderAssets", new ConcurrentHashMap<>());
