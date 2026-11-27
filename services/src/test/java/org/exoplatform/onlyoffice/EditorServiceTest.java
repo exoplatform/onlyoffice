@@ -1,20 +1,33 @@
 package org.exoplatform.onlyoffice;
 
 import java.io.InputStream;
+import java.net.URI;
 import java.nio.charset.StandardCharsets;
+import java.util.Calendar;
 import java.util.HashMap;
 import java.util.Map;
 
+import javax.jcr.Node;
+import javax.jcr.Session;
 import javax.ws.rs.core.MultivaluedMap;
+import javax.ws.rs.core.Response;
+import javax.ws.rs.core.UriInfo;
+
+import jakarta.servlet.http.HttpServletRequest;
 
 import org.apache.commons.io.IOUtils;
 import org.junit.Test;
+import org.mockito.Mockito;
 
 import org.exoplatform.container.ExoContainer;
 import org.exoplatform.container.ExoContainerContext;
 import org.exoplatform.container.PortalContainer;
 import org.exoplatform.container.component.RequestLifeCycle;
+import org.exoplatform.onlyoffice.rest.EditorService;
 import org.exoplatform.onlyoffice.test.AbstractResourceTest;
+import org.exoplatform.services.jcr.access.PermissionType;
+import org.exoplatform.services.jcr.ext.app.SessionProviderService;
+import org.exoplatform.services.jcr.impl.core.NodeImpl;
 import org.exoplatform.services.log.ExoLogger;
 import org.exoplatform.services.log.Log;
 import org.exoplatform.services.rest.impl.ContainerResponse;
@@ -37,6 +50,9 @@ public class EditorServiceTest extends AbstractResourceTest {
 
   /** The Constant USER. */
   protected static final String USER             = "john";
+
+  /** A user other than the test's. */
+  protected static final String OTHER_USER       = "mary";
 
   /** The Constant SECRET_KEY. */
   protected static final String SECRET_KEY       = "1fRW5pBZu3UIBEdebbpDpKJ4hwExSQoSe97tw8gyYNhqnM1biHb";
@@ -111,6 +127,192 @@ public class EditorServiceTest extends AbstractResourceTest {
     assertNotNull(response);
     assertEquals(200, response.getStatus());
     assertEquals("Testing Content", content);
+    assertEquals("private, no-store", response.getHttpHeaders().getFirst("Cache-Control"));
+  }
+
+  /**
+   * The viewer configuration of a document is cached by no one, nor is any
+   * answer refusing it, and a document the request may not view is answered as
+   * not found, with no detail.
+   *
+   * @throws Exception the exception
+   */
+  @Test
+  public void testViewerConfigIsNotCached() throws Exception {
+    startSessionAs(USER);
+    Node node = session.getRootNode().addNode("viewed.docx", "nt:file");
+    Node contentNode = node.addNode("jcr:content", "nt:unstructured");
+    contentNode.setProperty("jcr:mimeType", "application/vnd.oasis.opendocument.text");
+    contentNode.setProperty("jcr:lastModified", Calendar.getInstance());
+    contentNode.setProperty("jcr:data", "Viewed Content");
+    session.save();
+    String docId = onlyofficeEditorService.initDocument(node);
+    String workspace = session.getWorkspace().getName();
+    try {
+      ContainerResponse viewer = service("GET", RESOURCE_URL + "/viewer/" + workspace + "/" + docId, "", null, null);
+      ContainerResponse unknown = service("GET", RESOURCE_URL + "/viewer/" + workspace + "/unknown-document", "", null, null);
+      ContainerResponse failed = service("GET", RESOURCE_URL + "/viewer/unknown-workspace/" + docId, "", null, null);
+
+      assertEquals(500, failed.getStatus());
+      assertEquals("private, no-store", failed.getHttpHeaders().getFirst("Cache-Control"));
+      assertEquals(200, viewer.getStatus());
+      assertEquals("private, no-store", viewer.getHttpHeaders().getFirst("Cache-Control"));
+      assertEquals(404, unknown.getStatus());
+      assertEquals("{\"error\":\"Document not found\"}", unknown.getEntity());
+      assertEquals("private, no-store", unknown.getHttpHeaders().getFirst("Cache-Control"));
+    } finally {
+      node.remove();
+      session.save();
+    }
+  }
+
+  /**
+   * The Document Server's fetch of the content of a document its user may no
+   * longer view is answered as not found, with no detail.
+   *
+   * @throws Exception the exception
+   */
+  @Test
+  public void testContentOfARemovedDocumentIsNotFound() throws Exception {
+    startSessionAs(USER);
+    String removedKey = createTestDocument(USER, "removed.docx", "Removed Content");
+    session.getRootNode().getNode("removed.docx").remove();
+    session.save();
+    String token = Jwts.builder()
+                       .setSubject("exo-onlyoffice")
+                       .claim("payload", Map.of("key", removedKey))
+                       .signWith(Keys.hmacShaKeyFor(SECRET_KEY.getBytes()))
+                       .compact();
+
+    MultivaluedMap<String, String> headers = new MultivaluedMapImpl();
+    headers.putSingle("authorization", "Bearer " + token);
+    ContainerResponse response = service("GET", RESOURCE_URL + "/content/" + USER + "/" + removedKey, "", headers, null);
+
+    assertEquals(404, response.getStatus());
+    assertEquals("{\"error\":\"Document not found\"}", response.getEntity());
+    assertEquals("private, no-store", response.getHttpHeaders().getFirst("Cache-Control"));
+  }
+
+  /**
+   * The Document Server's fetch of the content of a document its user may no
+   * longer read is answered as not found, with no detail.
+   *
+   * @throws Exception the exception
+   */
+  @Test
+  public void testContentOfADocumentItsUserMayNoLongerReadIsNotFound() throws Exception {
+    startSessionAs(USER);
+    String withdrawnKey = createTestDocument(USER, "withdrawn.docx", "Withdrawn Content");
+    Session systemSession = systemSession("portal-test");
+    NodeImpl node = (NodeImpl) systemSession.getRootNode().getNode("withdrawn.docx");
+    node.addMixin("exo:privilegeable");
+    systemSession.save();
+    node.setPermissions(Map.of(OTHER_USER, PermissionType.ALL));
+    node.save();
+    String token = Jwts.builder()
+                       .setSubject("exo-onlyoffice")
+                       .claim("payload", Map.of("key", withdrawnKey))
+                       .signWith(Keys.hmacShaKeyFor(SECRET_KEY.getBytes()))
+                       .compact();
+    MultivaluedMap<String, String> headers = new MultivaluedMapImpl();
+    headers.putSingle("authorization", "Bearer " + token);
+    try {
+      ContainerResponse response = service("GET", RESOURCE_URL + "/content/" + USER + "/" + withdrawnKey, "", headers, null);
+
+      assertEquals(404, response.getStatus());
+      assertEquals("{\"error\":\"Document not found\"}", response.getEntity());
+      assertEquals("private, no-store", response.getHttpHeaders().getFirst("Cache-Control"));
+    } finally {
+      removeAsSystem(node);
+    }
+  }
+
+  /**
+   * The viewer configuration of a document the request may not read is
+   * answered as not found, with nothing of the document in the answer.
+   *
+   * @throws Exception the exception
+   */
+  @Test
+  public void testViewerConfigOfADocumentTheRequestMayNotReadIsNotFound() throws Exception {
+    startSessionAs(USER);
+    NodeImpl node = createDocumentAsSystem("portal-test", "", "unreadable.docx", Map.of(OTHER_USER, PermissionType.ALL));
+    try {
+      ContainerResponse response = service("GET", RESOURCE_URL + "/viewer/portal-test/" + node.getUUID(), "", null, null);
+
+      assertEquals(404, response.getStatus());
+      assertEquals("{\"error\":\"Document not found\"}", response.getEntity());
+      assertEquals("private, no-store", response.getHttpHeaders().getFirst("Cache-Control"));
+    } finally {
+      removeAsSystem(node);
+    }
+  }
+
+  /**
+   * The editor configuration of a document in the trash is answered as not
+   * found, whoever may write it.
+   *
+   * @throws Exception the exception
+   */
+  @Test
+  public void testEditorConfigOfADocumentInTheTrashIsNotFound() throws Exception {
+    startSessionAs(USER);
+    NodeImpl node = createDocumentAsSystem("collaboration", "Trash/bin", "edited.docx", Map.of(USER, PermissionType.ALL));
+    // Called directly: the test's request handler checks no role, and this
+    // resource method is for users only
+    EditorService editorResource = getContainer().getComponentInstanceOfType(EditorService.class);
+    UriInfo uriInfo = Mockito.mock(UriInfo.class);
+    Mockito.when(uriInfo.getRequestUri())
+           .thenReturn(new URI("http://localhost:8080/portal/rest" + RESOURCE_URL + "/config/collaboration/Trash/bin/edited.docx"));
+    try {
+      Response response = editorResource.configPost(uriInfo,
+                                                    Mockito.mock(HttpServletRequest.class),
+                                                    "collaboration",
+                                                    "Trash/bin/edited.docx");
+
+      assertEquals(404, response.getStatus());
+      assertEquals("{\"error\":\"Document not found\"}", response.getEntity());
+    } finally {
+      removeAsSystem(node);
+    }
+  }
+
+  private Session systemSession(String workspace) throws Exception {
+    return SessionProviderService.getSystemSessionProvider().getSession(workspace, SessionProviderService.getRepository());
+  }
+
+  /**
+   * A document created in a system session under a folder of a workspace,
+   * whose own permissions are the only ones.
+   */
+  private NodeImpl createDocumentAsSystem(String workspace,
+                                          String folderPath,
+                                          String title,
+                                          Map<String, String[]> permissions) throws Exception {
+    Session systemSession = systemSession(workspace);
+    Node folder = systemSession.getRootNode();
+    for (String segment : folderPath.split("/")) {
+      if (!segment.isEmpty()) {
+        folder = folder.hasNode(segment) ? folder.getNode(segment) : folder.addNode(segment, "nt:folder");
+      }
+    }
+    NodeImpl node = (NodeImpl) folder.addNode(title, "nt:file");
+    node.addMixin("exo:privilegeable");
+    node.addMixin("mix:referenceable");
+    Node contentNode = node.addNode("jcr:content", "nt:unstructured");
+    contentNode.setProperty("jcr:mimeType", "application/vnd.openxmlformats-officedocument.wordprocessingml.document");
+    contentNode.setProperty("jcr:lastModified", Calendar.getInstance());
+    contentNode.setProperty("jcr:data", "Content");
+    systemSession.save();
+    node.setPermissions(permissions);
+    node.save();
+    return node;
+  }
+
+  private void removeAsSystem(NodeImpl node) throws Exception {
+    Session systemSession = systemSession(node.getSession().getWorkspace().getName());
+    systemSession.getNodeByUUID(node.getUUID()).remove();
+    systemSession.save();
   }
 
   /**
@@ -133,6 +335,7 @@ public class EditorServiceTest extends AbstractResourceTest {
     assertNotNull(response);
     assertEquals(401, response.getStatus());
     assertEquals("{\"error\":\"The token is not valid\"}", response.getEntity());
+    assertEquals("private, no-store", response.getHttpHeaders().getFirst("Cache-Control"));
   }
 
   /**

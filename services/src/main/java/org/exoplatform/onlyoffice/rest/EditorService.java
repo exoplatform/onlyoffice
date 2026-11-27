@@ -29,6 +29,7 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 import javax.annotation.security.RolesAllowed;
+import javax.jcr.AccessDeniedException;
 import javax.jcr.RepositoryException;
 import jakarta.servlet.http.HttpServletRequest;
 import javax.ws.rs.GET;
@@ -37,6 +38,7 @@ import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.Context;
+import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
@@ -55,6 +57,7 @@ import org.exoplatform.onlyoffice.BadParameterException;
 import org.exoplatform.onlyoffice.ChangeState;
 import org.exoplatform.onlyoffice.Config;
 import org.exoplatform.onlyoffice.DocumentContent;
+import org.exoplatform.onlyoffice.DocumentNotFoundException;
 import org.exoplatform.onlyoffice.DocumentStatus;
 import org.exoplatform.onlyoffice.OnlyofficeEditorException;
 import org.exoplatform.onlyoffice.OnlyofficeEditorService;
@@ -80,6 +83,16 @@ public class EditorService implements ResourceContainer {
 
   /** The Constant LOG. */
   protected static final Log LOG         = ExoLogger.getLogger(EditorService.class);
+
+  /**
+   * What a viewer configuration and a document's content are cached as: by no
+   * one, since either may be of a document only its Recycle Bin lets a user
+   * read.
+   */
+  static final String        NO_STORE    = "private, no-store";
+
+  /** The body of the answer for a document no one may view by that request. */
+  static final String        DOCUMENT_NOT_FOUND = "Document not found";
 
   /**
    * Response builder for connect and state.
@@ -317,6 +330,7 @@ public class EditorService implements ResourceContainer {
     }
 
     EditorResponse resp = new EditorResponse();
+    resp.addHeader(HttpHeaders.CACHE_CONTROL, NO_STORE);
     if (editors.canDownloadBy(clientHost) || editors.canDownloadBy(clientIp)) {
       if (key != null && key.length() > 0) {
         String token = request.getHeader("Authorization");
@@ -344,6 +358,9 @@ public class EditorService implements ResourceContainer {
               LOG.warn("Bad parameter to downloading content for {}. Error: {}", key, e.getMessage());
             }
             resp.error(e.getMessage()).status(Status.BAD_REQUEST);
+          } catch (DocumentNotFoundException | AccessDeniedException e) {
+            LOG.debug("No content to download for {}", key, e);
+            resp.error(DOCUMENT_NOT_FOUND).status(Status.NOT_FOUND);
           } catch (OnlyofficeEditorException e) {
             LOG.error("Error downloading content for " + key, e);
             resp.error("Error downloading content. " + e.getMessage()).status(Status.INTERNAL_SERVER_ERROR);
@@ -390,10 +407,19 @@ public class EditorService implements ResourceContainer {
                                            request.getRemoteUser(),
                                            workspace,
                                            fileId);
-      return Response.ok().entity(config).build();
+      return Response.ok().entity(config).header(HttpHeaders.CACHE_CONTROL, NO_STORE).build();
+    } catch (DocumentNotFoundException | AccessDeniedException e) {
+      LOG.debug("No viewer config for fileId: {}, workspace: {}", fileId, workspace, e);
+      return Response.status(Status.NOT_FOUND)
+                     .entity("{\"error\":\"" + DOCUMENT_NOT_FOUND + "\"}")
+                     .header(HttpHeaders.CACHE_CONTROL, NO_STORE)
+                     .build();
     } catch (OnlyofficeEditorException | RepositoryException e) {
       LOG.error("Cannot create viewer config for fileId: " + fileId + ", workspace: " + workspace, e);
-      return Response.status(HTTPStatus.INTERNAL_ERROR).entity("{\"error\":\"" + e.getMessage() + "\"}").build();
+      return Response.status(HTTPStatus.INTERNAL_ERROR)
+                     .entity("{\"error\":\"" + e.getMessage() + "\"}")
+                     .header(HttpHeaders.CACHE_CONTROL, NO_STORE)
+                     .build();
     }
   }
 
@@ -460,6 +486,9 @@ public class EditorService implements ResourceContainer {
             LOG.warn("Bad parameter for creating editor config {}:{}. Error: {}", workspace, path, e.getMessage());
           }
           resp.error(e.getMessage()).status(Status.BAD_REQUEST);
+        } catch (DocumentNotFoundException e) {
+          LOG.debug("No document to create an editor config for {}:{}", workspace, path, e);
+          resp.error(DOCUMENT_NOT_FOUND).status(Status.NOT_FOUND);
         } catch (OnlyofficeEditorException e) {
           LOG.error("Error creating editor config " + workspace + ":" + path, e);
           resp.error("Error creating editor config. " + e.getMessage()).status(Status.INTERNAL_SERVER_ERROR);
